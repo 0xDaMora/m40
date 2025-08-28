@@ -55,7 +55,7 @@ function calculateStrategies(familyData: FamilyMemberData, filters: IntegrationF
       fechaNacimiento: birthDateString,
       edadJubilacion: filters.retirementAge,
       semanasPrevias: familyData.weeksContributed,
-      dependiente: familyData.civilStatus === 'casado' ? 'conyuge' : 'sinDependientes',
+      dependiente: familyData.civilStatus === 'casado' ? 'conyuge' : 'ninguno',
       umaMin: umaRange.min,
       umaMax: umaRange.max,
       sdiHistorico: familyData.lastGrossSalary / 30.4, // Convertir salario mensual a diario

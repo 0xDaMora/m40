@@ -46,6 +46,7 @@ export const authOptions: NextAuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
+          authProvider: 'credentials'
         }
       }
     })
@@ -115,7 +116,6 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/auth/signin",
-    signUp: "/auth/signup",
     error: "/auth/error",
   }
 }

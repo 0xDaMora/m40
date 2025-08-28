@@ -45,7 +45,12 @@ export async function POST(req: Request) {
         dependiente
       }
 
-      const mejoresEstrategias = filtrarMejoresEstrategias(resultadoCompleto.resultados || [], preferencias)
+      // Filtrar resultados válidos (sin errores)
+      const resultadosValidos = (resultadoCompleto.resultados || []).filter(
+        (resultado: any) => resultado.pensionMensual !== null && resultado.error === undefined
+      )
+      
+      const mejoresEstrategias = filtrarMejoresEstrategias(resultadosValidos, preferencias)
 
       return NextResponse.json({
         escenarios: mejoresEstrategias,

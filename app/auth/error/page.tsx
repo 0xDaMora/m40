@@ -4,8 +4,9 @@ import { useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
 import { AlertCircle, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { Suspense } from "react"
 
-export default function AuthErrorPage() {
+function AuthErrorContent() {
   const searchParams = useSearchParams()
   const error = searchParams.get('error')
 
@@ -60,5 +61,25 @@ export default function AuthErrorPage() {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+export default function AuthErrorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-lg">
+          <div className="text-center">
+            <div className="animate-pulse">
+              <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-4"></div>
+              <div className="h-8 bg-gray-200 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded mb-6"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <AuthErrorContent />
+    </Suspense>
   )
 }
