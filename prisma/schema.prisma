@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Usuarios registrados
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  password      String?  // Para autenticación por email
+  authProvider  String   @default("email") // 'email' | 'google'
+  image         String?  // Para avatar de Google
+  createdAt     DateTime @default(now())
+  subscription  String   @default("free")
+  
+  familyMembers FamilyMember[]
+  savedStrategies SavedStrategy[]
+  estrategiasGuardadas EstrategiaGuardada[]
+  
+  @@map("users")
+}
+
+// Usuarios no registrados (solo email)
+model GuestUser {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+  
+  purchases GuestPurchase[]
+  
+  @@map("guest_users")
+}
+
+// Compra de usuario no registrado
+model GuestPurchase {
+  id           String   @id @default(cuid())
+  guestUserId  String
+  strategyData Json
+  userData     Json
+  purchaseDate DateTime @default(now())
+  planType     String
+  accessToken  String   @unique
+  
+  guestUser    GuestUser @relation(fields: [guestUserId], references: [id])
+  
+  @@map("guest_purchases")
+}
+
+// Miembros familiares
+model FamilyMember {
+  id                    String   @id @default(cuid())
+  userId                String
+  name                  String
+  birthDate             DateTime
+  weeksContributed      Int
+  lastGrossSalary       Float
+  civilStatus           String
+  createdAt             DateTime @default(now())
+  
+  user                  User     @relation(fields: [userId], references: [id])
+  savedStrategies       SavedStrategy[]
+  estrategiasGuardadas  EstrategiaGuardada[]
+  
+  @@map("family_members")
+}
+
+// Estrategias guardadas
+model SavedStrategy {
+  id             String   @id @default(cuid())
+  userId         String?
+  familyMemberId String?
+  strategyName   String
+  strategyData   Json
+  purchaseDate   DateTime?
+  planType       String?
+  createdAt      DateTime @default(now())
+  
+  user           User?           @relation(fields: [userId], references: [id])
+  familyMember   FamilyMember?   @relation(fields: [familyMemberId], references: [id])
+  
+  @@map("saved_strategies")
+}
+
+// Estrategias guardadas compartibles
+model EstrategiaGuardada {
+  id                String   @id @default(cuid())
+  userId            String
+  familyMemberId    String?
+  debugCode         String   @unique
+  datosEstrategia   Json
+  datosUsuario      Json
+  activa            Boolean  @default(true)
+  visualizaciones   Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  user              User           @relation(fields: [userId], references: [id])
+  familiar          FamilyMember?  @relation(fields: [familyMemberId], references: [id])
+  
+  @@map("estrategias_guardadas")
+}
+
+// Tokens de recuperación de contraseña
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  @@map("password_reset_tokens")
+}
