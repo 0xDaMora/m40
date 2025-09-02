@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { TrendingUp, DollarSign, Target, Shield, BarChart3, Zap, Calculator } from "lucide-react"
+import { ajustarPensionConPMG, formatearPMG } from "@/lib/config/pensionMinima"
 
 interface StepEstrategiaPersonalizadaProps {
   onNext: (valores: [string, string]) => void
@@ -51,77 +52,84 @@ export default function StepEstrategiaPersonalizada({
     }
   }, [datosUsuario])
 
-  const pensionSinM40 = 5000 // Estimación básica sin M40
   const formatNumber = (num: number) => num.toLocaleString('es-MX')
+  
+  // Calcular pensión real sin M40 basada en SDI del usuario
+  const calcularPensionSinM40 = () => {
+    if (!datosUsuario?.sdiHistorico) return 5000 // Fallback si no hay datos
+    
+    // SDI diario del usuario
+    const sdiDiario = datosUsuario.sdiHistorico
+    const sdiMensual = sdiDiario * 30.4
+    
+    // Calcular pensión base según Ley 73 (sin M40)
+    const semanasActuales = datosUsuario.semanasPrevias || 0
+    const porcentajeBase = 35
+    const incrementos = Math.floor((semanasActuales - 500) / 52) * 2
+    const porcentajeTotal = Math.max(porcentajeBase + incrementos, 35)
+    
+    // Pensión base
+    const pensionBase = (porcentajeTotal / 100) * sdiMensual
+    
+    // Aplicar factor de edad (asumiendo jubilación a 65)
+    const factorEdad = 1.0 // 65 años = 100%
+    
+    // Pensión final sin M40
+    const pensionFinal = pensionBase * factorEdad
+    
+    return Math.max(pensionFinal, 5000) // Mínimo 5000 como fallback
+  }
+  
+  const pensionSinM40 = calcularPensionSinM40()
 
   const estrategias = [
     {
-      id: "conservadora",
-      title: "Estrategia Conservadora",
-      subtitle: "Segura y manejable",
-      description: "Ideal para empezar en M40 o ingresos variables",
-      pensionObjetivo: "basica",
-      nivelUMA: "conservador",
-      pensionMensual: Math.round(pensionSinM40 * 2.5),
-      pagoMensual: "$3,000 - $6,000",
-      rangoUMA: "5-10 UMA",
-      tiempo: "36-48 meses",
-      ventajas: ["✅ Pagos muy manejables", "✅ Riesgo mínimo", "✅ Fácil de sostener"],
-      consideraciones: ["📊 Pensión moderada", "⏱️ Puede requerir más tiempo"],
-      icon: Shield,
-      color: "bg-green-50 border-green-200 hover:border-green-400",
-      badge: "Recomendada para principiantes"
-    },
-    {
-      id: "equilibrada",
-      title: "Estrategia Equilibrada",
-      subtitle: "El punto dulce",
-      description: "La opción más popular - buena relación costo-beneficio",
-      pensionObjetivo: "buena",
-      nivelUMA: "equilibrado",
-      pensionMensual: Math.round(pensionSinM40 * 4),
-      pagoMensual: "$7,000 - $12,000",
-      rangoUMA: "12-18 UMA",
-      tiempo: "30-42 meses",
-      ventajas: ["✅ Excelente relación costo-beneficio", "✅ Pensión atractiva", "✅ Pagos manejables"],
-      consideraciones: ["📊 Requiere planificación", "⏱️ Compromiso financiero medio"],
-      icon: BarChart3,
-      color: "bg-blue-50 border-blue-200 hover:border-blue-400",
-      badge: "Más elegida"
-    },
-    {
-      id: "agresiva",
-      title: "Estrategia Agresiva",
+      id: "pension-alta",
+      title: "Pensión más alta posible",
       subtitle: "Máximo beneficio",
-      description: "Para quienes buscan la pensión más alta posible",
+      description: "Buscar la pensión mensual más alta, sin importar la inversión",
       pensionObjetivo: "premium",
       nivelUMA: "maximo",
-      pensionMensual: Math.round(pensionSinM40 * 6),
-      pagoMensual: "$12,000 - $18,000",
+      pensionMensual: Math.round(pensionSinM40 * 5),
+      pagoMensual: "$12,000 - $25,000",
       rangoUMA: "18-25 UMA",
-      tiempo: "24-36 meses",
-      ventajas: ["✅ Pensión máxima posible", "✅ Mayor ROI a largo plazo", "✅ Terminas más rápido"],
-      consideraciones: ["💰 Pagos altos", "⚠️ Mayor compromiso financiero", "📈 Requiere estabilidad"],
+      ventajas: ["✅ Pensión máxima posible", "✅ Mejor calidad de vida", "✅ Retorno más alto"],
+      consideraciones: ["💰 Inversión alta", "📊 Requiere buen ingreso"],
       icon: TrendingUp,
       color: "bg-purple-50 border-purple-200 hover:border-purple-400",
-      badge: "Máximo rendimiento"
+      badge: "Máximo beneficio"
     },
     {
-      id: "intensiva",
-      title: "Estrategia Intensiva",
-      subtitle: "Termina rápido",
-      description: "Pagos altos por poco tiempo - ideal si tienes buena capacidad de pago",
-      pensionObjetivo: "maxima",
-      nivelUMA: "maximo",
-      pensionMensual: pensionMaxima > 0 ? pensionMaxima : 50000,
-      pagoMensual: "$15,000 - $25,000",
-      rangoUMA: "20-25 UMA",
-      tiempo: "18-24 meses",
-      ventajas: ["⚡ Terminas en 1-2 años", "🚀 Máximo ROI", "🛡️ Menos riesgo de cambios"],
-      consideraciones: ["💰 Pagos muy altos", "⚠️ Requiere excelente estabilidad", "📊 Máximo esfuerzo"],
-      icon: Zap,
-      color: "bg-yellow-50 border-yellow-200 hover:border-yellow-400",
-      badge: "Para expertos"
+      id: "inversion-baja",
+      title: "Inversión más baja",
+      subtitle: "Ahorro inteligente",
+      description: "Minimizar la inversión total manteniendo una pensión decente",
+      pensionObjetivo: "basica",
+      nivelUMA: "conservador",
+      pensionMensual: Math.round(pensionSinM40 * 2),
+      pagoMensual: "$2,000 - $5,000",
+      rangoUMA: "5-10 UMA",
+      ventajas: ["✅ Inversión mínima", "✅ Fácil de sostener", "✅ Riesgo bajo"],
+      consideraciones: ["📊 Pensión moderada", "⏱️ Más tiempo requerido"],
+      icon: DollarSign,
+      color: "bg-green-50 border-green-200 hover:border-green-400",
+      badge: "Más económica"
+    },
+    {
+      id: "equilibrio",
+      title: "Equilibrio entre ambos",
+      subtitle: "El punto dulce",
+      description: "Balance entre pensión atractiva e inversión manejable",
+      pensionObjetivo: "confortable",
+      nivelUMA: "equilibrado",
+      pensionMensual: Math.round(pensionSinM40 * 3.5),
+      pagoMensual: "$5,000 - $12,000",
+      rangoUMA: "12-18 UMA",
+      ventajas: ["✅ Excelente relación costo-beneficio", "✅ Pensión atractiva", "✅ Pagos manejables"],
+      consideraciones: ["📊 Requiere planificación", "⏱️ Compromiso financiero medio"],
+      icon: Target,
+      color: "bg-blue-50 border-blue-200 hover:border-blue-400",
+      badge: "Más elegida"
     }
   ]
 
@@ -141,18 +149,25 @@ export default function StepEstrategiaPersonalizada({
       className="bg-white p-6 rounded-lg shadow-md"
     >
       <h2 className="text-2xl font-bold text-blue-700 mb-4">
-        ¿Qué tipo de estrategia buscas?
+        ¿Cuál es tu prioridad principal?
       </h2>
       <p className="text-gray-600 mb-6 text-sm">
-        Elige la estrategia que mejor se adapte a tu situación financiera y objetivos de pensión.
+        Elige qué es más importante para ti: obtener la pensión más alta, gastar lo menos posible, o encontrar un equilibrio entre ambos.
       </p>
 
-      {/* Comparativo actual */}
-      <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-        <h3 className="font-semibold text-red-700 mb-2">Tu situación actual (sin M40):</h3>
-        <p className="text-lg font-bold text-red-600">~${formatNumber(pensionSinM40)} pesos mensuales</p>
-        <p className="text-sm text-red-500">Con solo tus semanas actuales</p>
-      </div>
+             {/* Comparativo actual */}
+       <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+         <h3 className="font-semibold text-red-700 mb-2">Tu situación actual (sin M40):</h3>
+         <p className="text-lg font-bold text-red-600">
+           ~${formatNumber(ajustarPensionConPMG(pensionSinM40))} pesos mensuales
+         </p>
+         <p className="text-sm text-red-500">
+           {pensionSinM40 < 9724.48 
+             ? `Con solo tus semanas actuales (incluye PMG: ${formatearPMG()})`
+             : `Con solo tus semanas actuales (tu SDI es suficiente para superar la PMG)`
+           }
+         </p>
+       </div>
 
       <div className="grid grid-cols-1 gap-4 mb-6">
         {estrategias.map((estrategia) => {
@@ -186,9 +201,9 @@ export default function StepEstrategiaPersonalizada({
                     </div>
                     <div className="text-right">
                       <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                        estrategia.badge.includes("principiantes") ? 'bg-green-100 text-green-700' :
+                        estrategia.badge.includes("económica") ? 'bg-green-100 text-green-700' :
                         estrategia.badge.includes("elegida") ? 'bg-blue-100 text-blue-700' :
-                        estrategia.badge.includes("rendimiento") ? 'bg-purple-100 text-purple-700' :
+                        estrategia.badge.includes("beneficio") ? 'bg-purple-100 text-purple-700' :
                         'bg-yellow-100 text-yellow-700'
                       }`}>
                         {estrategia.badge}
@@ -201,7 +216,7 @@ export default function StepEstrategiaPersonalizada({
                   </p>
                   
                   {/* Resultados esperados */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
                     <div className="bg-gray-50 p-3 rounded-lg">
                       <p className="text-xs text-gray-500 mb-1">Pensión objetivo:</p>
                       <p className="font-bold text-green-600">${formatNumber(estrategia.pensionMensual)}</p>
@@ -215,10 +230,7 @@ export default function StepEstrategiaPersonalizada({
                       <p className="text-xs text-gray-500 mb-1">Rango UMA:</p>
                       <p className="font-semibold text-gray-800">{estrategia.rangoUMA}</p>
                     </div>
-                    <div className="bg-gray-50 p-3 rounded-lg">
-                      <p className="text-xs text-gray-500 mb-1">Duración:</p>
-                      <p className="font-semibold text-gray-800">{estrategia.tiempo}</p>
-                    </div>
+
                   </div>
                   
                   {/* Ventajas y consideraciones */}
@@ -249,12 +261,11 @@ export default function StepEstrategiaPersonalizada({
 
       {/* Guía de selección */}
       <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h4 className="font-semibold text-blue-800 mb-2">💡 ¿Cómo elegir tu estrategia?</h4>
+        <h4 className="font-semibold text-blue-800 mb-2">💡 ¿Cómo elegir tu prioridad?</h4>
         <div className="text-sm text-blue-700 space-y-1">
-          <p>• <strong>¿Primera vez en M40?</strong> → Estrategia Conservadora</p>
-          <p>• <strong>¿Ingresos estables y quieres buen balance?</strong> → Estrategia Equilibrada</p>
-          <p>• <strong>¿Quieres la pensión más alta posible?</strong> → Estrategia Agresiva</p>
-          <p>• <strong>¿Tienes excelente capacidad de pago?</strong> → Estrategia Intensiva</p>
+          <p>• <strong>¿Quieres la pensión más alta posible?</strong> → Pensión más alta</p>
+          <p>• <strong>¿Quieres gastar lo menos posible?</strong> → Inversión más baja</p>
+          <p>• <strong>¿Quieres un buen balance entre ambos?</strong> → Equilibrio entre ambos</p>
         </div>
       </div>
 

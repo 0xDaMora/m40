@@ -23,10 +23,11 @@ interface DetallesPlanProps {
   planType: 'basico' | 'premium'
   estrategiaSeleccionada?: Estrategia | null
   todasLasEstrategias?: Estrategia[]
-  datosUsuario?: any // Datos del usuario del simulador
+  datosUsuario?: any
+  onPurchase?: () => void
 }
 
-export default function DetallesPlan({ isOpen, onClose, planType, estrategiaSeleccionada, todasLasEstrategias, datosUsuario }: DetallesPlanProps) {
+export default function DetallesPlan({ isOpen, onClose, planType, estrategiaSeleccionada, todasLasEstrategias, datosUsuario, onPurchase }: DetallesPlanProps) {
   if (!isOpen) return null
 
   const planBasico = {
@@ -53,15 +54,15 @@ export default function DetallesPlan({ isOpen, onClose, planType, estrategiaSele
 
   const planPremium = {
     titulo: "Plan Premium",
-    precio: "$200 MXN",
-    precioOriginal: "$250 MXN",
+    precio: "$999 MXN",
+    precioOriginal: undefined,
     descripcion: "Acceso completo de por vida + todas las estrategias",
     incluye: [
       "🌟 TODO lo del Plan Básico para TODAS las estrategias",
       "🔓 Acceso a los +2,000 escenarios calculados",
       "♾️ Herramienta web de por vida (sin renovaciones)",
       "📊 PDFs ilimitados de cualquier estrategia",
-      "👨‍👩‍👧‍👦 Acceso para cónyuge e hijos (hasta 5 usuarios)",
+      "👨‍👩‍👧‍👦 Acceso para cónyuge e hijos (hasta 10 usuarios)",
       "🔄 Recalcular cuando cambien las UMAs",
       "📈 Actualizaciones automáticas de ley IMSS",
       "📞 Soporte prioritario por WhatsApp",
@@ -97,136 +98,41 @@ export default function DetallesPlan({ isOpen, onClose, planType, estrategiaSele
               onClick={onClose}
               className="text-white/80 hover:text-white p-2"
             >
-              <X className="w-5 h-5" />
+              <X className="w-6 h-6" />
             </button>
-          </div>
-          
-          <div className="mt-4">
-            <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold">{plan.precio}</span>
-              {planType === 'premium' && plan.precioOriginal && (
-                <span className="text-lg line-through opacity-60">{plan.precioOriginal}</span>
-              )}
-              <span className="text-sm opacity-80">pago único</span>
-            </div>
-            {planType === 'premium' && (
-              <p className="text-purple-200 text-sm mt-1">
-                Descuento especial por usar nuestra calculadora
-              </p>
-            )}
           </div>
         </div>
 
-        {/* Contenido */}
+        {/* Content */}
         <div className="p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <FileText className="w-5 h-5 text-blue-600" />
-            Esto es exactamente lo que recibes:
-          </h3>
-          
-          <div className="space-y-3 mb-6">
-            {plan.incluye.map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg"
-              >
-                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                <span className="text-gray-700 text-sm">{item}</span>
-              </motion.div>
-            ))}
+          {/* Precio */}
+          <div className="text-center mb-6">
+            <div className="text-4xl font-bold text-gray-900 mb-2">
+              {plan.precio}
+            </div>
+            {plan.precioOriginal && (
+              <div className="text-lg text-gray-500 line-through">
+                {plan.precioOriginal}
+              </div>
+            )}
           </div>
 
-          {/* Garantías */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <h4 className="font-bold text-green-800 mb-2 flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              Garantías incluidas:
-            </h4>
-            <div className="space-y-1 text-sm text-green-700">
-              <div>✅ Garantía de satisfacción 30 días</div>
-              <div>✅ Soporte por WhatsApp incluido</div>
-              <div>✅ Cálculos verificados con IMSS</div>
-              <div>✅ Documentos actualizados a 2024</div>
-            </div>
+          {/* Lista de beneficios */}
+          <div className="space-y-3 mb-6">
+            {plan.incluye.map((beneficio, index) => (
+              <div key={index} className="flex items-start gap-3">
+                <CheckCircle className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                <span className="text-gray-700">{beneficio}</span>
+              </div>
+            ))}
           </div>
 
           {/* CTAs */}
           <div className="flex gap-3">
             <button
-              onClick={async () => {
-                // Cambiar texto del botón durante el proceso
-                const button = event?.target as HTMLButtonElement
-                const originalText = button.innerHTML
-                button.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Procesando pago...'
-                button.disabled = true
-                
-                try {
-                  // Simular proceso de pago
-                  console.log('💳 Simulando pago...')
-                  
-                  // Generar debug-code único para la estrategia
-                  const debugCode = `compra_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-                  
-                  // Preparar datos para el backend
-                  const datosCompra = {
-                    planType,
-                    precio: planType === 'basico' ? 50 : 200,
-                    estrategiaSeleccionada: planType === 'basico' ? estrategiaSeleccionada : null,
-                    todasLasEstrategias: planType === 'premium' ? todasLasEstrategias : null,
-                    debugCode,
-                    timestamp: new Date().toISOString()
-                  }
-                  
-                  console.log('📤 Enviando datos de compra:', datosCompra)
-                  
-                  // Simular pago exitoso (en producción esto sería la pasarela real)
-                  await new Promise(resolve => setTimeout(resolve, 2000)) // Simular delay de pago
-                  
-                  // Guardar debug-code en localStorage para acceso posterior
-                  localStorage.setItem('debugCodeCompra', debugCode)
-                  localStorage.setItem('planTypeCompra', planType)
-                  
-                  // Redirigir a la interfaz detallada
-                  if (planType === 'basico' && estrategiaSeleccionada) {
-                    // Para plan básico, ir directamente a la estrategia detallada
-                    const params = new URLSearchParams({
-                      code: debugCode,
-                      estrategia: estrategiaSeleccionada.estrategia,
-                      uma: estrategiaSeleccionada.umaElegida.toString(),
-                      meses: estrategiaSeleccionada.mesesM40.toString(),
-                      edad: datosUsuario?.edad?.toString() || '58',
-                      dependiente: datosUsuario?.dependiente || 'conyuge',
-                      sdi: datosUsuario?.sdiHistorico?.toString() || '150',
-                      semanas: datosUsuario?.semanasPrevias?.toString() || '500',
-                      fecha: datosUsuario?.inicioM40 || '2024-02-01'
-                    })
-                    window.location.href = `/debug-estrategia?${params.toString()}`
-                  } else {
-                    // Para plan premium, ir a la página de debug con acceso a todas las estrategias
-                    const params = new URLSearchParams({
-                      code: debugCode,
-                      premium: 'true',
-                      edad: datosUsuario?.edad?.toString() || '58',
-                      dependiente: datosUsuario?.dependiente || 'conyuge',
-                      sdi: datosUsuario?.sdiHistorico?.toString() || '150',
-                      semanas: datosUsuario?.semanasPrevias?.toString() || '500',
-                      fecha: datosUsuario?.inicioM40 || '2024-02-01'
-                    })
-                    window.location.href = `/debug-estrategia?${params.toString()}`
-                  }
-                  
-                } catch (error: any) {
-                  console.error('❌ Error en compra:', error)
-                  alert(`Error: ${error?.message || 'Error desconocido'}. Por favor intenta de nuevo.`)
-                } finally {
-                  // Restaurar botón
-                  if (button) {
-                    button.innerHTML = originalText
-                    button.disabled = false
-                  }
+              onClick={() => {
+                if (onPurchase) {
+                  onPurchase()
                 }
               }}
               className={`flex-1 py-3 px-6 rounded-lg font-bold transition-colors flex items-center justify-center gap-2 ${

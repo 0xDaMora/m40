@@ -12,7 +12,10 @@ import {
   Share2, 
   Eye,
   Trash2,
-  AlertCircle
+  AlertCircle,
+  Clock,
+  Target,
+  CalendarDays
 } from "lucide-react"
 
 interface EstrategiaGuardada {
@@ -39,7 +42,9 @@ export default function MisEstrategiasPage() {
     if (status === "loading") return
     
     if (!session) {
-      router.push("/auth/signin?callbackUrl=/mis-estrategias")
+              // Show login modal instead of redirecting to deleted page
+        // The login modal should handle the callback URL
+        window.location.href = '/?login=true&callbackUrl=/mis-estrategias'
       return
     }
 
@@ -99,158 +104,316 @@ export default function MisEstrategiasPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
+  const verEstrategia = (debugCode: string) => {
+    router.push(`/estrategia/${debugCode}`)
   }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(amount)
   }
 
-  if (status === "loading") {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'long'
+    })
+  }
+
+  const calcularFechaFin = (fechaInicio: string, mesesM40: number) => {
+    const inicio = new Date(fechaInicio)
+    const fin = new Date(inicio)
+    fin.setMonth(fin.getMonth() + mesesM40)
+    return fin.toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'long'
+    })
+  }
+
+  const calcularAportacionMensual = (inversionTotal: number, mesesM40: number) => {
+    return inversionTotal / mesesM40
+  }
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Cargando...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Cargando estrategias...</p>
+          </div>
         </div>
       </div>
     )
   }
 
-  if (!session) {
-    return null
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-20">
+            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Error al cargar estrategias</h2>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={cargarEstrategias}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (estrategias.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center py-20">
+            <Target className="h-16 w-16 text-blue-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">No tienes estrategias guardadas</h2>
+            <p className="text-gray-600 mb-6">
+              Crea tu primera estrategia de Modalidad 40 para empezar a planear tu jubilación
+            </p>
+            <button
+              onClick={() => router.push('/')}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Crear Estrategia
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+        <div className="text-center py-12">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Mis Estrategias Guardadas
           </h1>
-          <p className="text-gray-600">
-            Gestiona y comparte tus estrategias de Modalidad 40
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Revisa y gestiona todas tus estrategias de Modalidad 40. Cada una es única y personalizada para tu situación.
           </p>
         </div>
 
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Cargando estrategias...</p>
+        {/* Estadísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Estrategias</p>
+                <p className="text-2xl font-bold text-gray-900">{estrategias.length}</p>
+              </div>
+              <Target className="h-8 w-8 text-blue-500" />
+            </div>
           </div>
-        ) : error ? (
-          <div className="text-center py-12">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <p className="text-red-600">{error}</p>
+          
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Estrategias Activas</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {estrategias.filter(e => e.activa).length}
+                </p>
+              </div>
+              <TrendingUp className="h-8 w-8 text-green-500" />
+            </div>
           </div>
-        ) : estrategias.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No tienes estrategias guardadas
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Ve al simulador y guarda tu primera estrategia
-            </p>
-            <button
-              onClick={() => router.push("/dashboard")}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Ir al Simulador
-            </button>
+          
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Visualizaciones</p>
+                <p className="text-2xl font-bold text-purple-600">
+                  {estrategias.reduce((sum, e) => sum + e.visualizaciones, 0)}
+                </p>
+              </div>
+              <Eye className="h-8 w-8 text-purple-500" />
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {estrategias.map((estrategia) => (
+          
+          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Última Creada</p>
+                <p className="text-lg font-semibold text-gray-900">
+                  {formatDate(estrategias[0]?.createdAt || '')}
+                </p>
+              </div>
+              <Calendar className="h-8 w-8 text-orange-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* Lista de Estrategias */}
+        <div className="space-y-6">
+          {estrategias.map((estrategia) => {
+            const datosEstrategia = estrategia.datosEstrategia
+            const datosUsuario = estrategia.datosUsuario
+            
+            // Calcular fechas importantes
+            const fechaInicio = datosEstrategia?.inicioM40 || datosUsuario?.inicioM40 || "2024-02-01"
+            const mesesM40 = datosEstrategia?.mesesM40 || 36
+            const fechaFin = calcularFechaFin(fechaInicio, mesesM40)
+            
+            // Calcular aportación mensual
+            const inversionTotal = datosEstrategia?.inversionTotal || 0
+            const aportacionMensual = calcularAportacionMensual(inversionTotal, mesesM40)
+            
+            return (
               <motion.div
                 key={estrategia.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300"
               >
-                {/* Header de la tarjeta */}
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-semibold">
-                      {estrategia.datosEstrategia.estrategia === "fijo" ? "UMA Fijo" : "UMA Progresivo"}
-                    </h3>
-                    <span className="text-sm bg-white/20 px-2 py-1 rounded">
-                      {estrategia.datosEstrategia.umaElegida} UMA
-                    </span>
-                  </div>
-                  <p className="text-blue-100 text-sm">
-                    {estrategia.familiar?.name || "Sin familiar"}
-                  </p>
-                </div>
-
-                {/* Contenido */}
-                <div className="p-4">
-                  {/* Métricas principales */}
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-green-600">
-                        {formatCurrency(estrategia.datosEstrategia.pensionMensual)}
+                <div className="p-6">
+                  {/* Header de la estrategia */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-bold text-gray-900">
+                          {datosUsuario?.nombreFamiliar || estrategia.familiar?.name || "Estrategia"}
+                        </h3>
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full">
+                          {datosEstrategia?.estrategia || "Fijo"}
+                        </span>
+                        <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+                          UMA {datosEstrategia?.umaElegida || "15"}
+                        </span>
                       </div>
-                      <div className="text-xs text-gray-500">Pensión mensual</div>
+                      <p className="text-gray-600">
+                        Creada el {formatDate(estrategia.createdAt)}
+                      </p>
                     </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-blue-600">
-                        {estrategia.datosEstrategia.mesesM40}
+                    
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => verEstrategia(estrategia.debugCode)}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Ver
+                      </button>
+                      <button
+                        onClick={() => compartirEstrategia(estrategia.debugCode)}
+                        className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-2"
+                      >
+                        <Share2 className="h-4 w-4" />
+                        Compartir
+                      </button>
+                      <button
+                        onClick={() => eliminarEstrategia(estrategia.id)}
+                        className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors flex items-center gap-2"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Información principal */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    {/* Pensión Mensual */}
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-4 rounded-lg border border-green-100">
+                      <div className="flex items-center gap-3 mb-2">
+                        <DollarSign className="h-5 w-5 text-green-600" />
+                        <span className="text-sm font-medium text-green-700">Pensión Mensual</span>
                       </div>
-                      <div className="text-xs text-gray-500">Meses M40</div>
+                      <p className="text-2xl font-bold text-green-800">
+                        {formatCurrency(datosEstrategia?.pensionMensual || 0)}
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">Al jubilarse</p>
+                    </div>
+
+                    {/* Aportación Mensual */}
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-100">
+                      <div className="flex items-center gap-3 mb-2">
+                        <TrendingUp className="h-5 w-5 text-blue-600" />
+                        <span className="text-sm font-medium text-blue-700">Aportación Mensual</span>
+                      </div>
+                      <p className="text-2xl font-bold text-blue-800">
+                        {formatCurrency(aportacionMensual)}
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">Durante M40</p>
+                    </div>
+
+                    {/* Fecha de Inicio */}
+                    <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-4 rounded-lg border border-orange-100">
+                      <div className="flex items-center gap-3 mb-2">
+                        <Calendar className="h-5 w-5 text-orange-600" />
+                        <span className="text-sm font-medium text-orange-700">Inicia</span>
+                      </div>
+                      <p className="text-lg font-bold text-orange-800">
+                        {formatDate(fechaInicio)}
+                      </p>
+                      <p className="text-xs text-orange-600 mt-1">Modalidad 40</p>
+                    </div>
+
+                    {/* Fecha de Finalización */}
+                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-4 rounded-lg border border-purple-100">
+                      <div className="flex items-center gap-3 mb-2">
+                        <CalendarDays className="h-5 w-5 text-purple-600" />
+                        <span className="text-sm font-medium text-purple-700">Finaliza</span>
+                      </div>
+                      <p className="text-lg font-bold text-purple-800">
+                        {formatDate(fechaFin)}
+                      </p>
+                      <p className="text-xs text-purple-600 mt-1">Modalidad 40</p>
                     </div>
                   </div>
 
-                  {/* Información adicional */}
-                  <div className="space-y-2 text-sm text-gray-600 mb-4">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>Creada: {formatDate(estrategia.createdAt)}</span>
+                  {/* Detalles adicionales */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Clock className="h-4 w-4" />
+                      <span>Duración: <strong>{mesesM40} meses</strong></span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Eye className="w-4 h-4" />
-                      <span>{estrategia.visualizaciones} visualizaciones</span>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Users className="h-4 w-4" />
+                      <span>Familiar: <strong>{datosUsuario?.nombreFamiliar || estrategia.familiar?.name || "No especificado"}</strong></span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Eye className="h-4 w-4" />
+                      <span>Visualizaciones: <strong>{estrategia.visualizaciones}</strong></span>
                     </div>
                   </div>
 
-                  {/* Acciones */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => window.open(`/estrategia/${estrategia.debugCode}`, '_blank')}
-                      className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center gap-1"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Ver
-                    </button>
-                    <button
-                      onClick={() => compartirEstrategia(estrategia.debugCode)}
-                      className="flex-1 bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm flex items-center justify-center gap-1"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      Compartir
-                    </button>
-                    <button
-                      onClick={() => eliminarEstrategia(estrategia.id)}
-                      className="bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm flex items-center justify-center"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {/* ROI y otros indicadores */}
+                  {datosEstrategia?.ROI && (
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg border border-indigo-100">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-indigo-700 mb-1">Retorno de Inversión</p>
+                          <p className="text-2xl font-bold text-indigo-800">
+                            {(datosEstrategia.ROI || 0).toFixed(1)}%
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium text-indigo-700 mb-1">Inversión Total</p>
+                          <p className="text-xl font-bold text-indigo-800">
+                            {formatCurrency(inversionTotal)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
-            ))}
-          </div>
-        )}
+            )
+          })}
+        </div>
       </div>
     </div>
   )

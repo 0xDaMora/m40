@@ -58,13 +58,7 @@ export function DashboardStats() {
       color: "bg-purple-100",
       description: "Modalidad 40"
     },
-    {
-      title: "Próximo Vencimiento",
-      value: "30 días",
-      icon: <Calendar className="w-6 h-6 text-orange-600" />,
-      color: "bg-orange-100",
-      description: "Plan Premium"
-    }
+
   ])
 
   // Cargar estadísticas reales
@@ -72,12 +66,23 @@ export function DashboardStats() {
     const loadStats = async () => {
       try {
         // Cargar familiares
-        const familyResponse = await fetch('/api/family')
+        const familyResponse = await fetch('/api/family', { credentials: 'include', cache: 'no-store' })
         if (familyResponse.ok) {
           const familyMembers = await familyResponse.json()
           setStats(prev => prev.map(stat => 
             stat.title === "Familiares" 
               ? { ...stat, value: familyMembers.length.toString() }
+              : stat
+          ))
+        }
+
+        // Cargar estrategias guardadas
+        const strategiesResponse = await fetch('/api/mis-estrategias', { credentials: 'include', cache: 'no-store' })
+        if (strategiesResponse.ok) {
+          const strategies = await strategiesResponse.json()
+          setStats(prev => prev.map(stat => 
+            stat.title === "Estrategias" 
+              ? { ...stat, value: strategies.estrategias.length.toString() }
               : stat
           ))
         }
@@ -90,7 +95,7 @@ export function DashboardStats() {
   }, [])
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
       {stats.map((stat, index) => (
         <StatCard
           key={index}

@@ -2,46 +2,47 @@
 
 import { motion } from "framer-motion"
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, LineChart, Line, Area, AreaChart } from 'recharts'
-import { TrendingUp, Users, Award, CheckCircle } from "lucide-react"
+import { TrendingUp, Users, Award, CheckCircle, Shield } from "lucide-react"
 import { useState, useEffect } from "react"
 import AnimatedCounter from "./AnimatedCounter"
 import TooltipInteligente from "./TooltipInteligente"
+import { ajustarPensionConPMG, formatearPMG, obtenerInfoPMG } from "@/lib/config/pensionMinima"
 
 const ejemplosIlustrativos = [
   {
-    titulo: "Caso ilustrativo 1",
-    perfil: "Mujer, 52 años, CDMX",
-    edad: 52,
-    ciudad: "CDMX",
-    pensionAntes: 4200,
-    pensionDespues: 11800,
-    inversion: 48000,
+    titulo: "Caso 1: Inversión Baja - Duplicar PMG",
+    perfil: "Hombre, 62 años, Guadalajara",
+    edad: 62,
+    ciudad: "Guadalajara",
+    pensionAntes: ajustarPensionConPMG(4200), // PMG ajustada
+    pensionDespues: 19449, // Duplicar PMG (9,724.48 × 2)
+    inversion: 180000, // $750/mes × 24 meses
+    meses: 48,
+    descripcion: "Ejemplo de inversión accesible que duplica la pensión mínima garantizada en solo 4 años.",
+    placeholder_foto: true
+  },
+  {
+    titulo: "Caso 2: SDI Alto - Duplicar Pensión", 
+    perfil: "Mujer, 61 años, CDMX",
+    edad: 61,
+    ciudad: "CDMX", 
+    pensionAntes: 15000, // SDI alto, no necesita PMG
+    pensionDespues: 30000, // Duplicar pensión
+    inversion: 360000, // $1,000/mes × 36 meses
     meses: 36,
-    descripcion: "Ejemplo basado en datos típicos del sector para mostrar el potencial de mejora con M40.",
+    descripcion: "Perfil con buen SDI que logra duplicar su pensión con inversión moderada en 3 años.",
     placeholder_foto: true
   },
   {
-    titulo: "Caso ilustrativo 2", 
-    perfil: "Hombre, 48 años, Guadalajara",
-    edad: 48,
-    ciudad: "Guadalajara", 
-    pensionAntes: 3800,
-    pensionDespues: 9200,
-    inversion: 32000,
-    meses: 24,
-    descripcion: "Simulación con parámetros comunes para demostrar recuperación de inversión.",
-    placeholder_foto: true
-  },
-  {
-    titulo: "Caso ilustrativo 3",
-    perfil: "Mujer, 55 años, Monterrey",
-    edad: 55,
+    titulo: "Caso 3: Llegar al TOPE - Máxima Pensión",
+    perfil: "Hombre, 60 años, Monterrey",
+    edad: 60,
     ciudad: "Monterrey",
-    pensionAntes: 5100,
-    pensionDespues: 13500,
-    inversion: 65000,
-    meses: 42,
-    descripcion: "Ejemplo de estrategia a largo plazo con inversión mayor para mejores resultados.",
+    pensionAntes: ajustarPensionConPMG(3800), // PMG ajustada
+    pensionDespues: 59000, // Llegar al tope de pensión
+    inversion: 900000, // $1,500/mes × 48 meses
+    meses: 58,
+    descripcion: "Estrategia ambiciosa para alcanzar la máxima pensión posible con inversión a largo plazo.",
     placeholder_foto: true
   }
 ]
@@ -78,6 +79,12 @@ export default function CasosDeExito() {
             Estos ejemplos muestran cómo diferentes perfiles pueden optimizar su pensión
             del IMSS usando los cálculos oficiales de <TooltipInteligente termino="Modalidad 40">Modalidad 40</TooltipInteligente>
           </p>
+          
+          {/* Información de PMG */}
+          <div className="mt-6 inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium">
+            <Shield className="w-4 h-4" />
+            Pensión Mínima Garantizada {obtenerInfoPMG().anio}: {formatearPMG()}
+          </div>
         </div>
 
         {/* Beneficios oficiales M40 */}
@@ -188,29 +195,35 @@ export default function CasosDeExito() {
                 </div>
               </div>
 
-              {/* Métricas */}
-              <div className="space-y-3 mb-4">
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Pensión anterior</span>
-                  <span className="font-semibold text-indigo-600">${caso.pensionAntes.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">Pensión optimizada</span>
-                  <span className="font-semibold text-amber-600">${caso.pensionDespues.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <span className="text-sm text-gray-600">
-                    <TooltipInteligente termino="Inversión estimada">Inversión estimada</TooltipInteligente>
-                  </span>
-                  <span className="font-semibold text-blue-600">${caso.inversion.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-sm text-gray-600">
-                    <TooltipInteligente termino="Meses en M40">Tiempo en M40</TooltipInteligente>
-                  </span>
-                  <span className="font-semibold text-gray-700">{caso.meses} meses</span>
-                </div>
-              </div>
+                             {/* Métricas */}
+               <div className="space-y-3 mb-4">
+                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                   <span className="text-sm text-gray-600">Pensión anterior</span>
+                   <span className="font-semibold text-indigo-600">${caso.pensionAntes.toLocaleString()}</span>
+                 </div>
+                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                   <span className="text-sm text-gray-600">Pensión optimizada</span>
+                   <span className="font-semibold text-amber-600">${caso.pensionDespues.toLocaleString()}</span>
+                 </div>
+                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                   <span className="text-sm text-gray-600">
+                     <TooltipInteligente termino="Inversión estimada">Inversión total</TooltipInteligente>
+                   </span>
+                   <span className="font-semibold text-blue-600">${caso.inversion.toLocaleString()}</span>
+                 </div>
+                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                   <span className="text-sm text-gray-600">
+                     <TooltipInteligente termino="Aportación Mensual Promedio">Aportación mensual</TooltipInteligente>
+                   </span>
+                   <span className="font-semibold text-green-600">${Math.round(caso.inversion / caso.meses).toLocaleString()}</span>
+                 </div>
+                 <div className="flex justify-between items-center py-2">
+                   <span className="text-sm text-gray-600">
+                     <TooltipInteligente termino="Meses en M40">Tiempo en M40</TooltipInteligente>
+                   </span>
+                   <span className="font-semibold text-gray-700">{caso.meses} meses</span>
+                 </div>
+               </div>
 
               {/* Descripción del caso */}
               <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-500">

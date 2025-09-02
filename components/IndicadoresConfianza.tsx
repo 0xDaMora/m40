@@ -19,7 +19,7 @@ const indicadores = [
   {
     icono: CheckCircle,
     titulo: "Verificado",
-    descripcion: "Tablas UMA 2024 actualizadas",
+    descripcion: "Tablas UMA 2025 actualizadas",
     color: "purple"
   },
   {
@@ -155,7 +155,7 @@ export default function IndicadoresConfianza() {
               Garantizado por Ley 73
             </h3>
             <p className="text-green-700 text-xs leading-tight">
-              Cálculos basados en tablas oficiales IMSS 2024
+              Cálculos basados en tablas oficiales IMSS 2025
             </p>
           </div>
         </div>

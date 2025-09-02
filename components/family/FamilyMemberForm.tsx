@@ -47,6 +47,23 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validaciones
+    if (formData.weeksContributed < 500) {
+      toast.error('Las semanas cotizadas deben ser al menos 500 según la LEY 73 del IMSS')
+      return
+    }
+    
+    if (formData.lastGrossSalary <= 0) {
+      toast.error('El salario bruto debe ser mayor a 0')
+      return
+    }
+    
+    if (!formData.name.trim()) {
+      toast.error('El nombre es requerido')
+      return
+    }
+    
     setLoading(true)
 
     try {
@@ -97,6 +114,7 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
     <AnimatePresence>
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <motion.div
+          key="family-member-form"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}
@@ -160,10 +178,13 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
                   value={formData.weeksContributed}
                   onChange={(e) => handleInputChange('weeksContributed', parseInt(e.target.value) || 0)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="0"
-                  min="0"
+                  placeholder="500"
+                  min="500"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Mínimo 500 semanas según LEY 73 del IMSS
+                </p>
               </div>
 
               {/* Último salario bruto */}

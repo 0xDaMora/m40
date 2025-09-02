@@ -7,6 +7,7 @@ declare module "next-auth" {
       email: string
       name?: string
       authProvider: string
+      subscription?: string
     }
   }
 
@@ -15,6 +16,7 @@ declare module "next-auth" {
     email: string
     name?: string
     authProvider: string
+    subscription?: string
   }
 }
 
@@ -22,5 +24,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     id: string
     authProvider: string
+    subscription?: string
   }
 }

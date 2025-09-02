@@ -11,6 +11,7 @@ interface Params {
   umaMax: number
   sdiHistorico: number // SDI diario histórico
   fechaInicio?: string // formato "YYYY-MM-DD" - fecha de inicio personalizada
+  monthsMode?: 'fixed' | 'scan' // 'fixed' = solo mesesTarget; 'scan' = 1..mesesDisponibles
 }
 
 export function allStrats({
@@ -22,7 +23,19 @@ export function allStrats({
   umaMax,
   sdiHistorico,
   fechaInicio,
+  monthsMode = 'fixed',
 }: Params) {
+  console.log('🔍 DEBUG allStrats - Parámetros recibidos:', {
+    fechaNacimiento,
+    edadJubilacion,
+    semanasPrevias,
+    dependiente,
+    umaMin,
+    umaMax,
+    sdiHistorico,
+    fechaInicio
+  })
+
   // Validaciones básicas de entrada
   if (!fechaNacimiento || !/^\d{4}-\d{2}-\d{2}$/.test(fechaNacimiento)) {
     throw new Error("Formato de fecha de nacimiento inválido (usar YYYY-MM-DD)")
@@ -71,21 +84,21 @@ export function allStrats({
     throw new Error("Ya tiene la edad de jubilación deseada")
   }
 
-  // Fecha en que cumple 55 años (edad mínima recomendada para M40)
-  const fecha55 = new Date(nacimiento)
-  fecha55.setFullYear(nacimiento.getFullYear() + 55)
+  // Fecha en que cumple 53 años (edad mínima para M40 - ajustado para permitir más usuarios)
+  const fecha53 = new Date(nacimiento)
+  fecha53.setFullYear(nacimiento.getFullYear() + 53)
 
   // Usar fecha de inicio personalizada si se proporciona, sino usar la lógica por defecto
   let fechaInicioM40: Date
   if (fechaInicio) {
     fechaInicioM40 = new Date(fechaInicio)
-    // Validar que la fecha de inicio no sea anterior a hoy (puede ser futura)
+    // Si la fecha de inicio es anterior a hoy, ajustar a hoy (permitir simulación)
     if (fechaInicioM40 < hoy) {
-      throw new Error("Fecha de inicio no puede ser anterior a hoy")
+      fechaInicioM40 = new Date(hoy)
     }
   } else {
-    // Si ya tiene más de 55, puede empezar inmediatamente
-    fechaInicioM40 = edadHoy >= 55 ? hoy : fecha55
+    // Si ya tiene más de 53, puede empezar inmediatamente (ajustado de 55 a 53)
+    fechaInicioM40 = edadHoy >= 53 ? hoy : fecha53
   }
 
   // Inicio M40 = mes siguiente a la fecha de inicio
@@ -102,17 +115,41 @@ export function allStrats({
     (fechaJubilacion.getFullYear() - inicioM40.getFullYear()) * 12 +
     (fechaJubilacion.getMonth() - inicioM40.getMonth())
 
+  console.log('🔍 DEBUG allStrats - Cálculos de fechas:', {
+    fechaInicioM40: fechaInicioM40.toISOString().split('T')[0],
+    inicioM40: inicioM40.toISOString().split('T')[0],
+    fechaJubilacion: fechaJubilacion.toISOString().split('T')[0],
+    mesesDisponibles
+  })
+
   // Validar que hay tiempo suficiente
   if (mesesDisponibles < 1) {
     throw new Error("No hay tiempo suficiente entre inicio M40 y jubilación")
   }
 
   // Límite legal: no más de 58 meses (250 semanas)
-mesesDisponibles = Math.min(mesesDisponibles, 58)
+  mesesDisponibles = Math.min(mesesDisponibles, 58)
+  
+  console.log('🔍 DEBUG allStrats - Meses disponibles final:', mesesDisponibles)
 
 
-  // Generar todos los escenarios posibles
-  for (let meses = 1; meses <= mesesDisponibles; meses++) {
+  // Generar escenarios
+  console.log('🔍 DEBUG allStrats - Generando escenarios...')
+  console.log('🔍 DEBUG allStrats - Rango UMA:', umaMin, 'a', umaMax)
+  console.log('🔍 DEBUG allStrats - Meses disponibles:', mesesDisponibles)
+
+  const mesesTarget = Math.min(58, mesesDisponibles)
+  const mesesIterator = monthsMode === 'scan' 
+    ? Array.from({ length: mesesDisponibles }, (_, i) => i + 1)
+    : [mesesTarget]
+
+  if (monthsMode === 'fixed') {
+    console.log('🔍 DEBUG allStrats - Modo meses: fixed →', mesesTarget)
+  } else {
+    console.log('🔍 DEBUG allStrats - Modo meses: scan (1..', mesesDisponibles, ')')
+  }
+
+  for (const meses of mesesIterator) {
     for (const estrategia of ["fijo", "progresivo"] as const) {
       for (const uma of Array.from({ length: umaMax - umaMin + 1 }, (_, i) => umaMin + i)) {
         try {
@@ -135,11 +172,16 @@ mesesDisponibles = Math.min(mesesDisponibles, 58)
       }
     }
   }
+  
+  console.log('🔍 DEBUG allStrats - Total escenarios generados:', resultados.length)
 
   // Filtrar solo resultados válidos y ordenar por ROI descendente
   const resultadosValidos = resultados
     .filter(r => r.pensionMensual !== null && r.ROI !== null)
     .sort((a, b) => (b.ROI || 0) - (a.ROI || 0))
+
+  console.log('🔍 DEBUG allStrats - Resultados válidos:', resultadosValidos.length)
+  console.log('🔍 DEBUG allStrats - Primeros 3 resultados válidos:', resultadosValidos.slice(0, 3))
 
   return {
     resultados: resultadosValidos,

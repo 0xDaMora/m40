@@ -46,6 +46,8 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
   const [guardando, setGuardando] = useState(false)
   const [guardada, setGuardada] = useState(false)
 
+
+
   // Calcular ISR
   const isr = calcularISRPension({
     pensionMensual: estrategia.pensionMensual,
@@ -61,11 +63,42 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
   const fechaInicioM40 = new Date(datosUsuario.inicioM40 || "2024-02-01")
   const fechaFinM40 = new Date(fechaInicioM40)
   fechaFinM40.setMonth(fechaFinM40.getMonth() + estrategia.mesesM40)
-  const fechaTramite = new Date(fechaFinM40)
-  fechaTramite.setMonth(fechaTramite.getMonth() + 1) // 1 mes después para trámites
+  
+  // Calcular fecha de jubilación objetivo (edad de jubilación)
+  let fechaJubilacion: Date
+  let fechaTramite: Date
+  
+
+  
+  // Siempre intentar usar fecha de nacimiento + edad de jubilación
+  if (datosUsuario.fechaNacimiento && datosUsuario.edadJubilacion) {
+    // Calcular fecha exacta de jubilación basada en fecha de nacimiento + edad objetivo
+    const fechaNacimiento = new Date(datosUsuario.fechaNacimiento)
+    const edadJubilacion = parseInt(datosUsuario.edadJubilacion)
+    
+    fechaJubilacion = new Date(fechaNacimiento)
+    fechaJubilacion.setFullYear(fechaNacimiento.getFullYear() + edadJubilacion)
+    
+    // El inicio de trámites es 1 mes antes de la fecha de jubilación objetivo
+    fechaTramite = new Date(fechaJubilacion)
+    fechaTramite.setMonth(fechaTramite.getMonth() - 1)
+    
+
+  } else {
+    // Solo usar fallback si realmente no hay datos de fecha de nacimiento
+    
+    // Fallback: usar fecha de fin M40 + 1 mes para trámites, y + 2 meses para jubilación
+    fechaTramite = new Date(fechaFinM40)
+    fechaTramite.setMonth(fechaTramite.getMonth() + 1)
+    
+    fechaJubilacion = new Date(fechaTramite)
+    fechaJubilacion.setMonth(fechaJubilacion.getMonth() + 1)
+  }
   
   // Calcular año de jubilación para la proyección
-  const añoJubilacion = fechaTramite.getFullYear()
+  const añoJubilacion = fechaJubilacion.getFullYear()
+  
+
   
   // Calcular proyección 20 años desde el año de jubilación
   const proyeccion = calcularProyeccionPension({
@@ -89,6 +122,20 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
       currency: 'MXN',
       minimumFractionDigits: 0
     }).format(amount)
+  }
+
+  // Función para calcular edad
+  const calculateAge = (birthDate: string | Date) => {
+    const today = new Date()
+    const birth = birthDate instanceof Date ? birthDate : new Date(birthDate)
+    let age = today.getFullYear() - birth.getFullYear()
+    const monthDiff = today.getMonth() - birth.getMonth()
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--
+    }
+    
+    return age
   }
 
   const [generandoPDF, setGenerandoPDF] = useState(false)
@@ -178,6 +225,49 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
               Generado el ${new Date().toLocaleDateString('es-MX')}
             </p>
           </div>
+
+          ${datosUsuario.nombreFamiliar ? `
+          <!-- Información Personalizada -->
+          <div style="margin-bottom: 30px; padding: 20px; background-color: #eff6ff; border-radius: 8px; border: 1px solid #bfdbfe;">
+            <h2 style="color: #1e40af; font-size: 18px; margin-bottom: 15px; border-bottom: 2px solid #bfdbfe; padding-bottom: 5px;">
+              👤 Información Personalizada
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+              <div style="background-color: white; padding: 10px; border-radius: 6px; border: 1px solid #dbeafe;">
+                <div style="font-size: 12px; color: #3b82f6; font-weight: bold; margin-bottom: 5px;">👤 Nombre</div>
+                <div style="font-size: 14px; font-weight: bold; color: #1e293b;">${datosUsuario.nombreFamiliar}</div>
+              </div>
+              <div style="background-color: white; padding: 10px; border-radius: 6px; border: 1px solid #dbeafe;">
+                <div style="font-size: 12px; color: #3b82f6; font-weight: bold; margin-bottom: 5px;">📅 Edad Actual</div>
+                <div style="font-size: 14px; font-weight: bold; color: #1e293b;">${datosUsuario.edadActual || calculateAge(datosUsuario.fechaNacimiento)} años</div>
+              </div>
+              <div style="background-color: white; padding: 10px; border-radius: 6px; border: 1px solid #dbeafe;">
+                <div style="font-size: 12px; color: #3b82f6; font-weight: bold; margin-bottom: 5px;">🎯 Edad Jubilación</div>
+                <div style="font-size: 14px; font-weight: bold; color: #1e293b;">${datosUsuario.edadJubilacion} años</div>
+              </div>
+              <div style="background-color: white; padding: 10px; border-radius: 6px; border: 1px solid #dbeafe;">
+                <div style="font-size: 12px; color: #3b82f6; font-weight: bold; margin-bottom: 5px;">📊 Semanas Cotizadas</div>
+                <div style="font-size: 14px; font-weight: bold; color: #1e293b;">${datosUsuario.semanasCotizadas || datosUsuario.semanasPrevias} semanas</div>
+              </div>
+              <div style="background-color: white; padding: 10px; border-radius: 6px; border: 1px solid #dbeafe;">
+                <div style="font-size: 12px; color: #3b82f6; font-weight: bold; margin-bottom: 5px;">💰 Salario Mensual</div>
+                <div style="font-size: 14px; font-weight: bold; color: #1e293b;">${formatCurrency(datosUsuario.salarioMensual || (datosUsuario.sdiHistorico * 30.4))}</div>
+              </div>
+              <div style="background-color: white; padding: 10px; border-radius: 6px; border: 1px solid #dbeafe;">
+                <div style="font-size: 12px; color: #3b82f6; font-weight: bold; margin-bottom: 5px;">📈 SDI Actual</div>
+                <div style="font-size: 14px; font-weight: bold; color: #1e293b;">${formatCurrency(datosUsuario.sdiActual || datosUsuario.sdiHistorico)}</div>
+              </div>
+              <div style="background-color: white; padding: 10px; border-radius: 6px; border: 1px solid #dbeafe;">
+                <div style="font-size: 12px; color: #3b82f6; font-weight: bold; margin-bottom: 5px;">💍 Estado Civil</div>
+                <div style="font-size: 14px; font-weight: bold; color: #1e293b;">${datosUsuario.estadoCivil || 'No especificado'}</div>
+              </div>
+              <div style="background-color: white; padding: 10px; border-radius: 6px; border: 1px solid #dbeafe;">
+                <div style="font-size: 12px; color: #3b82f6; font-weight: bold; margin-bottom: 5px;">💳 Aportación Promedio</div>
+                <div style="font-size: 14px; font-weight: bold; color: #1e293b;">${formatCurrency(datosUsuario.aportacionPromedio || (estrategia.inversionTotal / estrategia.mesesM40))}</div>
+              </div>
+            </div>
+          </div>
+          ` : ''}
 
           <!-- Métricas principales -->
           <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 30px;">
@@ -332,6 +422,10 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
               <div style="margin-bottom: 15px;">
                 <div style="font-weight: bold; color: #dc2626; margin-bottom: 5px;">Inicio de Trámites</div>
                 <div style="color: #64748b;">${formatDate(fechaTramite)}</div>
+              </div>
+              <div style="margin-bottom: 15px;">
+                <div style="font-weight: bold; color: #7c2d12; margin-bottom: 5px;">Fecha de Jubilación</div>
+                <div style="color: #64748b;">${formatDate(fechaJubilacion)}</div>
               </div>
             </div>
           </div>
@@ -546,6 +640,90 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
         </div>
       </div>
 
+      {/* Información personalizada del familiar */}
+      {(datosUsuario.nombreFamiliar || datosUsuario.edadActual || datosUsuario.edadJubilacion || datosUsuario.semanasCotizadas || datosUsuario.sdiActual || datosUsuario.salarioMensual || datosUsuario.estadoCivil || datosUsuario.aportacionPromedio) && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 p-6">
+          <h2 className="text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Información Personalizada del Familiar
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {datosUsuario.nombreFamiliar && (
+              <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
+                <div className="text-sm text-blue-600 font-medium mb-1">👤 Nombre</div>
+                <div className="font-semibold text-gray-900">{datosUsuario.nombreFamiliar}</div>
+              </div>
+            )}
+            {datosUsuario.fechaNacimiento && (
+              <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
+                <div className="text-sm text-blue-600 font-medium mb-1">🎂 Fecha de Nacimiento</div>
+                <div className="font-semibold text-gray-900">{new Date(datosUsuario.fechaNacimiento).toLocaleDateString('es-MX')}</div>
+              </div>
+            )}
+            {(datosUsuario.edadActual || datosUsuario.fechaNacimiento) && (
+              <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
+                <div className="text-sm text-blue-600 font-medium mb-1">📅 Edad Actual</div>
+                <div className="font-semibold text-gray-900">{datosUsuario.edadActual || calculateAge(datosUsuario.fechaNacimiento)} años</div>
+              </div>
+            )}
+            {datosUsuario.edadJubilacion && (
+              <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
+                <div className="text-sm text-blue-600 font-medium mb-1">🎯 Edad Jubilación</div>
+                <div className="font-semibold text-gray-900">{datosUsuario.edadJubilacion} años</div>
+              </div>
+            )}
+            {(datosUsuario.semanasCotizadas || datosUsuario.semanasPrevias) && (
+              <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
+                <div className="text-sm text-blue-600 font-medium mb-1">📊 Semanas Cotizadas</div>
+                <div className="font-semibold text-gray-900">{datosUsuario.semanasCotizadas || datosUsuario.semanasPrevias} semanas</div>
+              </div>
+            )}
+            {(datosUsuario.salarioMensual || datosUsuario.sdiHistorico) && (
+              <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
+                <div className="text-sm text-blue-600 font-medium mb-1">💰 Salario Mensual</div>
+                <div className="font-semibold text-gray-900">{formatCurrency(datosUsuario.salarioMensual || (datosUsuario.sdiHistorico * 30.4))}</div>
+              </div>
+            )}
+            {(datosUsuario.sdiActual || datosUsuario.sdiHistorico) && (
+              <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
+                <div className="text-sm text-blue-600 font-medium mb-1">📈 SDI Actual</div>
+                <div className="font-semibold text-gray-900">{formatCurrency(datosUsuario.sdiActual || datosUsuario.sdiHistorico)}</div>
+              </div>
+            )}
+            {datosUsuario.estadoCivil && (
+              <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
+                <div className="text-sm text-blue-600 font-medium mb-1">💍 Estado Civil</div>
+                <div className="font-semibold text-gray-900 capitalize">{datosUsuario.estadoCivil}</div>
+              </div>
+            )}
+            {(datosUsuario.aportacionPromedio || estrategia.inversionTotal) && (
+              <div className="bg-white p-4 rounded-lg border border-blue-100 shadow-sm">
+                <div className="text-sm text-blue-600 font-medium mb-1">💳 Aportación Promedio</div>
+                <div className="font-semibold text-gray-900">{formatCurrency(datosUsuario.aportacionPromedio || (estrategia.inversionTotal / estrategia.mesesM40))}</div>
+              </div>
+            )}
+          </div>
+          {datosUsuario.fechaNacimiento && datosUsuario.edadJubilacion && (
+            <div className="mt-4 p-4 bg-blue-100 rounded-lg border border-blue-200">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-semibold text-blue-800 mb-1">
+                    🎯 Estrategia Personalizada
+                  </h4>
+                  <p className="text-sm text-blue-700">
+                    Esta estrategia está calculada específicamente para <strong>{datosUsuario.nombreFamiliar}</strong> 
+                    basada en su fecha de nacimiento ({new Date(datosUsuario.fechaNacimiento).toLocaleDateString('es-MX')}) 
+                    y su edad objetivo de jubilación de <strong>{datosUsuario.edadJubilacion} años</strong>. 
+                    Las fechas del cronograma están personalizadas para optimizar su pensión.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tabs de navegación */}
       <div className="border-b border-gray-200">
         <div className="flex overflow-x-auto">
@@ -574,6 +752,7 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
         <AnimatePresence mode="wait">
           {tabActivo === "resumen" && (
             <TabResumen 
+              key="tab-resumen"
               estrategia={estrategia} 
               isr={isr} 
               datosUsuario={datosUsuario}
@@ -582,33 +761,41 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
           )}
           {tabActivo === "pagos" && (
             <TabPagos 
+              key="tab-pagos"
               estrategia={estrategia}
               formatCurrency={formatCurrency}
             />
           )}
           {tabActivo === "cronograma" && (
-            <TabCronograma 
-              fechaInicioM40={fechaInicioM40}
-              fechaFinM40={fechaFinM40}
-              fechaTramite={fechaTramite}
-              mesesM40={estrategia.mesesM40}
-              formatDate={formatDate}
-            />
+                          <TabCronograma
+                key="tab-cronograma"
+                fechaInicioM40={fechaInicioM40}
+                fechaFinM40={fechaFinM40}
+                fechaTramite={fechaTramite}
+                fechaJubilacion={fechaJubilacion}
+                mesesM40={estrategia.mesesM40}
+                formatDate={formatDate}
+                datosUsuario={datosUsuario}
+              />
           )}
           {tabActivo === "proyeccion" && (
             <TabProyeccion 
+              key="tab-proyeccion"
               proyeccion={proyeccion}
               formatCurrency={formatCurrency}
+              datosUsuario={datosUsuario}
             />
           )}
           {tabActivo === "tramites" && (
             <TabTramites 
+              key="tab-tramites"
               fechaTramite={fechaTramite}
               formatDate={formatDate}
             />
           )}
           {tabActivo === "viudez" && (
             <TabViudez 
+              key="tab-viudez"
               pensionViudez={pensionViudez}
               formatCurrency={formatCurrency}
             />
@@ -790,7 +977,34 @@ function TabPagos({ estrategia, formatCurrency }: any) {
   )
 }
 
-function TabCronograma({ fechaInicioM40, fechaFinM40, fechaTramite, mesesM40, formatDate }: any) {
+function TabCronograma({ fechaInicioM40, fechaFinM40, fechaTramite, fechaJubilacion, mesesM40, formatDate, datosUsuario }: any) {
+  // Función para calcular edad en una fecha específica
+  const calcularEdadEnFecha = (fecha: Date) => {
+    if (!datosUsuario.fechaNacimiento) return null
+    const fechaNacimiento = new Date(datosUsuario.fechaNacimiento)
+    let edad = fecha.getFullYear() - fechaNacimiento.getFullYear()
+    const monthDiff = fecha.getMonth() - fechaNacimiento.getMonth()
+    
+    if (monthDiff < 0 || (monthDiff === 0 && fecha.getDate() < fechaNacimiento.getDate())) {
+      edad--
+    }
+    return edad
+  }
+
+  // Función para formatear fecha sin días
+  const formatDateMonthYear = (date: Date) => {
+    return date.toLocaleDateString('es-MX', { 
+      year: 'numeric', 
+      month: 'long'
+    })
+  }
+
+  // Calcular edades
+  const edadInicioM40 = calcularEdadEnFecha(fechaInicioM40)
+  const edadFinM40 = calcularEdadEnFecha(fechaFinM40)
+  const edadTramite = calcularEdadEnFecha(fechaTramite)
+  const edadJubilacion = calcularEdadEnFecha(fechaJubilacion)
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -798,6 +1012,21 @@ function TabCronograma({ fechaInicioM40, fechaFinM40, fechaTramite, mesesM40, fo
       exit={{ opacity: 0, x: -20 }}
       className="space-y-6"
     >
+      <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg mb-6">
+        <div className="flex items-start gap-3">
+          <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <h4 className="font-semibold text-blue-800 mb-1">
+              Cronograma Personalizado de Jubilación
+            </h4>
+            <p className="text-sm text-blue-700">
+              Este cronograma está basado en tu fecha de nacimiento ({datosUsuario.fechaNacimiento ? new Date(datosUsuario.fechaNacimiento).toLocaleDateString('es-MX') : 'No especificada'}) 
+              y tu edad objetivo de jubilación ({datosUsuario.edadJubilacion || datosUsuario.edad} años).
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="relative">
         <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-blue-200"></div>
         
@@ -809,9 +1038,15 @@ function TabCronograma({ fechaInicioM40, fechaFinM40, fechaTramite, mesesM40, fo
             </div>
             <div className="flex-1 bg-blue-50 p-4 rounded-lg">
               <h4 className="font-bold text-blue-800 mb-2">Inicio de Modalidad 40</h4>
-              <p className="text-blue-700 mb-2">{formatDate(fechaInicioM40)}</p>
+              <p className="text-blue-700 mb-2 font-semibold">{formatDateMonthYear(fechaInicioM40)}</p>
+              {edadInicioM40 && (
+                <p className="text-blue-600 mb-2 text-sm">
+                  <span className="font-semibold">Edad:</span> {edadInicioM40} años
+                </p>
+              )}
               <p className="text-sm text-blue-600">
-                Comienzas a realizar pagos voluntarios para mejorar tu promedio salarial.
+                Comienzas a realizar pagos voluntarios para mejorar tu promedio salarial. 
+                Esta fecha fue elegida para optimizar tu estrategia de jubilación.
               </p>
             </div>
           </div>
@@ -823,9 +1058,10 @@ function TabCronograma({ fechaInicioM40, fechaFinM40, fechaTramite, mesesM40, fo
             </div>
             <div className="flex-1 bg-green-50 p-4 rounded-lg">
               <h4 className="font-bold text-green-800 mb-2">Período de Pagos</h4>
-              <p className="text-green-700 mb-2">{mesesM40} meses de contribuciones</p>
+              <p className="text-green-700 mb-2 font-semibold">{mesesM40} meses de contribuciones</p>
               <p className="text-sm text-green-600">
-                Realizas pagos mensuales durante {mesesM40} meses para mejorar tu promedio.
+                Realizas pagos mensuales durante {mesesM40} meses para mejorar tu promedio salarial. 
+                Este período fue calculado para maximizar tu pensión final.
               </p>
             </div>
           </div>
@@ -837,9 +1073,15 @@ function TabCronograma({ fechaInicioM40, fechaFinM40, fechaTramite, mesesM40, fo
             </div>
             <div className="flex-1 bg-purple-50 p-4 rounded-lg">
               <h4 className="font-bold text-purple-800 mb-2">Finalización M40</h4>
-              <p className="text-purple-700 mb-2">{formatDate(fechaFinM40)}</p>
+              <p className="text-purple-700 mb-2 font-semibold">{formatDateMonthYear(fechaFinM40)}</p>
+              {edadFinM40 && (
+                <p className="text-purple-600 mb-2 text-sm">
+                  <span className="font-semibold">Edad:</span> {edadFinM40} años
+                </p>
+              )}
               <p className="text-sm text-purple-600">
-                Completas tu período de Modalidad 40. Tu promedio salarial está optimizado.
+                Completas tu período de Modalidad 40. Tu promedio salarial está optimizado 
+                y listo para el cálculo de tu pensión.
               </p>
             </div>
           </div>
@@ -851,9 +1093,37 @@ function TabCronograma({ fechaInicioM40, fechaFinM40, fechaTramite, mesesM40, fo
             </div>
             <div className="flex-1 bg-orange-50 p-4 rounded-lg">
               <h4 className="font-bold text-orange-800 mb-2">Inicio de Trámites</h4>
-              <p className="text-orange-700 mb-2">{formatDate(fechaTramite)}</p>
+              <p className="text-orange-700 mb-2 font-semibold">{formatDateMonthYear(fechaTramite)}</p>
+              {edadTramite && (
+                <p className="text-orange-600 mb-2 text-sm">
+                  <span className="font-semibold">Edad:</span> {edadTramite} años
+                </p>
+              )}
               <p className="text-sm text-orange-600">
-                Comienzas el proceso de trámites para tu jubilación con el IMSS.
+                Comienzas el proceso de trámites para tu jubilación con el IMSS. 
+                Esta fecha es <strong>1 mes antes de tu edad objetivo de jubilación</strong> para 
+                asegurar que todo esté listo cuando cumplas {datosUsuario.edadJubilacion || datosUsuario.edad} años.
+              </p>
+            </div>
+          </div>
+
+          {/* Jubilación */}
+          <div className="flex items-start gap-4">
+            <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-sm z-10">
+              5
+            </div>
+            <div className="flex-1 bg-red-50 p-4 rounded-lg">
+              <h4 className="font-bold text-red-800 mb-2">Fecha de Jubilación</h4>
+              <p className="text-red-700 mb-2 font-semibold">{formatDateMonthYear(fechaJubilacion)}</p>
+              {edadJubilacion && (
+                <p className="text-red-600 mb-2 text-sm">
+                  <span className="font-semibold">Edad:</span> {edadJubilacion} años
+                </p>
+              )}
+              <p className="text-sm text-red-600">
+                Comienzas a recibir tu pensión mensual del IMSS. Esta fecha corresponde a 
+                <strong> tu edad objetivo de jubilación ({datosUsuario.edadJubilacion || datosUsuario.edad} años)</strong>, 
+                calculada desde tu fecha de nacimiento.
               </p>
             </div>
           </div>
@@ -863,7 +1133,7 @@ function TabCronograma({ fechaInicioM40, fechaFinM40, fechaTramite, mesesM40, fo
   )
 }
 
-function TabProyeccion({ proyeccion, formatCurrency }: any) {
+function TabProyeccion({ proyeccion, formatCurrency, datosUsuario }: any) {
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -880,7 +1150,9 @@ function TabProyeccion({ proyeccion, formatCurrency }: any) {
             </h4>
             <p className="text-sm text-blue-700">
               Tu pensión aumentará 5% cada febrero debido a los incrementos del UMA. 
-              Esta proyección incluye el cálculo de ISR actualizado.
+              Esta proyección comienza en el año {proyeccion[0]?.año || 'N/A'} 
+              {datosUsuario.edadJubilacion && ` cuando cumplas ${datosUsuario.edadJubilacion} años`} 
+              e incluye el cálculo de ISR actualizado.
             </p>
           </div>
         </div>

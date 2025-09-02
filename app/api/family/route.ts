@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
+import { getToken } from "next-auth/jwt"
 import { authOptions } from "@/lib/auth/auth"
 import { prisma } from "@/lib/db/prisma"
 
 // GET - Listar familiares del usuario
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
+    const token = !session ? await getToken({ req: request as any }) : null
+    const userId = session?.user?.id || (token?.sub as string | undefined)
     
-    if (!session?.user?.id) {
+    if (!userId) {
       return NextResponse.json(
         { error: "No autorizado" },
         { status: 401 }
       )
     }
 
+    // Tolerancia a caídas: si falla Prisma por red, devuelve array vacío (evita romper dashboard)
     const familyMembers = await prisma.familyMember.findMany({
       where: {
-        userId: session.user.id
+        userId: userId
       },
       orderBy: {
         createdAt: 'desc'
@@ -25,12 +29,14 @@ export async function GET() {
     })
 
     return NextResponse.json(familyMembers)
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error al obtener familiares:", error)
-    return NextResponse.json(
-      { error: "Error interno del servidor" },
-      { status: 500 }
-    )
+    const msg = String(error?.message || '')
+    if (msg.includes("Can't reach database server")) {
+      // Responder con datos vacíos para no romper UI; el cliente puede reintentar
+      return NextResponse.json([], { status: 200 })
+    }
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
 
@@ -38,8 +44,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
+    const token = !session ? await getToken({ req: request as any }) : null
+    const userId = session?.user?.id || (token?.sub as string | undefined)
     
-    if (!session?.user?.id) {
+    if (!userId) {
       return NextResponse.json(
         { error: "No autorizado" },
         { status: 401 }
@@ -67,7 +75,7 @@ export async function POST(request: NextRequest) {
     // Verificar límite de 10 familiares
     const existingCount = await prisma.familyMember.count({
       where: {
-        userId: session.user.id
+        userId: userId
       }
     })
 
@@ -80,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     const familyMember = await prisma.familyMember.create({
       data: {
-        userId: session.user.id,
+        userId: userId,
         name,
         birthDate: new Date(birthDate),
         weeksContributed,
@@ -90,8 +98,16 @@ export async function POST(request: NextRequest) {
     })
 
     return NextResponse.json(familyMember, { status: 201 })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error al crear familiar:", error)
+    
+    // Log detallado para debugging
+    console.log("🔍 Error details:", {
+      code: error.code,
+      message: error.message,
+      meta: error.meta,
+      stack: error.stack
+    })
     
     // Manejar errores específicos de Prisma
     if (error.code === 'P2003') {
@@ -101,9 +117,21 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    return NextResponse.json(
-      { error: "Error interno del servidor" },
-      { status: 500 }
-    )
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: "Ya existe un familiar con ese nombre." },
+        { status: 400 }
+      )
+    }
+    
+    const msg = String(error?.message || '')
+    if (msg.includes("Can't reach database server") || msg.includes("connect")) {
+      return NextResponse.json({ error: 'Base de datos no disponible, intenta en unos segundos.' }, { status: 503 })
+    }
+    
+    return NextResponse.json({ 
+      error: "Error interno del servidor", 
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    }, { status: 500 })
   }
 }

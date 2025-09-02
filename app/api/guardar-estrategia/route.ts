@@ -13,9 +13,13 @@ export async function POST(req: Request) {
 
     const { debugCode, datosEstrategia, datosUsuario, familyMemberId } = await req.json()
 
+
+
     if (!debugCode || !datosEstrategia || !datosUsuario) {
       return NextResponse.json({ error: "Datos incompletos" }, { status: 400 })
     }
+
+
 
     // Obtener el usuario
     const user = await prisma.user.findUnique({
@@ -50,6 +54,8 @@ export async function POST(req: Request) {
         familiar: true
       }
     })
+
+
 
     return NextResponse.json({
       success: true,

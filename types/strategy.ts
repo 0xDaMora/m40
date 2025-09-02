@@ -11,6 +11,17 @@ export interface Strategy {
   type: 'basic' | 'premium'
 }
 
+// Tipo para los resultados de allStrats
+export interface StrategyResult {
+  estrategia: 'fijo' | 'progresivo'
+  umaElegida: number
+  mesesM40: number
+  pensionMensual: number | null
+  ROI: number | null
+  inversionTotal: number | null
+  error?: string
+}
+
 export interface IntegrationFilters {
   familyMemberId: string | null
   monthlyContributionRange: {
@@ -21,6 +32,7 @@ export interface IntegrationFilters {
   retirementAge: number
   startMonth?: number // Mes de inicio (1-12)
   startYear?: number // Año de inicio
+  monthsMode?: 'fixed' | 'scan' // Modo de generación de estrategias
 }
 
 export interface StrategyFilters {

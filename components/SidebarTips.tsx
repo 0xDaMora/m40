@@ -93,7 +93,7 @@ const tipsPorPaso: Record<string, TipItem[]> = {
   "Nivel UMA": [
     {
       title: "¿Qué es UMA?",
-      content: "Unidad de Medida y Actualización. Es el nuevo salario mínimo de referencia para el IMSS. En 2024 = $108.57 diarios.",
+      content: "Unidad de Medida y Actualización. Es el nuevo salario mínimo de referencia para el IMSS. En 2025 = $113.14 diarios.",
       icon: Info,
       color: "blue"
     }
@@ -120,6 +120,7 @@ export default function SidebarTips({ currentStep, isVisible }: SidebarTipsProps
   return (
     <AnimatePresence>
       <motion.div
+        key="sidebar-tips"
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 20 }}
@@ -192,11 +193,9 @@ export default function SidebarTips({ currentStep, isVisible }: SidebarTipsProps
         <div className="bg-gray-50 p-4 rounded-lg">
           <h4 className="font-medium text-gray-900 text-sm mb-2">¿Tienes dudas?</h4>
           <p className="text-xs text-gray-600 mb-3">
-            Nuestros cálculos están basados en las tablas oficiales del IMSS actualizadas a 2024.
+            Nuestros cálculos están basados en las tablas oficiales del IMSS actualizadas a 2025.
           </p>
-          <button className="text-xs bg-blue-600 text-white px-3 py-2 rounded-md hover:bg-blue-700 transition-colors">
-            WhatsApp: +52 55 1234 5678
-          </button>
+          
         </div>
       </motion.div>
     </AnimatePresence>

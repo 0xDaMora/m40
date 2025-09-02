@@ -61,6 +61,7 @@ export function ForgotPasswordModal({ isOpen, onClose, onBackToLogin }: ForgotPa
     <AnimatePresence>
       <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <motion.div
+          key="forgot-password-modal"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.9 }}

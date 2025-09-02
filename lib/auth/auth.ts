@@ -96,13 +96,29 @@ export const authOptions: NextAuthOptions = {
           })
           if (dbUser) {
             token.id = dbUser.id
+            token.subscription = dbUser.subscription
           } else {
             token.id = user.id
           }
         } else {
           token.id = user.id
+          // Para usuarios de credentials, obtener subscription de la base de datos
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id }
+          })
+          if (dbUser) {
+            token.subscription = dbUser.subscription
+          }
         }
         token.authProvider = account?.provider || 'credentials'
+      } else if (token.id) {
+        // Si no hay user pero hay token, actualizar la información desde la base de datos
+        const dbUser = await prisma.user.findUnique({
+          where: { id: token.id as string }
+        })
+        if (dbUser) {
+          token.subscription = dbUser.subscription
+        }
       }
       return token
     },
@@ -110,12 +126,12 @@ export const authOptions: NextAuthOptions = {
       if (token) {
         session.user.id = token.id as string
         session.user.authProvider = token.authProvider as string
+        session.user.subscription = token.subscription as string
       }
       return session
     }
   },
   pages: {
-    signIn: "/auth/signin",
     error: "/auth/error",
   }
 }

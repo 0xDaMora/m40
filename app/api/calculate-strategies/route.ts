@@ -6,21 +6,26 @@ import { allStrats } from "@/lib/all/allStrats"
 import { getUMARange } from "@/lib/all/umaConverter"
 
 // Función para calcular estrategias usando allStrats
-function calculateStrategies(familyData: FamilyMemberData, filters: IntegrationFilters): any[] {
+function calculateStrategies(familyData: FamilyMemberData, filters: IntegrationFilters, userPreferences?: any): any[] {
   try {
+    console.log('🔍 DEBUG - Iniciando cálculo de estrategias')
+    console.log('🔍 DEBUG - familyData:', familyData)
+    console.log('🔍 DEBUG - filters:', filters)
+    console.log('🔍 DEBUG - userPreferences:', userPreferences)
+    
     // Calcular año actual para usar en las conversiones
     const currentYear = new Date().getFullYear()
     
     // Convertir rango de aportación a UMA
     const umaRange = getUMARange(filters.monthlyContributionRange.min, filters.monthlyContributionRange.max, currentYear)
     
-    console.log('Debug - Aportación:', filters.monthlyContributionRange)
-    console.log('Debug - UMA Range:', umaRange)
-    console.log('Debug - Año usado:', currentYear)
+    console.log('🔍 DEBUG - Aportación:', filters.monthlyContributionRange)
+    console.log('🔍 DEBUG - UMA Range:', umaRange)
+    console.log('🔍 DEBUG - Año usado:', currentYear)
     
     // Validar que el rango UMA sea válido
     if (umaRange.min < 1 || umaRange.max > 25 || umaRange.min > umaRange.max) {
-      console.log('Rango UMA inválido:', umaRange)
+      console.log('❌ Rango UMA inválido:', umaRange)
       return []
     }
     
@@ -35,8 +40,12 @@ function calculateStrategies(familyData: FamilyMemberData, filters: IntegrationF
       currentAge--
     }
 
+    console.log('🔍 DEBUG - Edad actual calculada:', currentAge)
+    console.log('🔍 DEBUG - Edad de jubilación:', filters.retirementAge)
+
     // Verificar que la edad de jubilación sea válida
     if (filters.retirementAge < currentAge) {
+      console.log('❌ Edad de jubilación menor que edad actual:', filters.retirementAge, '<', currentAge)
       return []
     }
 
@@ -51,18 +60,155 @@ function calculateStrategies(familyData: FamilyMemberData, filters: IntegrationF
       : new Date() // Si no se especifica, usar fecha actual
 
     // Usar allStrats para generar todos los escenarios
-    const resultados = allStrats({
+    // Ahora siempre pasamos la fecha de inicio para cálculos consistentes
+    const allStratsParams = {
       fechaNacimiento: birthDateString,
       edadJubilacion: filters.retirementAge,
       semanasPrevias: familyData.weeksContributed,
-      dependiente: familyData.civilStatus === 'casado' ? 'conyuge' : 'ninguno',
+      dependiente: (familyData.civilStatus === 'casado' ? 'conyuge' : 'ninguno') as 'conyuge' | 'ninguno',
       umaMin: umaRange.min,
       umaMax: umaRange.max,
-      sdiHistorico: familyData.lastGrossSalary / 30.4, // Convertir salario mensual a diario
-      fechaInicio: startDate.toISOString().split('T')[0], // Agregar fecha de inicio
-    })
+      sdiHistorico: familyData.lastGrossSalary / 30.4, // SDI diario (a partir de salario mensual)
+      // Siempre incluir fecha de inicio para cálculos consistentes
+      fechaInicio: startDate.toISOString().split('T')[0],
+      // Nuevo: permitir que el cliente controle el modo de meses
+      monthsMode: (filters as any).monthsMode === 'scan' ? 'scan' : 'fixed' as 'scan' | 'fixed'
+    }
+    
+    console.log('🔍 DEBUG - Parámetros para allStrats:', allStratsParams)
+    
+    const resultados = allStrats(allStratsParams)
+    
+    console.log('🔍 DEBUG - Resultados de allStrats:', resultados)
+    console.log('🔍 DEBUG - Número de estrategias encontradas:', resultados.resultados?.length || 0)
 
-    return resultados.resultados
+    // Filtrar estrategias según las preferencias del usuario
+    let estrategiasFiltradas = resultados.resultados || []
+    
+    if (userPreferences) {
+      console.log('🎯 Filtrando por preferencias del usuario:', userPreferences)
+      
+      const { nivelUMA, pensionObjetivo } = userPreferences
+      
+      // Filtrar por nivel UMA - MEJORADO
+      if (nivelUMA) {
+        // Ordenar todas las estrategias por UMA para encontrar percentiles
+        const estrategiasOrdenadasUMA = [...estrategiasFiltradas].sort((a, b) => (a.umaElegida || 0) - (b.umaElegida || 0))
+        const totalEstrategiasUMA = estrategiasOrdenadasUMA.length
+        
+        if (totalEstrategiasUMA > 0) {
+          switch (nivelUMA) {
+            case "conservador": {
+              // Tomar el 25% inferior de las estrategias (UMAs más bajas)
+              const indice25 = Math.floor(totalEstrategiasUMA * 0.25)
+              const umaMax = estrategiasOrdenadasUMA[indice25]?.umaElegida || 10
+              estrategiasFiltradas = estrategiasFiltradas.filter((estrategia: any) => 
+                (estrategia.umaElegida || 0) <= umaMax
+              )
+              console.log(`🎯 Filtrado conservador - UMA <= ${umaMax}: ${estrategiasFiltradas.length} estrategias`)
+              break
+            }
+            case "equilibrado": {
+              // Tomar el 50% medio de las estrategias
+              const indice25 = Math.floor(totalEstrategiasUMA * 0.25)
+              const indice75 = Math.floor(totalEstrategiasUMA * 0.75)
+              const umaMin = estrategiasOrdenadasUMA[indice25]?.umaElegida || 8
+              const umaMax = estrategiasOrdenadasUMA[indice75]?.umaElegida || 18
+              estrategiasFiltradas = estrategiasFiltradas.filter((estrategia: any) => 
+                (estrategia.umaElegida || 0) >= umaMin && (estrategia.umaElegida || 0) <= umaMax
+              )
+              console.log(`🎯 Filtrado equilibrado - UMA ${umaMin}-${umaMax}: ${estrategiasFiltradas.length} estrategias`)
+              break
+            }
+            case "maximo": {
+              // Tomar el 25% superior de las estrategias (UMAs más altas)
+              const indice75 = Math.floor(totalEstrategiasUMA * 0.75)
+              const umaMin = estrategiasOrdenadasUMA[indice75]?.umaElegida || 15
+              estrategiasFiltradas = estrategiasFiltradas.filter((estrategia: any) => 
+                (estrategia.umaElegida || 0) >= umaMin
+              )
+              console.log(`🎯 Filtrado máximo - UMA >= ${umaMin}: ${estrategiasFiltradas.length} estrategias`)
+              break
+            }
+          }
+        }
+      }
+      
+      // Filtrar por pensión objetivo - MEJORADO
+      if (pensionObjetivo) {
+        // Calcular pensión base sin M40 para comparar (más realista)
+        const pensionBase = familyData.lastGrossSalary * 0.25 // 25% del salario como pensión base
+        
+        // Ordenar todas las estrategias por pensión para encontrar percentiles
+        const estrategiasOrdenadas = [...estrategiasFiltradas].sort((a, b) => (a.pensionMensual || 0) - (b.pensionMensual || 0))
+        const totalEstrategias = estrategiasOrdenadas.length
+        
+                 if (totalEstrategias > 0) {
+           switch (pensionObjetivo) {
+             case "basica": {
+               // Tomar el 25% inferior de las estrategias (pensiones más bajas)
+               const indice25 = Math.floor(totalEstrategias * 0.25)
+               const pensionMin = estrategiasOrdenadas[indice25]?.pensionMensual || pensionBase
+               estrategiasFiltradas = estrategiasFiltradas.filter((estrategia: any) => 
+                 (estrategia.pensionMensual || 0) <= pensionMin * 1.5
+               )
+               break
+             }
+             case "confortable": {
+               // Tomar el 50% medio de las estrategias
+               const indice25 = Math.floor(totalEstrategias * 0.25)
+               const indice75 = Math.floor(totalEstrategias * 0.75)
+               const pensionMin = estrategiasOrdenadas[indice25]?.pensionMensual || pensionBase
+               const pensionMax = estrategiasOrdenadas[indice75]?.pensionMensual || pensionBase * 3
+               estrategiasFiltradas = estrategiasFiltradas.filter((estrategia: any) => 
+                 (estrategia.pensionMensual || 0) >= pensionMin && (estrategia.pensionMensual || 0) <= pensionMax
+               )
+               break
+             }
+             case "premium": {
+               // Tomar el 25% superior de las estrategias (pensiones más altas)
+               const indice75 = Math.floor(totalEstrategias * 0.75)
+               const pensionMin = estrategiasOrdenadas[indice75]?.pensionMensual || pensionBase * 2
+               estrategiasFiltradas = estrategiasFiltradas.filter((estrategia: any) => 
+                 (estrategia.pensionMensual || 0) >= pensionMin
+               )
+               break
+             }
+           }
+         }
+        
+        console.log(`🎯 Filtrado por pensión objetivo ${pensionObjetivo}: ${estrategiasFiltradas.length} estrategias`)
+      }
+    }
+    
+    // Ordenar por pensión mensual de mayor a menor
+    const saneadasPorEstrategia = [...(estrategiasFiltradas || [])].sort((a: any, b: any) => (b.pensionMensual || 0) - (a.pensionMensual || 0))
+    console.log('🎯 Estrategias finales ordenadas:', saneadasPorEstrategia.length)
+
+    // Asegurar 5 resultados siempre
+    // Si el cliente pide todas (monthsMode=scan), devolver todas sin truncar
+    if ((filters as any).monthsMode === 'scan') {
+      return saneadasPorEstrategia
+    }
+
+    const topOrdenadas = saneadasPorEstrategia.slice(0, 5)
+    if (topOrdenadas.length < 5) {
+      const faltantes = 5 - topOrdenadas.length
+      const relleno = (resultados.resultados || [])
+        .filter((r: any) => !topOrdenadas.some((e: any) => e.mesesM40 === r.mesesM40 && e.umaElegida === r.umaElegida && e.estrategia === r.estrategia))
+        .sort((a: any, b: any) => (b.pensionMensual || 0) - (a.pensionMensual || 0))
+        .slice(0, faltantes)
+      topOrdenadas.push(...relleno)
+    }
+
+    // Si no hay estrategias después del filtrado, devolver las mejores 5 sin filtrar
+    if (topOrdenadas.length === 0) {
+      console.log('⚠️ No se encontraron estrategias después del filtrado, devolviendo las mejores 5')
+      const mejoresEstrategias = (resultados.resultados || []).sort((a: any, b: any) => (b.pensionMensual || 0) - (a.pensionMensual || 0)).slice(0, 5)
+      return mejoresEstrategias
+    }
+
+    return topOrdenadas
   } catch (error) {
     console.error('Error al calcular estrategias:', error)
     return []
@@ -71,17 +217,17 @@ function calculateStrategies(familyData: FamilyMemberData, filters: IntegrationF
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      )
-    }
+    // Permitir acceso sin autenticación para HeroOnboard
+    // const session = await getServerSession(authOptions)
+    // if (!session?.user?.id) {
+    //   return NextResponse.json(
+    //     { error: "No autorizado" },
+    //     { status: 401 }
+    //   )
+    // }
 
     const body = await request.json()
-    const { familyData, filters }: { familyData: FamilyMemberData, filters: IntegrationFilters } = body
+    const { familyData, filters, userPreferences }: { familyData: FamilyMemberData, filters: IntegrationFilters, userPreferences?: any } = body
 
     // Validaciones
     if (!familyData || !filters) {
@@ -113,7 +259,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Calcular estrategias
-    const strategies = calculateStrategies(familyData, filters)
+    const strategies = calculateStrategies(familyData, filters, userPreferences)
 
     return NextResponse.json({
       strategies,

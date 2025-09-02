@@ -11,6 +11,8 @@ interface StepPensionObjetivoProps {
     edadJubilacion: number
     semanasPrevias: number
     sdiHistorico: number
+    fechaNacimiento: string
+    dependiente: 'conyuge' | 'hijo' | 'otro'
   }
 }
 
@@ -52,42 +54,90 @@ export default function StepPensionObjetivo({ onNext, defaultValue, datosUsuario
   const pensionSinM40 = 5000 // Estimación básica sin M40
   const formatNumber = (num: number) => num.toLocaleString('es-MX')
 
+  // 🎯 CALCULAR PENSIÓN BASE SIN M40 BASADA EN SDI DEL USUARIO
+  const calcularPensionBaseSinM40 = () => {
+    if (!datosUsuario?.sdiHistorico) return pensionSinM40
+    
+    // Calcular SDI diario
+    const sdiDiario = datosUsuario.sdiHistorico
+    
+    // Calcular edad actual
+    const hoy = new Date()
+    const nacimiento = new Date(datosUsuario.fechaNacimiento)
+    let edadActual = hoy.getFullYear() - nacimiento.getFullYear()
+    const m = hoy.getMonth() - nacimiento.getMonth()
+    if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+      edadActual--
+    }
+    
+    // Edad de jubilación (asumir 65 años)
+    const edadJubilacion = 65
+    
+    // Años restantes hasta jubilación
+    const añosRestantes = Math.max(0, edadJubilacion - edadActual)
+    
+    // Semanas totales al jubilarse (semanas previas + años restantes)
+    const semanasTotales = datosUsuario.semanasPrevias + (añosRestantes * 52)
+    
+    // UMA proyectada al año de jubilación (aproximación)
+    const umaFutura = 113.07 * Math.pow(1.05, añosRestantes) // 5% anual
+    
+    // Veces UMA al jubilarse
+    const vecesUMA = sdiDiario / umaFutura
+    
+    // Estimación simplificada de porcentaje (Ley 73)
+    const incrementos = Math.floor((semanasTotales - 500) / 52)
+    const porcentaje = 30 + (incrementos * 2) // 30% base + 2% por año adicional
+    
+    // Pensión base mensual
+    let pensionMensual = (porcentaje / 100) * sdiDiario * 30.4
+    
+    // Aplicar factor edad
+    const factorEdad = edadJubilacion >= 65 ? 1 : edadJubilacion / 65
+    pensionMensual *= factorEdad
+    
+    // Aplicar factor Fox (11% adicional)
+    pensionMensual *= 1.11
+    
+    // Aplicar asignaciones familiares (asumir cónyuge)
+    const dependiente = datosUsuario.dependiente === 'conyuge' ? 0.15 : 0
+    pensionMensual *= 1 + dependiente
+    
+    return Math.round(pensionMensual)
+  }
+
+  const pensionBaseSinM40 = calcularPensionBaseSinM40()
+
   const opciones = [
     {
       value: "basica",
-      pensionMensual: Math.round(pensionSinM40 * 2),
-      title: "Jubilación básica mejorada",
-      description: "Duplicar tu pensión actual",
+      pensionMensual: Math.round(pensionBaseSinM40 * 1.5),
+      title: "Pensión básica mejorada",
+      description: "Mejorar tu pensión actual en un 50%",
+      aportacionEstimada: "2,000 - 5,000 pesos/mes",
       icon: DollarSign,
       color: "bg-blue-50 border-blue-200 hover:border-blue-400",
       esfuerzo: "Bajo esfuerzo"
     },
     {
-      value: "buena",
-      pensionMensual: Math.round(pensionSinM40 * 3.5),
-      title: "Jubilación cómoda",
+      value: "confortable",
+      pensionMensual: Math.round(pensionBaseSinM40 * 2.2),
+      title: "Pensión cómoda",
       description: "Una pensión que te permita vivir bien",
+      aportacionEstimada: "5,000 - 12,000 pesos/mes",
       icon: Target,
       color: "bg-green-50 border-green-200 hover:border-green-400",
       esfuerzo: "Esfuerzo moderado"
     },
     {
       value: "premium",
-      pensionMensual: Math.round(pensionSinM40 * 5),
-      title: "Jubilación premium",
+      pensionMensual: Math.round(pensionBaseSinM40 * 3.0),
+      title: "Pensión premium",
       description: "Para mantener tu estilo de vida actual",
+      aportacionEstimada: "12,000 - 25,000 pesos/mes",
       icon: TrendingUp,
       color: "bg-purple-50 border-purple-200 hover:border-purple-400",
       esfuerzo: "Alto esfuerzo"
-    },
-    {
-      value: "maxima",
-      pensionMensual: pensionMaxima > 0 ? pensionMaxima : 50000,
-      title: "Pensión máxima posible",
-      description: "El límite absoluto con 25 UMA",
-      icon: TrendingUp,
-      color: "bg-yellow-50 border-yellow-200 hover:border-yellow-400",
-      esfuerzo: "Máximo esfuerzo"
     }
   ]
 
@@ -120,14 +170,14 @@ export default function StepPensionObjetivo({ onNext, defaultValue, datosUsuario
       {/* Comparativo actual */}
       <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
         <h3 className="font-semibold text-red-700 mb-2">Tu situación actual (sin M40):</h3>
-        <p className="text-lg font-bold text-red-600">~${formatNumber(pensionSinM40)} pesos mensuales</p>
-        <p className="text-sm text-red-500">Con solo tus semanas actuales</p>
+        <p className="text-lg font-bold text-red-600">~${formatNumber(pensionBaseSinM40)} pesos mensuales</p>
+        <p className="text-sm text-red-500">Con solo tus semanas actuales y SDI de ${formatNumber(datosUsuario?.sdiHistorico || 0)} diario</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 mb-6">
         {opciones.map((opcion) => {
           const IconComponent = opcion.icon
-          const mejora = Math.round(opcion.pensionMensual / pensionSinM40 * 10) / 10
+          const mejora = Math.round(opcion.pensionMensual / pensionBaseSinM40 * 10) / 10
           
           return (
             <motion.button
@@ -162,12 +212,15 @@ export default function StepPensionObjetivo({ onNext, defaultValue, datosUsuario
                   <p className="text-sm text-gray-600 mb-2">
                     {opcion.description}
                   </p>
+                  <p className="text-xs text-blue-600 mb-2">
+                    💰 Aportación estimada: {opcion.aportacionEstimada}
+                  </p>
                   <div className="flex justify-between items-center">
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
                       {opcion.esfuerzo}
                     </span>
                     <span className="text-xs text-blue-600">
-                      vs ${formatNumber(pensionSinM40)} actual
+                      vs ${formatNumber(pensionBaseSinM40)} actual
                     </span>
                   </div>
                 </div>
@@ -188,7 +241,7 @@ export default function StepPensionObjetivo({ onNext, defaultValue, datosUsuario
               value={custom}
               onChange={(e) => setCustom(e.target.value)}
               placeholder="Ej: 35000"
-              min={pensionSinM40}
+              min={pensionBaseSinM40}
               max={pensionMaxima > 0 ? pensionMaxima : 100000}
               className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               onKeyPress={(e) => e.key === "Enter" && handleCustomSubmit()}
@@ -196,7 +249,7 @@ export default function StepPensionObjetivo({ onNext, defaultValue, datosUsuario
           </div>
           <button
             onClick={handleCustomSubmit}
-            disabled={!custom || parseInt(custom) <= pensionSinM40}
+            disabled={!custom || parseInt(custom) <= pensionBaseSinM40}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             OK

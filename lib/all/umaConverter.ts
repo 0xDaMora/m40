@@ -11,12 +11,11 @@ export function aportacionToUMA(aportacionMensual: number, year: number = 2025):
   // Obtener el valor UMA para el año específico
   const umaValue = getUMA(year)
   
-  // Aportación diaria = aportación mensual / 30.4 días
-  const aportacionDiaria = aportacionMensual / 30.4
+  // La fórmula correcta es: aportación mensual = UMA * valor UMA * tasa M40 * 30.4
+  // Por lo tanto: UMA = aportación mensual / (valor UMA * tasa M40 * 30.4)
+  const uma = aportacionMensual / (umaValue * tasaM40 * 30.4)
   
-  // UMA = aportación diaria / (tasa M40 * valor UMA)
-  // La fórmula correcta es: UMA = aportación diaria / (tasa M40 * valor UMA)
-  const uma = aportacionDiaria / (tasaM40 * umaValue)
+  console.log(`Debug - aportacionToUMA: ${aportacionMensual} → UMA ${uma} (tasa: ${tasaM40}, value: ${umaValue})`)
   
   return Math.round(uma * 100) / 100 // Redondear a 2 decimales
 }
@@ -28,11 +27,10 @@ export function umaToAportacion(uma: number, year: number = 2025): number {
   // Obtener el valor UMA para el año específico
   const umaValue = getUMA(year)
   
-  // Aportación diaria = UMA * tasa M40 * valor UMA
-  const aportacionDiaria = uma * tasaM40 * umaValue
+  // Aportación mensual = UMA * valor UMA * tasa M40 * 30.4
+  const aportacionMensual = uma * umaValue * tasaM40 * 30.4
   
-  // Aportación mensual = aportación diaria * 30.4 días
-  const aportacionMensual = aportacionDiaria * 30.4
+  console.log(`Debug - umaToAportacion: ${uma} UMA → ${aportacionMensual} (tasa: ${tasaM40}, value: ${umaValue})`)
   
   return Math.round(aportacionMensual)
 }

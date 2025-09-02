@@ -335,7 +335,7 @@ export default function ExplicacionModalidad40() {
                        Información importante
                      </h4>
                      <p className="text-sm text-yellow-700">
-                       Todos nuestros cálculos están basados en las tablas oficiales del IMSS actualizadas a 2024.
+                       Todos nuestros cálculos están basados en las tablas oficiales del IMSS actualizadas a 2025.
                        Modalidad 40 es un derecho establecido en la Ley del Seguro Social.
                      </p>
                    </div>

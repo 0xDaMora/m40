@@ -16,10 +16,21 @@ export function FamilyMembersList() {
   // Cargar familiares
   const loadFamilyMembers = async () => {
     try {
-      const response = await fetch('/api/family')
+      const fetchOnce = async () => fetch('/api/family', { credentials: 'include', cache: 'no-store' })
+      let response = await fetchOnce()
+      if (response.status === 401) {
+        await fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+        await new Promise(r => setTimeout(r, 300))
+        response = await fetchOnce()
+      }
       if (response.ok) {
         const data = await response.json()
-        setFamilyMembers(data)
+        setFamilyMembers(Array.isArray(data) ? data : [])
+      } else if (response.status === 503) {
+        await new Promise(r => setTimeout(r, 700))
+        const again = await fetchOnce()
+        const data = again.ok ? await again.json() : []
+        setFamilyMembers(Array.isArray(data) ? data : [])
       } else {
         toast.error('Error al cargar familiares')
       }

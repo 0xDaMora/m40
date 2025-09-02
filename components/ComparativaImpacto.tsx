@@ -1,8 +1,9 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, DollarSign } from "lucide-react"
+import { TrendingUp, TrendingDown, AlertTriangle, CheckCircle, DollarSign, Shield } from "lucide-react"
 import { useEffect, useState } from "react"
+import { ajustarPensionConPMG, formatearPMG, obtenerInfoPMG } from "@/lib/config/pensionMinima"
 
 interface ComparativaImpactoProps {
   pensionSinM40: number
@@ -22,9 +23,13 @@ export default function ComparativaImpacto({
   const [countdown, setCountdown] = useState(8)
   const [autoAdvance, setAutoAdvance] = useState(true)
   
-  const diferenciaMensual = pensionConM40 - pensionSinM40
+  // Solo aplicar PMG si es necesario (cuando la pensión es menor a la PMG)
+  const pensionSinM40Ajustada = pensionSinM40 < 9724.48 ? ajustarPensionConPMG(pensionSinM40) : pensionSinM40
+  const pensionConM40Ajustada = pensionConM40 < 9724.48 ? ajustarPensionConPMG(pensionConM40) : pensionConM40
+  
+  const diferenciaMensual = pensionConM40Ajustada - pensionSinM40Ajustada
   const diferenciaAnual = diferenciaMensual * 12
-  const porcentajeMejora = Math.round((diferenciaMensual / pensionSinM40) * 100)
+  const porcentajeMejora = Math.round((diferenciaMensual / pensionSinM40Ajustada) * 100)
   
   // Auto-advance después de 8 segundos
   useEffect(() => {
@@ -80,6 +85,12 @@ export default function ComparativaImpacto({
         <p className="text-gray-600">
           Basado en tus datos reales del IMSS
         </p>
+        
+        {/* Información de PMG */}
+        <div className="mt-4 inline-flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+          <Shield className="w-3 h-3" />
+          PMG {obtenerInfoPMG().anio}: {formatearPMG()}
+        </div>
       </div>
 
       {/* Comparativa visual */}
@@ -104,11 +115,11 @@ export default function ComparativaImpacto({
           <div className="space-y-3">
             <div className="bg-white/80 p-4 rounded-lg">
               <p className="text-sm text-gray-600 mb-1">Pensión mensual</p>
-              <p className="text-2xl font-bold text-red-700">{formatPesos(pensionSinM40)}</p>
+              <p className="text-2xl font-bold text-red-700">{formatPesos(pensionSinM40Ajustada)}</p>
             </div>
             <div className="bg-white/80 p-4 rounded-lg">
               <p className="text-sm text-gray-600 mb-1">Ingreso anual</p>
-              <p className="text-xl font-bold text-red-700">{formatPesos(pensionSinM40 * 12)}</p>
+              <p className="text-xl font-bold text-red-700">{formatPesos(pensionSinM40Ajustada * 12)}</p>
             </div>
           </div>
 
@@ -144,11 +155,11 @@ export default function ComparativaImpacto({
           <div className="space-y-3">
             <div className="bg-white/80 p-4 rounded-lg">
               <p className="text-sm text-gray-600 mb-1">Pensión mensual</p>
-              <p className="text-2xl font-bold text-green-700">{formatPesos(pensionConM40)}</p>
+              <p className="text-2xl font-bold text-green-700">{formatPesos(pensionConM40Ajustada)}</p>
             </div>
             <div className="bg-white/80 p-4 rounded-lg">
               <p className="text-sm text-gray-600 mb-1">Ingreso anual</p>
-              <p className="text-xl font-bold text-green-700">{formatPesos(pensionConM40 * 12)}</p>
+              <p className="text-xl font-bold text-green-700">{formatPesos(pensionConM40Ajustada * 12)}</p>
             </div>
           </div>
 

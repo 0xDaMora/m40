@@ -1,7 +1,8 @@
 "use client"
 
+import React from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Info, X, Calculator, TrendingUp, Clock, DollarSign, Shield, Users, FileText, Zap, Calendar } from "lucide-react"
+import { Info, X, Calculator, TrendingUp, Clock, DollarSign, Shield, Users, FileText, Zap, Calendar, CheckCircle, Star } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { createPortal } from "react-dom"
 
@@ -96,6 +97,261 @@ const explicaciones = {
       "⚠️ Máximo legal: 58 meses"
     ],
     icono: Clock,
+    color: "blue"
+  },
+  "UMA": {
+    titulo: "UMA (Unidad de Medida y Actualización)",
+    subtitulo: "Salario mínimo diario oficial",
+    explicacion: "La UMA es el salario mínimo diario que usa el IMSS para calcular pensiones. En 2024 vale $108.57 pesos. Tu nivel UMA determina tu base salarial para la pensión.",
+    ejemplo: "15 UMA = 15 × $108.57 = $1,628 diarios = $48,840 mensuales como base para tu pensión.",
+    ventajas: [
+      "✅ Base oficial y actualizada anualmente",
+      "✅ Más UMA = mayor pensión",
+      "✅ Límite legal: 25 UMA"
+    ],
+    consideraciones: [
+      "⚠️ Más UMA = pagos más altos",
+      "⚠️ Se actualiza cada año"
+    ],
+    icono: Calculator,
+    color: "orange"
+  },
+  "Inversión Total": {
+    titulo: "Inversión Total",
+    subtitulo: "Costo total de tu estrategia M40",
+    explicacion: "Es la suma de todos los pagos que harás durante tu tiempo en Modalidad 40. Incluye contribuciones voluntarias al IMSS.",
+    ejemplo: "Si pagas $5,000 mensuales durante 36 meses, tu inversión total será $180,000.",
+    ventajas: [
+      "✅ Inversión única en tu futuro",
+      "✅ Pagos distribuidos en el tiempo",
+      "✅ Recuperable en 2-3 años"
+    ],
+    consideraciones: [
+      "⚠️ Requiere planificación financiera",
+      "⚠️ Compromiso de varios meses"
+    ],
+    icono: DollarSign,
+    color: "blue"
+  },
+  "Duración": {
+    titulo: "Duración",
+    subtitulo: "Tiempo en Modalidad 40",
+    explicacion: "Es el número de meses que estarás pagando contribuciones voluntarias en Modalidad 40. Afecta tu inversión total y el impacto en tu pensión.",
+    ejemplo: "24 meses = 2 años de pagos, 36 meses = 3 años, 48 meses = 4 años.",
+    ventajas: [
+      "✅ Más tiempo = mejor promedio salarial",
+      "✅ Pagos distribuidos en más tiempo",
+      "✅ Menor impacto mensual"
+    ],
+    consideraciones: [
+      "⚠️ Más tiempo = mayor inversión total",
+      "⚠️ Compromiso a largo plazo"
+    ],
+    icono: Clock,
+    color: "green"
+  },
+  "Aportación Mensual Promedio": {
+    titulo: "Aportación Mensual Promedio",
+    subtitulo: "Pago mensual típico",
+    explicacion: "Es el pago mensual promedio que harás durante tu tiempo en Modalidad 40. Se calcula dividiendo la inversión total entre los meses.",
+    ejemplo: "Inversión total $180,000 ÷ 36 meses = $5,000 mensual promedio.",
+    ventajas: [
+      "✅ Te ayuda a planificar tu presupuesto",
+      "✅ Pagos manejables mensualmente",
+      "✅ Inversión en tu futuro"
+    ],
+    consideraciones: [
+      "⚠️ Compromiso mensual fijo",
+      "⚠️ Requiere estabilidad financiera"
+    ],
+    icono: DollarSign,
+    color: "indigo"
+  },
+  "Pensión Mensual": {
+    titulo: "Pensión Mensual",
+    subtitulo: "Tu pensión proyectada",
+    explicacion: "Es la pensión mensual que recibirás al jubilarte, calculada con las tablas oficiales del IMSS y tu estrategia de Modalidad 40.",
+    ejemplo: "Sin M40: $3,500 mensual. Con M40: $15,000 mensual. Diferencia: $11,500 más por mes.",
+    ventajas: [
+      "✅ Pensión significativamente mayor",
+      "✅ Ingresos garantizados de por vida",
+      "✅ Basado en tablas oficiales IMSS"
+    ],
+    consideraciones: [
+      "⚠️ Es una proyección",
+      "⚠️ Depende de continuidad en M40"
+    ],
+    icono: DollarSign,
+    color: "green"
+  },
+  "Modalidad 40": {
+    titulo: "Modalidad 40",
+    subtitulo: "Contribuciones voluntarias al IMSS",
+    explicacion: "Es un programa del IMSS que te permite hacer contribuciones voluntarias para mejorar tu pensión. Se basa en la Ley 73 del IMSS.",
+    ejemplo: "Pagas contribuciones voluntarias por 36 meses y mejoras tu pensión de $3,500 a $15,000 mensual.",
+    ventajas: [
+      "✅ 100% legal y oficial",
+      "✅ Mejora significativa de pensión",
+      "✅ Basado en Ley 73 del IMSS"
+    ],
+    consideraciones: [
+      "⚠️ Requiere compromiso financiero",
+      "⚠️ Máximo 58 meses permitidos"
+    ],
+    icono: Shield,
+    color: "blue"
+  },
+  "Estrategia Progresiva": {
+    titulo: "Estrategia Progresiva",
+    subtitulo: "Pagos variables según UMA",
+    explicacion: "Tu pago mensual cambia cada año según la UMA oficial. Si la UMA sube, tu pago sube; si baja, tu pago baja.",
+    ejemplo: "Año 1: $5,000, Año 2: $5,250 (si UMA sube 5%), Año 3: $5,512.",
+    ventajas: [
+      "✅ Siempre pagas el valor actual",
+      "✅ Aprovechas si UMA sube más",
+      "✅ Pagos más eficientes"
+    ],
+    consideraciones: [
+      "⚠️ Pagos variables",
+      "⚠️ Requiere flexibilidad presupuestal"
+    ],
+    icono: TrendingUp,
+    color: "green"
+  },
+  "Estrategia Fija": {
+    titulo: "Estrategia Fija",
+    subtitulo: "Pagos constantes",
+    explicacion: "Pagas la misma cantidad todos los meses durante todo tu tiempo en Modalidad 40. El monto se calcula al inicio y no cambia.",
+    ejemplo: "36 meses de $5,000 mensual = $180,000 total, sin importar cambios en UMA.",
+    ventajas: [
+      "✅ Pagos predecibles",
+      "✅ Fácil de planificar",
+      "✅ No te afectan cambios en UMA"
+    ],
+    consideraciones: [
+      "⚠️ No aprovechas si UMA sube",
+      "⚠️ Podrías pagar más si UMA baja"
+    ],
+    icono: Shield,
+    color: "blue"
+  },
+  "Cálculos Verificados": {
+    titulo: "Cálculos Verificados",
+    subtitulo: "Basados en tablas oficiales IMSS",
+    explicacion: "Todos nuestros cálculos están basados en las tablas oficiales del IMSS 2025 y la Ley 73. Hemos verificado cada fórmula con las publicaciones oficiales.",
+    ejemplo: "Usamos las tablas de factor de edad, factor familiar, y porcentajes de pensión exactamente como los publica el IMSS.",
+    ventajas: [
+      "✅ 100% precisos según IMSS",
+      "✅ Basados en Ley 73 oficial",
+      "✅ Verificados con tablas 2025"
+    ],
+    consideraciones: [
+      "⚠️ Son proyecciones",
+      "⚠️ Dependen de continuidad"
+    ],
+    icono: CheckCircle,
+    color: "green"
+  },
+  "100% Legal": {
+    titulo: "100% Legal",
+    subtitulo: "Basado en Ley 73 del IMSS",
+    explicacion: "Modalidad 40 es un programa oficial del IMSS establecido en la Ley 73. Todas las estrategias que mostramos están dentro del marco legal.",
+    ejemplo: "La Ley 73 permite contribuciones voluntarias de hasta 58 meses y un máximo de 25 UMA como base salarial.",
+    ventajas: [
+      "✅ Programa oficial del IMSS",
+      "✅ Basado en Ley 73",
+      "✅ Aprobado por autoridades"
+    ],
+    consideraciones: [
+      "⚠️ Requiere cumplir requisitos",
+      "⚠️ Máximo 58 meses permitidos"
+    ],
+    icono: Shield,
+    color: "blue"
+  },
+  "Estrategias Optimizadas": {
+    titulo: "Estrategias Optimizadas",
+    subtitulo: "Seleccionadas para tu perfil",
+    explicacion: "Nuestro algoritmo analiza más de 2,000 combinaciones posibles y selecciona las 5 mejores estrategias según tu situación específica.",
+    ejemplo: "Consideramos tu edad, semanas cotizadas, SDI actual, y preferencias para encontrar las estrategias con mejor ROI y pensión.",
+    ventajas: [
+      "✅ Más de 2,000 escenarios analizados",
+      "✅ Personalizadas para ti",
+      "✅ Mejor relación costo-beneficio"
+    ],
+    consideraciones: [
+      "⚠️ Basadas en datos proporcionados",
+      "⚠️ Requieren evaluación personal"
+    ],
+    icono: TrendingUp,
+    color: "purple"
+  },
+  "Ranking de Estrategia": {
+    titulo: "Ranking de Estrategia",
+    subtitulo: "Posición en el top 5",
+    explicacion: "Cada estrategia está ordenada por su puntuación total, considerando pensión mensual, ROI, duración y otros factores importantes.",
+    ejemplo: "#1 Mejor = mayor pensión, #2-5 = otras opciones con buen balance entre pensión, ROI y duración.",
+    ventajas: [
+      "✅ Ordenadas por beneficio",
+      "✅ Primera = mejor pensión",
+      "✅ Diversidad de opciones"
+    ],
+    consideraciones: [
+      "⚠️ Evalúa según tus necesidades",
+      "⚠️ Considera tu capacidad de pago"
+    ],
+    icono: Star,
+    color: "yellow"
+  },
+  "Comprar Estrategia": {
+    titulo: "Comprar Estrategia",
+    subtitulo: "Acceso completo a tu plan",
+    explicacion: "Al comprar obtienes acceso completo a tu estrategia detallada, incluyendo cronograma de pagos, trámites paso a paso, y proyección completa.",
+    ejemplo: "Recibirás PDF con cronograma mensual, fechas de trámites, formatos oficiales, y proyección de 20 años.",
+    ventajas: [
+      "✅ Plan completo paso a paso",
+      "✅ Cronograma detallado",
+      "✅ Soporte para trámites"
+    ],
+    consideraciones: [
+      "⚠️ Requiere compromiso",
+      "⚠️ Inversión única"
+    ],
+    icono: DollarSign,
+    color: "green"
+  },
+  "Ver Detalles del Plan": {
+    titulo: "Ver Detalles del Plan",
+    subtitulo: "Qué incluye tu compra",
+    explicacion: "Revisa exactamente qué recibirás al comprar: cronograma de pagos, trámites paso a paso, formatos oficiales, y proyección completa.",
+    ejemplo: "Incluye: cronograma mensual, fechas de trámites, formatos IMSS, proyección 20 años, y soporte.",
+    ventajas: [
+      "✅ Información completa",
+      "✅ Sin sorpresas",
+      "✅ Transparencia total"
+    ],
+    consideraciones: [
+      "⚠️ Toma tu tiempo",
+      "⚠️ Evalúa bien tu decisión"
+    ],
+    icono: FileText,
+    color: "blue"
+  },
+  "Nueva Simulación": {
+    titulo: "Nueva Simulación",
+    subtitulo: "Probar diferentes parámetros",
+    explicacion: "Puedes hacer una nueva simulación cambiando tu edad de jubilación, semanas cotizadas, SDI, o preferencias de estrategia.",
+    ejemplo: "Prueba jubilarte a 65 en lugar de 60, o con más semanas cotizadas, para ver cómo cambian tus opciones.",
+    ventajas: [
+      "✅ Comparar diferentes escenarios",
+      "✅ Encontrar la mejor opción",
+      "✅ Gratis e ilimitado"
+    ],
+    consideraciones: [
+      "⚠️ Usa datos realistas",
+      "⚠️ Considera tu situación actual"
+    ],
+    icono: Calculator,
     color: "blue"
   },
   "Recuperación": {
@@ -301,6 +557,40 @@ const explicaciones = {
            ],
            icono: Shield,
            color: "purple"
+         },
+         "Aportación mensual promedio": {
+           titulo: "Aportación Mensual Promedio",
+           subtitulo: "Pago mensual durante M40",
+           explicacion: "Es el monto promedio que pagarás cada mes durante tu tiempo en Modalidad 40. Se calcula dividiendo tu inversión total entre los meses de duración.",
+           ejemplo: "Si inviertes $288,000 en 36 meses, tu aportación mensual promedio será $8,000.",
+           ventajas: [
+             "✅ Te ayuda a planificar tu presupuesto mensual",
+             "✅ Conoces el compromiso financiero",
+             "✅ Puedes ajustar la estrategia según tu capacidad"
+           ],
+           consideraciones: [
+             "⚠️ Es un compromiso mensual fijo",
+             "⚠️ Debes tener estabilidad financiera"
+           ],
+           icono: DollarSign,
+           color: "blue"
+         },
+         "Pensión mensual": {
+           titulo: "Pensión Mensual",
+           subtitulo: "Ingreso mensual al jubilarse",
+           explicacion: "Es el monto que recibirás cada mes de tu pensión del IMSS después de jubilarte. Incluye todos los factores y beneficios aplicables.",
+           ejemplo: "Una pensión de $15,000 mensuales significa que recibirás $180,000 anuales durante toda tu jubilación.",
+           ventajas: [
+             "✅ Ingreso garantizado de por vida",
+             "✅ Se ajusta con la inflación",
+             "✅ Incluye aguinaldo anual"
+           ],
+           consideraciones: [
+             "⚠️ Está sujeto a impuestos",
+             "⚠️ Puede cambiar con reformas"
+           ],
+           icono: DollarSign,
+           color: "green"
          }
 }
 
@@ -310,13 +600,20 @@ export default function TooltipInteligente({
   tipo = "concepto",
   posicion = "top" 
 }: TooltipInteligenteProps) {
+  // Siempre mantener el mismo orden/cantidad de hooks en todos los renders
   const [isOpen, setIsOpen] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0, placement: 'bottom' })
   const triggerRef = useRef<HTMLButtonElement>(null)
-  const explicacion = explicaciones[termino as keyof typeof explicaciones]
-
-  if (!explicacion) {
-    return <span>{children}</span>
+  // Fallback seguro para evitar retornos condicionales antes/después de hooks
+  const explicacion = explicaciones[termino as keyof typeof explicaciones] || {
+    titulo: termino,
+    subtitulo: "",
+    explicacion: "",
+    ejemplo: "",
+    ventajas: [] as string[],
+    consideraciones: [] as string[],
+    icono: Info,
+    color: "blue"
   }
 
   const IconComponent = explicacion.icono
@@ -379,21 +676,36 @@ export default function TooltipInteligente({
 
   return (
     <>
-      <button
-        ref={triggerRef}
-        data-tooltip-trigger
-        onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors cursor-pointer group relative"
-      >
-        {children}
-        <Info className="w-4 h-4 group-hover:scale-110 transition-transform" />
-        {/* Indicador para móvil */}
-        <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse sm:hidden"></span>
-      </button>
+      {React.isValidElement(children) && children.type === 'button' ? (
+        <div
+          ref={triggerRef}
+          data-tooltip-trigger
+          onClick={() => setIsOpen(!isOpen)}
+          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors cursor-pointer group relative"
+        >
+          {children}
+          <Info className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          {/* Indicador para móvil */}
+          <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse sm:hidden"></span>
+        </div>
+      ) : (
+        <button
+          ref={triggerRef}
+          data-tooltip-trigger
+          onClick={() => setIsOpen(!isOpen)}
+          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors cursor-pointer group relative"
+        >
+          {children}
+          <Info className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          {/* Indicador para móvil */}
+          <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse sm:hidden"></span>
+        </button>
+      )}
 
       {isOpen && createPortal(
         <AnimatePresence>
           <motion.div
+            key="tooltip-inteligente"
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
