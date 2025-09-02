@@ -1,5 +1,5 @@
 // This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// learn more about it in thedocs: https://pris.ly/d/prisma-schema
 
 // Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
@@ -11,6 +11,9 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Configuración para Prisma Accelerate
+  // url      = env("DATABASE_URL_PROXY") // Con Data Proxy
+  // directUrl = env("DIRECT_URL") // Conexión directa (fallback)
 }
 
 // Usuarios registrados
