@@ -17,9 +17,15 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
   const [formData, setFormData] = useState<CreateFamilyMemberData>({
     name: '',
     birthDate: new Date(),
-    weeksContributed: 0,
-    lastGrossSalary: 0,
+    weeksContributed: 500, // Valor mínimo válido por defecto
+    lastGrossSalary: 0, // Mantenemos 0 pero cambiaremos el manejo
     civilStatus: 'soltero'
+  })
+  
+  // Estados separados para mostrar campos vacíos en la UI
+  const [displayValues, setDisplayValues] = useState({
+    weeksContributed: '',
+    lastGrossSalary: ''
   })
   const [loading, setLoading] = useState(false)
 
@@ -33,14 +39,24 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
         lastGrossSalary: familyMember.lastGrossSalary,
         civilStatus: familyMember.civilStatus
       })
+      // Mostrar valores reales cuando editamos
+      setDisplayValues({
+        weeksContributed: familyMember.weeksContributed.toString(),
+        lastGrossSalary: familyMember.lastGrossSalary > 0 ? familyMember.lastGrossSalary.toString() : ''
+      })
     } else {
       // Resetear formulario para nuevo familiar
       setFormData({
         name: '',
         birthDate: new Date(),
-        weeksContributed: 0,
+        weeksContributed: 500, // Valor mínimo válido
         lastGrossSalary: 0,
         civilStatus: 'soltero'
+      })
+      // Campos vacíos para nuevo familiar
+      setDisplayValues({
+        weeksContributed: '',
+        lastGrossSalary: ''
       })
     }
   }, [familyMember])
@@ -48,19 +64,24 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validaciones
-    if (formData.weeksContributed < 500) {
+    // Validaciones mejoradas
+    if (!formData.name.trim()) {
+      toast.error('El nombre es requerido')
+      return
+    }
+    
+    if (!displayValues.weeksContributed || formData.weeksContributed < 500) {
       toast.error('Las semanas cotizadas deben ser al menos 500 según la LEY 73 del IMSS')
       return
     }
     
-    if (formData.lastGrossSalary <= 0) {
-      toast.error('El salario bruto debe ser mayor a 0')
+    if (!displayValues.lastGrossSalary || formData.lastGrossSalary <= 0) {
+      toast.error('El salario bruto debe ser mayor a 0 pesos')
       return
     }
     
-    if (!formData.name.trim()) {
-      toast.error('El nombre es requerido')
+    if (formData.lastGrossSalary > 1000000) {
+      toast.error('El salario bruto parece demasiado alto. Verifica el monto.')
       return
     }
     
@@ -106,6 +127,35 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
       ...prev,
       [field]: value
     }))
+  }
+
+  // Función específica para campos numéricos
+  const handleNumericInputChange = (field: 'weeksContributed' | 'lastGrossSalary', value: string) => {
+    // Actualizar valor de display (lo que ve el usuario)
+    setDisplayValues(prev => ({
+      ...prev,
+      [field]: value
+    }))
+    
+    // Actualizar valor real (para envío)
+    if (value === '') {
+      // Campo vacío - usar valor por defecto según el campo
+      const defaultValue = field === 'weeksContributed' ? 500 : 0
+      setFormData(prev => ({
+        ...prev,
+        [field]: defaultValue
+      }))
+    } else {
+      // Convertir a número
+      const numericValue = field === 'weeksContributed' 
+        ? parseInt(value) || 500
+        : parseFloat(value) || 0
+      
+      setFormData(prev => ({
+        ...prev,
+        [field]: numericValue
+      }))
+    }
   }
 
   if (!isOpen) return null
@@ -175,16 +225,21 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
                 </label>
                 <input
                   type="number"
-                  value={formData.weeksContributed}
-                  onChange={(e) => handleInputChange('weeksContributed', parseInt(e.target.value) || 0)}
+                  value={displayValues.weeksContributed}
+                  onChange={(e) => handleNumericInputChange('weeksContributed', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="500"
+                  placeholder="Ej: 800 (mínimo 500)"
                   min="500"
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Mínimo 500 semanas según LEY 73 del IMSS
+                  <strong>Mínimo 500 semanas</strong> según LEY 73 del IMSS
                 </p>
+                {displayValues.weeksContributed && formData.weeksContributed < 500 && (
+                  <p className="text-xs text-red-500 mt-1">
+                    ⚠️ Debe ser al menos 500 semanas
+                  </p>
+                )}
               </div>
 
               {/* Último salario bruto */}
@@ -195,14 +250,27 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
                 </label>
                 <input
                   type="number"
-                  value={formData.lastGrossSalary}
-                  onChange={(e) => handleInputChange('lastGrossSalary', parseFloat(e.target.value) || 0)}
+                  value={displayValues.lastGrossSalary}
+                  onChange={(e) => handleNumericInputChange('lastGrossSalary', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="0.00"
+                  placeholder="Ej: 15000.00"
                   min="0"
                   step="0.01"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Salario bruto mensual o SDI (Salario Diario Integrado)
+                </p>
+                {displayValues.lastGrossSalary && formData.lastGrossSalary <= 0 && (
+                  <p className="text-xs text-red-500 mt-1">
+                    ⚠️ El salario debe ser mayor a 0
+                  </p>
+                )}
+                {formData.lastGrossSalary > 100000 && (
+                  <p className="text-xs text-yellow-600 mt-1">
+                    💰 Salario alto - Verifica que sea correcto
+                  </p>
+                )}
               </div>
             </div>
 
@@ -220,8 +288,7 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
                >
                  <option value="soltero">Soltero</option>
                  <option value="casado">Casado</option>
-                 <option value="divorciado">Divorciado</option>
-                 <option value="viudo">Viudo</option>
+                 
                </select>
              </div>
 

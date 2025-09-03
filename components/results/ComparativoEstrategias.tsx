@@ -13,6 +13,8 @@ import ToolAccessModal from "../ToolAccessModal"
 import { useFormatters } from "@/hooks/useFormatters"
 import { useStrategy } from "@/hooks/useStrategy"
 import { ajustarPensionConPMG } from "@/lib/config/pensionMinima"
+import { createPortal } from "react-dom"
+import { useEffect } from "react"
 
 interface ComparativoEstrategiasProps {
   data: any
@@ -40,6 +42,11 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
   const [isPremiumConfirmation, setIsPremiumConfirmation] = useState(false)
   const [showPremiumModal, setShowPremiumModal] = useState(false)
   const [showToolAccessModal, setShowToolAccessModal] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   const estrategias = (data?.estrategias || data?.escenarios || []).map((estrategia: any) => ({
     ...estrategia,
@@ -414,60 +421,60 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
                </div>
             </div>
 
-            {/* Métricas principales */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-              <div className="text-center p-4 bg-blue-50 rounded-xl relative group">
-                <div className="text-2xl font-bold text-blue-600 mb-1">
+            {/* Métricas principales - Optimizado para móvil */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 sm:gap-4 mb-6 sm:mb-6">
+              <div className="text-center p-4 bg-blue-50 rounded-lg sm:rounded-xl relative group">
+                <div className="text-lg sm:text-2xl font-bold text-blue-600 mb-2">
                   {formatCurrency(estrategia.inversionTotal)}
                 </div>
                 <div className="text-xs text-gray-600 font-medium flex items-center justify-center gap-1">
                   Inversión total
                   <TooltipInteligente termino="Inversión Total">
-                    <span>ℹ️</span>
+                    <span className="text-blue-400 hover:text-blue-600 transition-colors cursor-help">ℹ️</span>
                   </TooltipInteligente>
                 </div>
               </div>
-              <div className="text-center p-4 bg-purple-50 rounded-xl relative group">
-                <div className="text-2xl font-bold text-purple-600 mb-1">
+              <div className="text-center p-4 bg-purple-50 rounded-lg sm:rounded-xl relative group">
+                <div className="text-lg sm:text-2xl font-bold text-purple-600 mb-2">
                   {formatPercentage(estrategia.ROI)}
                 </div>
                 <div className="text-xs text-gray-600 font-medium flex items-center justify-center gap-1">
                   ROI
                   <TooltipInteligente termino="ROI">
-                    <span>ℹ️</span>
+                    <span className="text-purple-400 hover:text-purple-600 transition-colors cursor-help">ℹ️</span>
                   </TooltipInteligente>
                 </div>
               </div>
-              <div className="text-center p-4 bg-orange-50 rounded-xl relative group">
-                <div className="text-2xl font-bold text-orange-600 mb-1">
+              <div className="text-center p-4 bg-orange-50 rounded-lg sm:rounded-xl relative group">
+                <div className="text-lg sm:text-2xl font-bold text-orange-600 mb-2">
                   {estrategia.umaElegida} UMA
                 </div>
                 <div className="text-xs text-gray-600 font-medium flex items-center justify-center gap-1">
                   Nivel UMA
                   <TooltipInteligente termino="UMA">
-                    <span>ℹ️</span>
+                    <span className="text-orange-400 hover:text-orange-600 transition-colors cursor-help">ℹ️</span>
                   </TooltipInteligente>
                 </div>
               </div>
-              <div className="text-center p-4 bg-indigo-50 rounded-xl relative group">
-                <div className="text-2xl font-bold text-indigo-600 mb-1">
-                  {  formatCurrency(Math.round(estrategia.inversionTotal / estrategia.mesesM40))}
+              <div className="text-center p-4 bg-indigo-50 rounded-lg sm:rounded-xl relative group">
+                <div className="text-lg sm:text-2xl font-bold text-indigo-600 mb-2">
+                  {formatCurrency(Math.round(estrategia.inversionTotal / estrategia.mesesM40))}
                 </div>
                 <div className="text-xs text-gray-600 font-medium flex items-center justify-center gap-1">
                   Promedio mensual
                   <TooltipInteligente termino="Aportación Mensual Promedio">
-                    <span>ℹ️</span>
+                    <span className="text-indigo-400 hover:text-indigo-600 transition-colors cursor-help">ℹ️</span>
                   </TooltipInteligente>
                 </div>
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-xl relative group">
-                <div className="text-2xl font-bold text-green-600 mb-1">
+              <div className="text-center p-4 bg-green-50 rounded-lg sm:rounded-xl relative group">
+                <div className="text-lg sm:text-2xl font-bold text-green-600 mb-2">
                   {estrategia.mesesM40}
                 </div>
                 <div className="text-xs text-gray-600 font-medium flex items-center justify-center gap-1">
                   Duración (meses)
                   <TooltipInteligente termino="Duración">
-                    <span>ℹ️</span>
+                    <span className="text-green-400 hover:text-green-600 transition-colors cursor-help">ℹ️</span>
                   </TooltipInteligente>
                 </div>
               </div>
@@ -630,50 +637,69 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
        </motion.div>
 
       {/* Modales */}
-      <DetallesPlan
-        isOpen={modalAbierto !== null}
-        onClose={() => setModalAbierto(null)}
-        planType={modalAbierto || 'basico'}
-        estrategiaSeleccionada={estrategiaSeleccionada}
-        todasLasEstrategias={estrategias}
-        datosUsuario={datosUsuario}
-        onPurchase={handleDetallesPlanPurchase}
-      />
+      {isMounted && (
+        <>
+          {createPortal(
+            <DetallesPlan
+              isOpen={modalAbierto !== null}
+              onClose={() => setModalAbierto(null)}
+              planType={modalAbierto || 'basico'}
+              estrategiaSeleccionada={estrategiaSeleccionada}
+              todasLasEstrategias={estrategias}
+              datosUsuario={datosUsuario}
+              onPurchase={handleDetallesPlanPurchase}
+            />,
+            document.body
+          )}
 
-      <QuickRegistrationModal
-        isOpen={showQuickRegistration}
-        onClose={() => setShowQuickRegistration(false)}
-        onSuccess={handleQuickRegistrationSuccess}
-        strategyData={selectedStrategyForPurchase}
-        userData={datosUsuario}
-      />
+          {createPortal(
+            <QuickRegistrationModal
+              isOpen={showQuickRegistration}
+              onClose={() => setShowQuickRegistration(false)}
+              onSuccess={handleQuickRegistrationSuccess}
+              strategyData={selectedStrategyForPurchase}
+              userData={datosUsuario}
+            />,
+            document.body
+          )}
 
-                           <ConfirmationModal
-          isOpen={showConfirmationModal}
-          onClose={() => setShowConfirmationModal(false)}
-          onConfirm={handleConfirmation}
-          strategy={confirmationStrategy}
-          userData={datosUsuario}
-          isPremium={isPremiumConfirmation || session?.user?.subscription === 'premium'}
-          isPremiumStrategy={session?.user?.subscription === 'premium' && !isPremiumConfirmation}
-        />
+          {createPortal(
+            <ConfirmationModal
+              isOpen={showConfirmationModal}
+              onClose={() => setShowConfirmationModal(false)}
+              onConfirm={handleConfirmation}
+              strategy={confirmationStrategy}
+              userData={datosUsuario}
+              isPremium={isPremiumConfirmation || session?.user?.subscription === 'premium'}
+              isPremiumStrategy={session?.user?.subscription === 'premium' && !isPremiumConfirmation}
+            />,
+            document.body
+          )}
 
-        <PremiumModal
-          isOpen={showPremiumModal}
-          onClose={() => setShowPremiumModal(false)}
-        />
+          {createPortal(
+            <PremiumModal
+              isOpen={showPremiumModal}
+              onClose={() => setShowPremiumModal(false)}
+            />,
+            document.body
+          )}
 
-        <ToolAccessModal
-          isOpen={showToolAccessModal}
-          onClose={() => setShowToolAccessModal(false)}
-          heroOnboardData={{
-            name: datosUsuario?.nombre || "Usuario",
-            birthDate: datosUsuario?.fechaNacimiento,
-            weeksContributed: datosUsuario?.semanasPrevias || 0,
-            lastGrossSalary: datosUsuario?.sdiHistorico ? datosUsuario.sdiHistorico * 30.4 : 0,
-            civilStatus: datosUsuario?.estadoCivil || 'soltero'
-          }}
-        />
+          {createPortal(
+            <ToolAccessModal
+              isOpen={showToolAccessModal}
+              onClose={() => setShowToolAccessModal(false)}
+              heroOnboardData={{
+                name: datosUsuario?.nombre || "Usuario",
+                birthDate: datosUsuario?.fechaNacimiento,
+                weeksContributed: datosUsuario?.semanasPrevias || 0,
+                lastGrossSalary: datosUsuario?.sdiHistorico ? datosUsuario.sdiHistorico * 30.4 : 0,
+                civilStatus: datosUsuario?.estadoCivil || 'soltero'
+              }}
+            />,
+            document.body
+          )}
+        </>
+      )}
     </div>
   )
 }

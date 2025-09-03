@@ -20,6 +20,7 @@ import { useFormatters } from "@/hooks/useFormatters"
 import { useStrategy } from "@/hooks/useStrategy"
 import { calcularSDI, calcularAportacionPromedio } from "@/lib/utils/calculations"
 import { generarCodigoEstrategia, construirDatosEstrategia, construirDatosUsuario, guardarEstrategiaConFallback } from "@/lib/utils/strategy"
+import { LoginModal } from "@/components/auth/LoginModal"
 
 export function FamilySimulatorIntegration() {
   const { data: session } = useSession()
@@ -43,6 +44,7 @@ export function FamilySimulatorIntegration() {
   const [showStrategyPurchaseModal, setShowStrategyPurchaseModal] = useState(false)
   const [selectedStrategyForPurchase, setSelectedStrategyForPurchase] = useState<any>(null)
   const [showPremiumModal, setShowPremiumModal] = useState(false)
+  const [showLoginModal, setShowLoginModal] = useState(false)
   
   // Estados para paginación
   const [displayedStrategies, setDisplayedStrategies] = useState<StrategyResult[]>([])
@@ -857,7 +859,13 @@ export function FamilySimulatorIntegration() {
                <p className="text-gray-600 mt-2">Selecciona o registra los datos del familiar para calcular estrategias personalizadas</p>
              </div>
              <button
-               onClick={() => setShowFamilyForm(true)}
+               onClick={() => {
+                 if (!session) {
+                   setShowLoginModal(true)
+                 } else {
+                   setShowFamilyForm(true)
+                 }
+               }}
                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2"
              >
                <Plus className="w-5 h-5" />
@@ -878,7 +886,13 @@ export function FamilySimulatorIntegration() {
                Para calcular estrategias personalizadas de Modalidad 40, necesitamos los datos del familiar que desea jubilarse
              </p>
              <button
-               onClick={() => setShowFamilyForm(true)}
+               onClick={() => {
+                 if (!session) {
+                   setShowLoginModal(true)
+                 } else {
+                   setShowFamilyForm(true)
+                 }
+               }}
                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
              >
                Registrar Primer Familiar
@@ -1650,6 +1664,16 @@ export function FamilySimulatorIntegration() {
           setShowFamilyForm(false)
         }}
         familyMember={null}
+      />
+
+             {/* Modal de Login */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          setShowLoginModal(false)
+          setShowFamilyForm(true)
+        }}
       />
 
              {/* Modal de compra */}

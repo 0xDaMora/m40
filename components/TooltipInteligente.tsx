@@ -710,7 +710,7 @@ export default function TooltipInteligente({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="fixed z-[9999]"
+            className="fixed z-60"
             style={{
               left: tooltipPosition.x,
               top: tooltipPosition.y,

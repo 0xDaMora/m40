@@ -51,7 +51,7 @@ export default function ConfirmationModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div key="confirmation-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div key="confirmation-modal" className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
           {/* Overlay */}
           <motion.div
             initial={{ opacity: 0 }}

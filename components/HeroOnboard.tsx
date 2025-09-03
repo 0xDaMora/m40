@@ -89,10 +89,25 @@ export default function HeroOnboard() {
           "Pension Objetivo": pensionObjetivo,
           "Nivel UMA": nivelUMA
         }
-      } else {
-        // Caso normal de otros componentes
-        newRespuestas = { ...newRespuestas, [preguntas[step].id]: valor }
-      }
+              } else {
+          // 🔹 Caso especial para StepSDI que ahora pasa JSON
+          if (preguntas[step].id === "sdi" && valor.startsWith('{')) {
+            try {
+              const datosSDI = JSON.parse(valor)
+              newRespuestas = { 
+                ...newRespuestas, 
+                "sdi": datosSDI.sdi,
+                "salarioBruto": datosSDI.salarioBruto // 🔹 Guardar también el salario bruto original
+              }
+            } catch (error) {
+              // Fallback al comportamiento anterior si hay error en el parsing
+              newRespuestas = { ...newRespuestas, [preguntas[step].id]: valor }
+            }
+          } else {
+            // Caso normal de otros componentes
+            newRespuestas = { ...newRespuestas, [preguntas[step].id]: valor }
+          }
+        }
     }
     
     setRespuestas(newRespuestas)
@@ -392,14 +407,122 @@ export default function HeroOnboard() {
                     )}
                   </div>
 
-                  {/* Respuestas archivadas */}
-                  <div className="space-y-3 mb-6">
-                    {Object.entries(respuestas).map(([k, v]) => (
-                      <div key={k} className="bg-gray-100 p-3 rounded-lg shadow-sm text-sm sm:text-base">
-                        <b className="capitalize">{k.replace('sdi', 'SDI').replace('Edad de Jubilacion', 'Edad de Jubilación').replace('Estado Civil', 'Estado Civil').replace('Nacimiento', 'Fecha de Nacimiento')}: </b> 
-                        {typeof v === 'string' && v.length > 50 ? `${v.substring(0, 50)}...` : String(v)}
-                      </div>
-                    ))}
+                  {/* Resumen de respuestas - Mejorado para mostrar información más clara */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                    {Object.entries(respuestas).map(([k, v]) => {
+                      // 🔹 Mejorar la presentación de los datos
+                      let label = k
+                      let value = v
+                      let icon = null
+                      let bgColor = "bg-gray-100"
+                      let tooltip = null
+                      
+                      // 🔹 Personalizar cada campo para mejor UX
+                      switch (k) {
+                        case "sdi":
+                          // 🔹 Mostrar salario bruto original en lugar de SDI para mayor claridad
+                          if (respuestas.salarioBruto) {
+                            label = "Salario Bruto Mensual"
+                            value = `$${parseFloat(respuestas.salarioBruto).toLocaleString('es-MX')} MXN`
+                            icon = "💰"
+                            bgColor = "bg-green-50 border border-green-200"
+                            tooltip = "Este es el salario que ingresaste. El SDI se calcula internamente para los cálculos del IMSS."
+                          } else {
+                            // Fallback si no hay salarioBruto (compatibilidad)
+                            const sdiValue = typeof v === 'string' ? parseFloat(v) : 0
+                            const salarioBruto = sdiValue * 30.4
+                            label = "Salario Bruto Mensual"
+                            value = `$${salarioBruto.toLocaleString('es-MX')} MXN`
+                            icon = "💰"
+                            bgColor = "bg-green-50 border border-green-200"
+                            tooltip = "Salario calculado a partir del SDI. El SDI se usa internamente para los cálculos del IMSS."
+                          }
+                          break
+                        case "salarioBruto":
+                          // 🔹 Ocultar este campo ya que se muestra en el campo "sdi" transformado
+                          return null
+                        case "Edad de Jubilacion":
+                          label = "Edad de Jubilación"
+                          value = `${v} años`
+                          icon = "🎂"
+                          bgColor = "bg-blue-50 border border-blue-200"
+                          break
+                        case "Semanas":
+                          label = "Semanas Cotizadas"
+                          value = `${v} semanas`
+                          icon = "📅"
+                          bgColor = "bg-purple-50 border border-purple-200"
+                          break
+                        case "Nacimiento":
+                          label = "Fecha de Nacimiento"
+                          try {
+                            const fecha = new Date(String(v))
+                            if (!isNaN(fecha.getTime())) {
+                              value = fecha.toLocaleDateString('es-MX', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })
+                            } else {
+                              value = String(v)
+                            }
+                          } catch {
+                            value = String(v)
+                          }
+                          icon = "📆"
+                          bgColor = "bg-indigo-50 border border-indigo-200"
+                          break
+                        case "Estado Civil":
+                          label = "Estado Civil"
+                          value = v === "conyuge" ? "Casado/a" : "Soltero/a"
+                          icon = "💑"
+                          bgColor = "bg-pink-50 border border-pink-200"
+                          break
+                        case "Pension Objetivo":
+                          label = "Objetivo de Pensión"
+                          value = v === "equilibrada" ? "Equilibrada" : 
+                                 v === "conservadora" ? "Conservadora" : 
+                                 v === "agresiva" ? "Agresiva" : String(v)
+                          icon = "🎯"
+                          bgColor = "bg-orange-50 border border-orange-200"
+                          break
+                        case "Nivel UMA":
+                          label = "Nivel de UMA"
+                          value = v === "conservador" ? "Conservador" : 
+                                 v === "equilibrado" ? "Equilibrado" : 
+                                 v === "maximo" ? "Máximo" : String(v)
+                          icon = "📊"
+                          bgColor = "bg-teal-50 border border-teal-200"
+                          break
+                        default:
+                          icon = "ℹ️"
+                      }
+                      
+                      // 🔹 No renderizar campos ocultos
+                      if (k === "salarioBruto") return null
+                      
+                      return (
+                        <div key={k} className={`${bgColor} p-3 rounded-lg shadow-sm text-sm sm:text-base relative group`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg">{icon}</span>
+                            <b className="capitalize text-gray-800">{label}:</b>
+                            {tooltip && (
+                              <div className="relative">
+                                <span className="text-blue-500 cursor-help">ℹ️</span>
+                                {/* Tooltip */}
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                                  {tooltip}
+                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-gray-700 font-medium">
+                            {typeof value === 'string' && value.length > 50 ? `${value.substring(0, 50)}...` : String(value)}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
 
                   {/* Pregunta actual */}

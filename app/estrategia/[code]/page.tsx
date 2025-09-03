@@ -237,46 +237,13 @@ export default function EstrategiaCompartiblePage() {
   if (data) {
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between py-4">
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={() => window.history.back()}
-                  className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Volver
-                </button>
-                <div className="h-6 w-px bg-gray-300"></div>
-                <div>
-                  <h1 className="text-lg font-semibold text-gray-900">
-                    Estrategia Compartida
-                  </h1>
-                  <p className="text-sm text-gray-500">
-                    Estrategia de Modalidad 40
-                  </p>
-                </div>
-              </div>
-              
-              <button
-                onClick={compartirEstrategia}
-                className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-              >
-                <Share2 className="w-4 h-4" />
-                Compartir
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Contenido */}
+        {/* Contenido sin header duplicado */}
         <div className="py-8">
           <EstrategiaDetallada
             estrategia={data.estrategia}
             datosUsuario={data.datosUsuario}
             onVolver={() => window.history.back()}
+            debugCode={params.code as string}
           />
         </div>
       </div>

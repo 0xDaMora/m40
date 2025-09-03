@@ -1,27 +1,31 @@
+"use client"
+
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import HeroOnboard from "@/components/HeroOnboard"
 import CasosDeExito from "@/components/CasosDeExito"
 import ExplicacionModalidad40 from "@/components/ExplicacionModalidad40"
 import IndicadoresConfianzaWrapper from "@/components/IndicadoresConfianzaWrapper"
-import { SimulatorProvider } from "@/components/SimulatorContext"
+import { SimulatorProvider, useSimulator } from "@/components/SimulatorContext"
 
-export default function LandingPage() {
+function LandingPageContent() {
+  const { isSimulatorActive } = useSimulator()
+
   return (
-    <SimulatorProvider>
-      <main className="flex flex-col min-h-screen bg-gradient-to-b from-blue-50 via-white to-gray-50">
-        <Navbar />
-        
-        <div className="flex-1">
-          {/* Hero Section con explicación integrada */}
-          <section className="relative">
-            <HeroOnboard />
-            
-            {/* Indicadores de confianza flotantes */}
-            <IndicadoresConfianzaWrapper />
-          </section>
+    <main className="flex flex-col min-h-screen bg-gradient-to-b from-blue-50 via-white to-gray-50">
+      <Navbar />
+      
+      <div className="flex-1">
+        {/* Hero Section con explicación integrada */}
+        <section className="relative">
+          <HeroOnboard />
+          
+          {/* Indicadores de confianza flotantes - Solo visibles cuando NO está activo el simulador */}
+          {!isSimulatorActive && <IndicadoresConfianzaWrapper />}
+        </section>
 
-          {/* Sección de explicación prominente */}
+        {/* Sección de explicación prominente - Solo visible cuando NO está activo el simulador */}
+        {!isSimulatorActive && (
           <section className="py-16 bg-gradient-to-r from-blue-600 to-purple-600 relative overflow-hidden">
             {/* Elementos decorativos */}
             <div className="absolute inset-0 opacity-30">
@@ -41,15 +45,26 @@ export default function LandingPage() {
               <ExplicacionModalidad40 />
             </div>
           </section>
+        )}
 
-          {/* Casos de éxito */}
+        {/* Casos de éxito - Solo visible cuando NO está activo el simulador */}
+        {!isSimulatorActive && (
           <section className="py-16 bg-white">
             <CasosDeExito />
           </section>
-        </div>
-        
-        <Footer />
-      </main>
+        )}
+      </div>
+      
+      {/* Footer - Solo visible cuando NO está activo el simulador */}
+      {!isSimulatorActive && <Footer />}
+    </main>
+  )
+}
+
+export default function LandingPage() {
+  return (
+    <SimulatorProvider>
+      <LandingPageContent />
     </SimulatorProvider>
   )
 }
