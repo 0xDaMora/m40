@@ -11,7 +11,7 @@ import { ajustarPensionConPMG, formatearPMG, obtenerInfoPMG } from "@/lib/config
 const ejemplosIlustrativos = [
   {
     titulo: "Caso 1: Inversión Baja - Duplicar PMG",
-    perfil: "Hombre, 62 años, Guadalajara",
+    perfil: "Hombre, 55 años, Guadalajara",
     edad: 62,
     ciudad: "Guadalajara",
     pensionAntes: ajustarPensionConPMG(4200), // PMG ajustada
@@ -23,7 +23,7 @@ const ejemplosIlustrativos = [
   },
   {
     titulo: "Caso 2: SDI Alto - Duplicar Pensión", 
-    perfil: "Mujer, 61 años, CDMX",
+    perfil: "Mujer, 65 años, CDMX",
     edad: 61,
     ciudad: "CDMX", 
     pensionAntes: 15000, // SDI alto, no necesita PMG
@@ -141,8 +141,12 @@ export default function CasosDeExito() {
           <div className="flex justify-center gap-8 mb-6">
             {ejemplosIlustrativos.map((caso, index) => (
               <div key={index} className="text-center">
-                <div className="w-16 h-16 bg-gray-200 rounded-full mx-auto mb-2 flex items-center justify-center border-2 border-dashed border-gray-400">
-                  <span className="text-gray-500 text-xs">Foto</span>
+                <div className="w-16 h-16 rounded-full mx-auto mb-2 overflow-hidden border-2 border-gray-200">
+                  <img 
+                    src={`/images/old${index + 1}.jpeg`} 
+                    alt={`Caso ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <p className="text-xs text-gray-600">{caso.titulo}</p>
               </div>
@@ -181,10 +185,14 @@ export default function CasosDeExito() {
               transition={{ delay: index * 0.2 }}
               className="bg-white rounded-xl shadow-lg p-6 border border-gray-100"
             >
-              {/* Header del caso con foto placeholder */}
+              {/* Header del caso con foto */}
               <div className="flex items-start gap-4 mb-4">
-                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center border-2 border-dashed border-gray-400 flex-shrink-0">
-                  <span className="text-gray-500 text-xs">Foto</span>
+                <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
+                  <img 
+                    src={`/images/old${index + 1}.jpeg`} 
+                    alt={`Caso ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div className="flex-1">
                   <h4 className="font-bold text-lg text-gray-900">{caso.titulo}</h4>

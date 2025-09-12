@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Users, FileText, TrendingUp, Calendar } from "lucide-react"
+import { Users, FileText } from "lucide-react"
 import { motion } from "framer-motion"
 
 interface StatCardProps {
@@ -51,13 +51,6 @@ export function DashboardStats() {
       color: "bg-green-100",
       description: "Estrategias guardadas"
     },
-    {
-      title: "Última Simulación",
-      value: "Nunca",
-      icon: <TrendingUp className="w-6 h-6 text-purple-600" />,
-      color: "bg-purple-100",
-      description: "Modalidad 40"
-    },
 
   ])
 
@@ -95,7 +88,7 @@ export function DashboardStats() {
   }, [])
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
       {stats.map((stat, index) => (
         <StatCard
           key={index}

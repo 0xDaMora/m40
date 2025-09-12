@@ -90,11 +90,6 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
       icon: Users,
       title: "Familia Completa",
       description: "Gestiona hasta 10 familiares con estrategias personalizadas"
-    },
-    {
-      icon: Zap,
-      title: "Soporte Prioritario",
-      description: "Atención especializada para usuarios Premium"
     }
   ]
 

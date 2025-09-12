@@ -19,6 +19,7 @@ import {
   ChevronRight
 } from "lucide-react"
 import TooltipInteligente from "./TooltipInteligente"
+import EstrategiaDetalladaTramites from "./EstrategiaDetalladaTramites"
 import { calcularISRPension, calcularProyeccionPension, calcularPensionViudez } from "@/lib/all/calcularISR"
 import html2canvas from "html2canvas"
 import jsPDF from "jspdf"
@@ -129,8 +130,7 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('es-MX', { 
       year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+      month: 'long'
     })
   }
 
@@ -1320,10 +1320,16 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
             />
           )}
           {tabActivo === "tramites" && (
-            <TabTramites 
+            <EstrategiaDetalladaTramites 
               key="tab-tramites"
               fechaTramite={fechaTramite}
               formatDate={formatDate}
+              fechaInicio={fechaInicioM40}
+              fechaJubilacion={fechaJubilacion}
+              mesesM40={estrategia.mesesM40}
+              registros={estrategia.registros || []}
+              esProgresivo={estrategia.estrategia === "progresivo"}
+              formatCurrency={formatCurrency}
             />
           )}
           {tabActivo === "viudez" && (
@@ -1671,67 +1677,6 @@ function TabProyeccion({ proyeccion, formatCurrency, datosUsuario }: any) {
   )
 }
 
-function TabTramites({ fechaTramite, formatDate }: any) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      className="space-y-4 md:space-y-6"
-    >
-      <div className="bg-green-50 border border-green-200 p-3 md:p-4 rounded-lg">
-        <div className="flex items-start gap-2 md:gap-3">
-          <CheckCircle className="w-4 md:w-5 h-4 md:h-5 text-green-600 mt-0.5 flex-shrink-0" />
-          <div>
-            <h4 className="font-semibold text-green-800 mb-1 text-sm md:text-base">
-              Checklist de Trámites
-            </h4>
-            <p className="text-xs md:text-sm text-green-700">
-              Inicio recomendado: {formatDate(fechaTramite)}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        <div className="space-y-3 md:space-y-4">
-          <h3 className="text-base md:text-lg font-bold text-gray-800">Documentos Requeridos</h3>
-          <div className="space-y-2">
-            {[
-              'Identificación oficial vigente',
-              'Comprobante de domicilio',
-              'Acta de nacimiento',
-              'Constancia de semanas cotizadas',
-              'Comprobantes de pagos M40'
-            ].map((doc) => (
-              <div key={doc} className="flex items-center gap-2">
-                <CheckCircle className="w-3 md:w-4 h-3 md:h-4 text-green-600 flex-shrink-0" />
-                <span className="text-xs md:text-sm">{doc}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-3 md:space-y-4">
-          <h3 className="text-base md:text-lg font-bold text-gray-800">Pasos del Trámite</h3>
-          <div className="space-y-2 md:space-y-3">
-            {[
-              { num: '1', title: 'Cita previa', desc: 'Agenda cita en el IMSS' },
-              { num: '2', title: 'Entrega de documentos', desc: 'Presenta toda la documentación' },
-              { num: '3', title: 'Dictamen médico', desc: 'Evaluación de capacidad laboral' },
-              { num: '4', title: 'Resolución', desc: 'Aprobación y monto de pensión' }
-            ].map((paso) => (
-              <div key={paso.num} className="bg-white p-2.5 md:p-3 rounded-lg border">
-                <div className="font-semibold text-blue-600 text-sm md:text-base">{paso.num}. {paso.title}</div>
-                <div className="text-xs md:text-sm text-gray-600">{paso.desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  )
-}
 
 function TabViudez({ pensionViudez, formatCurrency }: any) {
   return (
@@ -1772,8 +1717,7 @@ function TabViudez({ pensionViudez, formatCurrency }: any) {
           <ul className="space-y-1.5 md:space-y-2 text-xs md:text-sm text-gray-600">
             <li>• Matrimonio vigente al fallecimiento</li>
             <li>• Mínimo 5 años de matrimonio</li>
-            <li>• No tener ingresos superiores a 2 SMG</li>
-            <li>• No estar pensionado por otra institución</li>
+            
             <li>• Presentar documentación de matrimonio</li>
           </ul>
         </div>

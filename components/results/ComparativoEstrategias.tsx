@@ -310,11 +310,13 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
   }
 
   const handleDetallesPlanPurchase = () => {
-    // Después de hacer clic en "Comprar" en DetallesPlan, mostrar el modal de confirmación
-    setShowConfirmationModal(true)
-    setConfirmationStrategy(estrategiaSeleccionada)
-    setIsPremiumConfirmation(false)
+    // Cerrar el modal de detalles primero
     setModalAbierto(null)
+    
+    // Usar la misma lógica robusta que el botón directo "Comprar $50"
+    if (estrategiaSeleccionada) {
+      handlePurchaseFromHeroOnboard(estrategiaSeleccionada)
+    }
   }
 
   const handlePremiumPurchase = () => {
