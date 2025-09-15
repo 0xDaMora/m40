@@ -54,9 +54,10 @@ export async function POST(req: NextRequest) {
     }
     
     // 4. Validar que sea un webhook de producción o prueba válido
+    // TEMPORAL: Permitir webhooks de prueba para testing
     if (!payload.live_mode && process.env.NODE_ENV === 'production') {
-      console.log('[WEBHOOK_IGNORED] Test webhook in production environment')
-      return NextResponse.json({ message: 'Test webhook ignored in production' })
+      console.log('[WEBHOOK_TEST_MODE] Test webhook in production - processing for testing')
+      // return NextResponse.json({ message: 'Test webhook ignored in production' })
     }
     
     // 5. Verificar que sea un webhook de pago
