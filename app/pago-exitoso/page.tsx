@@ -18,8 +18,17 @@ export default function PagoExitosoPage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [countdown, setCountdown] = useState(5)
+  const [hasRedirected, setHasRedirected] = useState(false)
   
   useEffect(() => {
+    // Verificar si ya se redirigió para evitar redirección infinita
+    const redirected = sessionStorage.getItem('pago-exitoso-redirected')
+    if (redirected) {
+      setHasRedirected(true)
+      setLoading(false)
+      return
+    }
+    
     // Obtener parámetros de la URL
     const urlParams = new URLSearchParams(window.location.search)
     const paymentId = urlParams.get('payment_id')
@@ -64,9 +73,12 @@ export default function PagoExitosoPage() {
     }
   }
   
-  // Redirección automática si hay estrategia
+  // Redirección automática si hay estrategia (solo una vez)
   useEffect(() => {
-    if (order?.status === 'paid' && order.strategyCode) {
+    if (order?.status === 'paid' && order.strategyCode && !hasRedirected) {
+      // Marcar que se va a redirigir
+      sessionStorage.setItem('pago-exitoso-redirected', 'true')
+      
       const timer = setInterval(() => {
         setCountdown(prev => {
           if (prev <= 1) {
@@ -79,7 +91,7 @@ export default function PagoExitosoPage() {
       
       return () => clearInterval(timer)
     }
-  }, [order, router])
+  }, [order, router, hasRedirected])
   
   if (loading) {
     return (
@@ -139,7 +151,10 @@ export default function PagoExitosoPage() {
         
         <div className="space-y-3">
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => {
+              sessionStorage.removeItem('pago-exitoso-redirected')
+              router.push('/dashboard')
+            }}
             className="w-full bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >
             Ir al Dashboard
@@ -147,10 +162,25 @@ export default function PagoExitosoPage() {
           
           {order?.planType === 'premium' && (
             <button
-              onClick={() => router.push('/mis-estrategias')}
+              onClick={() => {
+                sessionStorage.removeItem('pago-exitoso-redirected')
+                router.push('/mis-estrategias')
+              }}
               className="w-full bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Ver Mis Estrategias
+            </button>
+          )}
+          
+          {hasRedirected && (
+            <button
+              onClick={() => {
+                sessionStorage.removeItem('pago-exitoso-redirected')
+                window.location.reload()
+              }}
+              className="w-full bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              Ver Detalles del Pago
             </button>
           )}
         </div>

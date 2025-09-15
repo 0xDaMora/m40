@@ -494,41 +494,28 @@ export function OrdersDashboard({ onOrderClick }: OrdersDashboardProps) {
 
                 {/* Botones de acción */}
                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                  {isPending && (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleProcessOrder(order)
-                        }}
-                        disabled={completingPayment === order.id}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold shadow-sm hover:shadow-md"
-                      >
-                        {completingPayment === order.id ? (
-                          <>
-                            <RefreshCw className="w-4 h-4 animate-spin" />
-                            Procesando...
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="w-4 h-4" />
-                            Procesar Orden
-                          </>
+                        {isPending && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleCompletePayment(order)
+                            }}
+                            disabled={completingPayment === order.id}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold shadow-sm hover:shadow-md"
+                          >
+                            {completingPayment === order.id ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                                Procesando...
+                              </>
+                            ) : (
+                              <>
+                                <CreditCard className="w-4 h-4" />
+                                Completar Pago
+                              </>
+                            )}
+                          </button>
                         )}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handleCompletePayment(order)
-                        }}
-                        disabled={completingPayment === order.id}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold shadow-sm hover:shadow-md"
-                      >
-                        <CreditCard className="w-4 h-4" />
-                        Completar Pago
-                      </button>
-                    </>
-                  )}
                   
                   {isApproved && (
                     <button

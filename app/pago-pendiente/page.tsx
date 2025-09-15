@@ -17,8 +17,17 @@ export default function PagoPendientePage() {
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [checkingStatus, setCheckingStatus] = useState(false)
+  const [hasRedirected, setHasRedirected] = useState(false)
   
   useEffect(() => {
+    // Verificar si ya se redirigió para evitar redirección infinita
+    const redirected = sessionStorage.getItem('pago-pendiente-redirected')
+    if (redirected) {
+      setHasRedirected(true)
+      setLoading(false)
+      return
+    }
+    
     // Obtener parámetros de la URL
     const urlParams = new URLSearchParams(window.location.search)
     const paymentId = urlParams.get('payment_id')
@@ -72,10 +81,12 @@ export default function PagoPendientePage() {
         const updatedOrder = data.order
         
         if (updatedOrder.status === 'paid') {
-          // Redirigir a página de éxito
+          // Marcar redirección y redirigir a página de éxito
+          sessionStorage.setItem('pago-pendiente-redirected', 'true')
           router.push('/pago-exitoso?external_reference=' + order.id)
         } else if (updatedOrder.status === 'failed') {
-          // Redirigir a página de error
+          // Marcar redirección y redirigir a página de error
+          sessionStorage.setItem('pago-pendiente-redirected', 'true')
           router.push('/pago-error')
         } else {
           setOrder(updatedOrder)
@@ -140,11 +151,26 @@ export default function PagoPendientePage() {
           </button>
           
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => {
+              sessionStorage.removeItem('pago-pendiente-redirected')
+              router.push('/dashboard')
+            }}
             className="w-full bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >
             Ir al Dashboard
           </button>
+          
+          {hasRedirected && (
+            <button
+              onClick={() => {
+                sessionStorage.removeItem('pago-pendiente-redirected')
+                window.location.reload()
+              }}
+              className="w-full bg-orange-600 text-white px-6 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              Ver Detalles del Pago
+            </button>
+          )}
         </div>
         
         <div className="mt-6 text-xs text-gray-500">
