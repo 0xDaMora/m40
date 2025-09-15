@@ -1,0 +1,28 @@
+{
+  "name": "M40.mx - Simulador Modalidad 40 IMSS",
+  "short_name": "M40.mx",
+  "description": "Calcula tu pensión con el simulador más preciso de Modalidad 40 IMSS. Para trabajadores de 45-60 años en México.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["finance", "business", "productivity"],
+  "lang": "es-MX",
+  "dir": "ltr",
+  "scope": "/",
+  "id": "m40-mx-simulator"
+}
