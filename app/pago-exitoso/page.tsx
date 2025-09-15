@@ -26,7 +26,17 @@ export default function PagoExitosoPage() {
     if (redirected) {
       setHasRedirected(true)
       setLoading(false)
-      return
+      
+      // Si el usuario regresa a esta página, redirigir al inicio
+      const handlePopState = () => {
+        router.push('/')
+      }
+      
+      window.addEventListener('popstate', handlePopState)
+      
+      return () => {
+        window.removeEventListener('popstate', handlePopState)
+      }
     }
     
     // Obtener parámetros de la URL
@@ -43,7 +53,7 @@ export default function PagoExitosoPage() {
     } else {
       setLoading(false)
     }
-  }, [])
+  }, [router])
   
   const fetchOrderByExternalRef = async (externalRef: string) => {
     try {
@@ -153,11 +163,11 @@ export default function PagoExitosoPage() {
           <button
             onClick={() => {
               sessionStorage.removeItem('pago-exitoso-redirected')
-              router.push('/dashboard')
+              router.push('/')
             }}
             className="w-full bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >
-            Ir al Dashboard
+            Ir al Inicio
           </button>
           
           {order?.planType === 'premium' && (

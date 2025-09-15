@@ -2,10 +2,12 @@
 
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Check, Users, TrendingUp, Calendar, DollarSign, Target, Lock } from "lucide-react"
+import { X, Check, Users, TrendingUp, Calendar, DollarSign, Target, Lock, Crown } from "lucide-react"
 import { FamilyMember } from "@/types/family"
 import { StrategyResult } from "@/types/strategy"
 import { formatCurrency } from "@/lib/utils/formatters"
+import { useMercadoPago } from "@/hooks/useMercadoPago"
+import { useSession } from "next-auth/react"
 
 interface StrategyPurchaseModalProps {
   isOpen: boolean
@@ -16,6 +18,7 @@ interface StrategyPurchaseModalProps {
   // Agregar props necesarias para la funcionalidad completa
   filters?: any
   router?: any
+  onOpenPremiumModal?: () => void
 }
 
 export default function StrategyPurchaseModal({
@@ -25,23 +28,84 @@ export default function StrategyPurchaseModal({
   familyMember,
   onConfirmPurchase,
   filters,
-  router
+  router,
+  onOpenPremiumModal
 }: StrategyPurchaseModalProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const { data: session } = useSession()
+  const { processPurchase, loading: mercadoPagoLoading } = useMercadoPago()
 
   if (!strategy || !familyMember) return null
 
   const handleConfirmPurchase = async () => {
+    if (!session) {
+      console.error('Usuario no autenticado')
+      return
+    }
+
     setIsLoading(true)
     try {
-      // Si tenemos filters y router, usar la lógica completa de viewStrategyDetails
-      if (filters && router) {
-        await handleCompleteStrategyPurchase()
-      } else {
-        // Fallback a la función original
-        await onConfirmPurchase(strategy, familyMember)
+      // Usar MercadoPago para la compra
+      const startMonth = filters?.startMonth || new Date().getMonth() + 1
+      const startYear = filters?.startYear || new Date().getFullYear()
+      const fechaInicio = new Date(startYear, startMonth, 1).toISOString().split('T')[0]
+      
+      // Importar las funciones necesarias dinámicamente
+      const { generarCodigoEstrategia, construirDatosEstrategia, construirDatosUsuario } = await import('@/lib/utils/strategy')
+      
+      const strategyCode = generarCodigoEstrategia('integration', {
+        familyMemberId: familyMember.id,
+        estrategia: strategy.estrategia,
+        umaElegida: strategy.umaElegida,
+        mesesM40: strategy.mesesM40,
+        edadJubilacion: filters?.retirementAge || 65,
+        inicioM40: fechaInicio
+      })
+      
+      const birthDate = familyMember.birthDate instanceof Date 
+        ? familyMember.birthDate 
+        : new Date(familyMember.birthDate)
+      
+      // Construir datos de estrategia
+      const datosEstrategia = construirDatosEstrategia(strategy, {
+        edad: filters?.retirementAge || 65,
+        dependiente: familyMember.civilStatus === 'casado' ? 'conyuge' : 'ninguno',
+        sdiHistorico: familyMember.lastGrossSalary / 30.4,
+        semanasPrevias: familyMember.weeksContributed,
+        familyMemberId: familyMember.id,
+        inicioM40: fechaInicio
+      }, fechaInicio)
+      
+      const datosUsuario = construirDatosUsuario({
+        edad: filters?.retirementAge || 65,
+        dependiente: familyMember.civilStatus === 'casado' ? 'conyuge' : 'ninguno',
+        sdiHistorico: familyMember.lastGrossSalary / 30.4,
+        semanasPrevias: familyMember.weeksContributed,
+        familyMemberId: familyMember.id,
+        fechaNacimiento: birthDate.toISOString().split('T')[0],
+        inicioM40: fechaInicio
+      }, strategy, familyMember.name)
+
+      // Procesar compra con MercadoPago
+      const orderData = {
+        planType: 'basic' as const,
+        strategyData: {
+          ...datosEstrategia,
+          familyMemberId: familyMember.id
+        },
+        userData: {
+          ...datosUsuario,
+          familyMemberId: familyMember.id,
+          familyMemberName: familyMember.name
+        },
+        amount: 50
       }
-      onClose()
+
+      const success = await processPurchase(orderData)
+      
+      if (success) {
+        onClose()
+      }
     } catch (error) {
       console.error('Error al confirmar la compra:', error)
     } finally {
@@ -318,28 +382,45 @@ export default function StrategyPurchaseModal({
 
             {/* Footer con Botones */}
             <div className="sticky bottom-0 bg-gray-50 p-4 sm:p-6 rounded-b-2xl sm:rounded-b-3xl border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row gap-3 justify-end">
-                <button
-                  onClick={onClose}
-                  disabled={isLoading}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleConfirmPurchase}
-                  disabled={isLoading}
-                  className="px-8 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none"
-                >
-                  <div className="flex items-center gap-2">
-                    {isLoading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    ) : (
-                      <Check className="w-4 h-4" />
-                    )}
-                    <span>{isLoading ? 'Procesando...' : 'Confirmar Compra'}</span>
-                  </div>
-                </button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-between">
+                {/* Botón Premium */}
+                {onOpenPremiumModal && (
+                  <button
+                    onClick={() => {
+                      onClose()
+                      onOpenPremiumModal()
+                    }}
+                    className="px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl font-semibold hover:from-purple-700 hover:to-purple-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2"
+                  >
+                    <Crown className="w-4 h-4" />
+                    Desbloquear con Premium
+                  </button>
+                )}
+                
+                {/* Botones de acción */}
+                <div className="flex flex-col sm:flex-row gap-3 ml-auto">
+                  <button
+                    onClick={onClose}
+                    disabled={isLoading || mercadoPagoLoading}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleConfirmPurchase}
+                    disabled={isLoading || mercadoPagoLoading}
+                    className="px-8 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-semibold hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none"
+                  >
+                    <div className="flex items-center gap-2">
+                      {(isLoading || mercadoPagoLoading) ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <DollarSign className="w-4 h-4" />
+                      )}
+                      <span>{(isLoading || mercadoPagoLoading) ? 'Procesando...' : 'Confirmar Compra de 50 MXN'}</span>
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>

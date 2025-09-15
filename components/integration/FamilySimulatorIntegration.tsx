@@ -775,6 +775,7 @@ export function FamilySimulatorIntegration() {
           onConfirmPurchase={handleConfirmStrategyPurchase}
           filters={filters}
           router={router}
+          onOpenPremiumModal={openPremiumModal}
         />
 
         {/* Modal Premium */}

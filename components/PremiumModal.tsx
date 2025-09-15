@@ -7,6 +7,7 @@ import { Crown, Star, CheckCircle, TrendingUp, FileText, Users, Zap, Shield, Arr
 import { toast } from "react-hot-toast"
 import PremiumRegistrationModal from "./PremiumRegistrationModal"
 import ConfirmationModal from "./ConfirmationModal"
+import { useMercadoPago } from "@/hooks/useMercadoPago"
 
 
 interface PremiumModalProps {
@@ -19,6 +20,7 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [showQuickRegistration, setShowQuickRegistration] = useState(false)
   const [showConfirmationModal, setShowConfirmationModal] = useState(false)
+  const { processPurchase, loading: mercadoPagoLoading } = useMercadoPago()
 
   const handlePremiumPurchase = () => {
     if (!session) {
@@ -36,28 +38,27 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
   }
 
   const handleConfirmation = async (familyMemberName: string) => {
-    try {
-      // Flujo Premium: cambiar estatus del usuario
-      const response = await fetch('/api/update-user-plan', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          subscription: 'premium'
-        }),
-      })
+    if (!session) {
+      toast.error('Debes iniciar sesión para continuar')
+      return
+    }
 
-      if (response.ok) {
-        toast.success('¡Plan Premium activado exitosamente!')
+    try {
+      // Usar MercadoPago para la compra Premium
+      const orderData = {
+        planType: 'premium' as const,
+        strategyData: null, // Premium no requiere estrategia específica
+        userData: {
+          familyMemberName: familyMemberName || 'Usuario Premium',
+          subscription: 'premium'
+        },
+        amount: 999
+      }
+
+      const success = await processPurchase(orderData)
+      
+      if (success) {
         onClose()
-        
-        // Recargar la página para actualizar la sesión
-        setTimeout(() => {
-          window.location.reload()
-        }, 1000)
-      } else {
-        throw new Error('Error al actualizar el plan')
       }
     } catch (error) {
       console.error('Error:', error)
@@ -183,17 +184,22 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
 
                                          <button
                        onClick={handlePremiumPurchase}
-                       className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2 mx-auto"
+                       disabled={mercadoPagoLoading}
+                       className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2 mx-auto disabled:opacity-50 disabled:transform-none"
                      >
-                       <Crown className="w-5 h-5" />
-                       {session ? 'Comprar Premium' : 'Iniciar Sesión'}
-                       <ArrowRight className="w-5 h-5" />
+                       {mercadoPagoLoading ? (
+                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                       ) : (
+                         <Crown className="w-5 h-5" />
+                       )}
+                       {mercadoPagoLoading ? 'Procesando...' : (session ? 'Comprar Premium' : 'Iniciar Sesión')}
+                       {!mercadoPagoLoading && <ArrowRight className="w-5 h-5" />}
                      </button>
 
                     <div className="mt-4 text-sm text-gray-600">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <Shield className="w-4 h-4" />
-                        Pago seguro con Stripe
+                        Pago seguro con MercadoPago
                       </div>
                       <div className="flex items-center justify-center gap-2">
                         <CheckCircle className="w-4 h-4" />
