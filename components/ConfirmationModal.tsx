@@ -229,7 +229,7 @@ export default function ConfirmationModal({
                       Procesando...
                     </div>
                   ) : (
-                    isPremium && !isPremiumStrategy ? 'Confirmar Premium' : 'Ver Estrategia'
+                    isPremium && !isPremiumStrategy ? 'Confirmar Premium' : 'Comprar por 50$'
                   )}
                 </button>
               </div>
