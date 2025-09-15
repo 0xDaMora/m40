@@ -2,19 +2,9 @@ import { useState } from "react"
 
 export function useModalManager() {
   // Estados de modales
-  const [showPurchaseModal, setShowPurchaseModal] = useState(false)
   const [showStrategyPurchaseModal, setShowStrategyPurchaseModal] = useState(false)
   const [selectedStrategyForPurchase, setSelectedStrategyForPurchase] = useState<any>(null)
   const [showPremiumModal, setShowPremiumModal] = useState(false)
-
-  // Acciones para PurchaseModal
-  const openPurchaseModal = () => {
-    setShowPurchaseModal(true)
-  }
-
-  const closePurchaseModal = () => {
-    setShowPurchaseModal(false)
-  }
 
   // Acciones para StrategyPurchaseModal
   const openStrategyPurchaseModal = (strategy: any) => {
@@ -38,7 +28,6 @@ export function useModalManager() {
 
   // Cerrar todos los modales
   const closeAllModals = () => {
-    setShowPurchaseModal(false)
     setShowStrategyPurchaseModal(false)
     setShowPremiumModal(false)
     setSelectedStrategyForPurchase(null)
@@ -46,14 +35,11 @@ export function useModalManager() {
 
   return {
     // Estados
-    showPurchaseModal,
     showStrategyPurchaseModal,
     selectedStrategyForPurchase,
     showPremiumModal,
 
     // Acciones
-    openPurchaseModal,
-    closePurchaseModal,
     openStrategyPurchaseModal,
     closeStrategyPurchaseModal,
     openPremiumModal,

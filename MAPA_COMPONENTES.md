@@ -75,7 +75,7 @@
 **Componentes hijos:**
 - `RangeSlider` - Slider de rango de aportación
 - `FamilyMemberForm` - Formulario de familiar
-- `PurchaseModal` - Modal de compra
+- `StrategyPurchaseModal` - Modal de compra de estrategias
 - `TooltipInteligente` - Tooltips informativos
 - `BaseModal` - Componente base para modales
 

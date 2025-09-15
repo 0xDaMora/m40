@@ -15,7 +15,6 @@ import { StrategyFiltersPanel } from "./components/StrategyFilters"
 import { StrategyCard } from "./components/StrategyCard"
 import { StrategyList } from "./components/StrategyList"
 import { PaginationControls } from "./components/PaginationControls"
-import PurchaseModal from "@/components/PurchaseModal"
 import StrategyPurchaseModal from "@/components/StrategyPurchaseModal"
 import PremiumModal from "@/components/PremiumModal"
 import { LoginModal } from "@/components/auth/LoginModal"
@@ -50,12 +49,9 @@ export function FamilySimulatorIntegration() {
 
   // Hook para gestión de modales
   const {
-    showPurchaseModal,
     showStrategyPurchaseModal,
     selectedStrategyForPurchase,
     showPremiumModal,
-    openPurchaseModal,
-    closePurchaseModal,
     openStrategyPurchaseModal,
     closeStrategyPurchaseModal,
     openPremiumModal,
@@ -241,15 +237,15 @@ export function FamilySimulatorIntegration() {
 
 
 
-    // Si no está logueado, mostrar modal de compra
+    // Si no está logueado, mostrar modal de login
     if (!session) {
-      openPurchaseModal()
+      setShowLoginModal(true)
       return
     }
 
     // Verificar si el usuario tiene plan premium
     if (!userPlan || userPlan === 'free' || userPlan === 'basic') {
-      openPurchaseModal()
+      openPremiumModal()
       return
     }
 
@@ -435,21 +431,6 @@ export function FamilySimulatorIntegration() {
     window.open(url, '_blank')
   }
 
-  // Función para manejar la compra
-  const handlePurchase = async (plan: 'basic' | 'premium') => {
-    closePurchaseModal()
-    
-    if (!session) {
-      // Redirigir a login si no está logueado
-      toast.error('Debes iniciar sesión para realizar la compra')
-      // Aquí podrías redirigir a login
-      return
-    }
-
-    // TODO: Implementar lógica de compra real
-    toast.success(`Plan ${plan} seleccionado. Redirigiendo a pago...`)
-    console.log('Comprando plan:', plan)
-  }
 
   // Función para confirmar la compra de una estrategia
   const handleConfirmStrategyPurchase = async (strategy: any, familyMember: FamilyMember) => {
@@ -759,12 +740,6 @@ export function FamilySimulatorIntegration() {
         familyMember={null}
       />
 
-             {/* Modal de compra */}
-       <PurchaseModal
-         isOpen={showPurchaseModal}
-         onClose={closePurchaseModal}
-         onPurchase={handlePurchase}
-       />
 
                {/* Modal de confirmación de compra de estrategia */}
         <StrategyPurchaseModal
