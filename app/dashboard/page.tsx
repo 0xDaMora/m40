@@ -7,6 +7,7 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader"
 import { DashboardStats } from "@/components/dashboard/DashboardStats"
 import { FamilyMembersList } from "@/components/family/FamilyMembersList"
 import { SavedStrategiesList } from "@/components/dashboard/SavedStrategiesList"
+import { OrdersDashboard } from "@/components/dashboard/OrdersDashboard"
 
 
 import { motion } from "framer-motion"
@@ -86,6 +87,16 @@ export default function DashboardPage() {
             </motion.div>
           </div>
 
+          {/* Sección de Órdenes */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white p-6 rounded-xl border border-gray-200"
+            data-section="orders"
+          >
+            <OrdersDashboard />
+          </motion.div>
+
 
 
           {/* Acciones Rápidas */}
@@ -112,9 +123,16 @@ export default function DashboardPage() {
                  <div className="font-medium text-gray-900">Agregar Familiar</div>
                  <div className="text-sm text-gray-600">Registrar datos de familiar</div>
                </button>
-              <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+              <button 
+                onClick={() => {
+                  // Scroll hacia la sección de órdenes
+                  const ordersSection = document.querySelector('[data-section="orders"]')
+                  ordersSection?.scrollIntoView({ behavior: 'smooth' })
+                }}
+                className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+              >
                 <div className="font-medium text-gray-900">Ver Historial</div>
-                <div className="text-sm text-gray-600">Simulaciones anteriores</div>
+                <div className="text-sm text-gray-600">Órdenes y compras</div>
               </button>
             </div>
           </motion.div>

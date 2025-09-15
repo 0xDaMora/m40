@@ -12,6 +12,7 @@ import PremiumModal from "../PremiumModal"
 import ToolAccessModal from "../ToolAccessModal"
 import { useFormatters } from "@/hooks/useFormatters"
 import { useStrategy } from "@/hooks/useStrategy"
+import { useMercadoPago } from "@/hooks/useMercadoPago"
 import { ajustarPensionConPMG } from "@/lib/config/pensionMinima"
 import { createPortal } from "react-dom"
 import { useEffect } from "react"
@@ -27,6 +28,7 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
   const router = useRouter()
   const { currency: formatCurrency, percentage: formatPercentage } = useFormatters()
   const { procesarEstrategia, actualizarPlanUsuario, loading, isAuthenticated, isPremium } = useStrategy()
+  const { processPurchase: processMercadoPagoPurchase, loading: mercadoPagoLoading } = useMercadoPago()
   
   // 📋 Sistema de Códigos de Estrategias (UNIFICADO):
   // - integration_[familiarId]_[estrategia]_[uma]_[meses]_[edad] - TODOS los flujos
@@ -71,7 +73,7 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
       // Usuario no logueado - mostrar modal de registro rápido
       setSelectedStrategyForPurchase(estrategia)
       setShowQuickRegistration(true)
-    } else if (session.user?.subscription === 'premium') {
+    } else if ((session.user as any)?.subscription === 'premium') {
       // Usuario Premium - mostrar modal de confirmación para guardar familiar
       setShowConfirmationModal(true)
       setConfirmationStrategy(estrategia)
@@ -80,6 +82,37 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
       // Usuario logueado pero no Premium - mostrar modal de detalles del plan
       setEstrategiaSeleccionada(estrategia)
       setModalAbierto('basico')
+    }
+  }
+
+  // Nueva función para manejar compras con MercadoPago
+  const handleMercadoPagoPurchase = async (estrategia: any) => {
+    if (!(session?.user as any)?.id) {
+      toast.error('Debes iniciar sesión para continuar')
+      return
+    }
+
+    try {
+      // Preparar datos para MercadoPago
+      const orderData = {
+        planType: 'basic' as const,
+        strategyData: estrategia,
+        userData: datosUsuario,
+        amount: 50 // Monto fijo para estrategias básicas
+      }
+
+      // Procesar compra con MercadoPago
+      const success = await processMercadoPagoPurchase(orderData)
+      
+      if (success) {
+        console.log('✅ Compra iniciada exitosamente con MercadoPago')
+        // La redirección a MercadoPago ya se maneja en el hook
+      } else {
+        console.error('❌ Error al procesar la compra con MercadoPago')
+      }
+    } catch (error) {
+      console.error('❌ Error en handleMercadoPagoPurchase:', error)
+      toast.error('Error al procesar la compra')
     }
   }
 
@@ -97,33 +130,21 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
   const handleConfirmation = async (familyMemberName: string) => {
     try {
       if (isPremiumConfirmation) {
-        // Flujo Premium: solo cambiar estatus del usuario
-        const response = await fetch('/api/update-user-plan', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            subscription: 'premium'
-          }),
-        })
-
-        if (response.ok) {
-          toast.success('¡Plan Premium activado exitosamente!')
-          // Recargar la página para actualizar el session
-          setTimeout(() => {
-            window.location.reload()
-          }, 1000)
-        } else {
-          throw new Error('Error al actualizar el plan')
-        }
+        // Flujo Premium: usar MercadoPago para la compra
+        await handleMercadoPagoPremiumPurchase()
         return
       }
 
       // Verificar sesión antes de crear familiar
-      if (!session?.user?.id) {
+      if (!(session?.user as any)?.id) {
         toast.error('Inicia sesión para guardar tu familiar')
         setShowQuickRegistration(true)
+        return
+      }
+
+      // Para usuarios NO Premium: crear familiar y luego orden con MercadoPago
+      if ((session?.user as any)?.subscription !== 'premium') {
+        await handleMercadoPagoWithFamily(familyMemberName)
         return
       }
 
@@ -313,9 +334,16 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
     // Cerrar el modal de detalles primero
     setModalAbierto(null)
     
-    // Usar la misma lógica robusta que el botón directo "Comprar $50"
     if (estrategiaSeleccionada) {
-      handlePurchaseFromHeroOnboard(estrategiaSeleccionada)
+      if ((session?.user as any)?.id) {
+        // Usuario logueado - mostrar modal de confirmación
+        setShowConfirmationModal(true)
+        setConfirmationStrategy(estrategiaSeleccionada)
+        setIsPremiumConfirmation(false)
+      } else {
+        // Usuario no logueado - usar flujo existente
+        handlePurchaseFromHeroOnboard(estrategiaSeleccionada)
+      }
     }
   }
 
@@ -329,6 +357,98 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
       setShowConfirmationModal(true)
       setIsPremiumConfirmation(true)
       setConfirmationStrategy(null)
+    }
+  }
+
+  // Nueva función para manejar compras Premium con MercadoPago
+  const handleMercadoPagoPremiumPurchase = async () => {
+    if (!(session?.user as any)?.id) {
+      toast.error('Debes iniciar sesión para continuar')
+      return
+    }
+
+    try {
+      // Preparar datos para MercadoPago Premium
+      const orderData = {
+        planType: 'premium' as const,
+        strategyData: null, // Premium no tiene estrategia específica
+        userData: datosUsuario,
+        amount: 500 // Monto fijo para plan Premium
+      }
+
+      // Procesar compra con MercadoPago
+      const success = await processMercadoPagoPurchase(orderData)
+      
+      if (success) {
+        console.log('✅ Compra Premium iniciada exitosamente con MercadoPago')
+        // La redirección a MercadoPago ya se maneja en el hook
+      } else {
+        console.error('❌ Error al procesar la compra Premium con MercadoPago')
+      }
+    } catch (error) {
+      console.error('❌ Error en handleMercadoPagoPremiumPurchase:', error)
+      toast.error('Error al procesar la compra Premium')
+    }
+  }
+
+  // Nueva función para manejar compras básicas con MercadoPago (después de crear familiar)
+  const handleMercadoPagoWithFamily = async (familyMemberName: string) => {
+    try {
+      // 1. Crear familiar (igual que el flujo Premium)
+      const normalize = (s: any) => (s ? s.toString().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '') : '')
+      const rawEstado = normalize((datosUsuario as any).estadoCivil || (datosUsuario as any).civilStatus || (datosUsuario as any)["Estado Civil"]) 
+      const rawDep = normalize((datosUsuario as any).dependiente)
+      const civilStatusValue = (rawEstado.includes('casad') || rawDep.includes('cony')) ? 'casado' : 'soltero'
+
+      const crearFamiliarResponse = await fetch('/api/family', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: familyMemberName,
+          birthDate: datosUsuario.fechaNacimiento || new Date().toISOString().split('T')[0],
+          weeksContributed: datosUsuario.semanasPrevias,
+          lastGrossSalary: datosUsuario.sdiHistorico * 30.4,
+          civilStatus: civilStatusValue
+        }),
+      })
+
+      if (!crearFamiliarResponse.ok) {
+        throw new Error('Error al crear el familiar')
+      }
+
+      const familiarCreado = await crearFamiliarResponse.json()
+      const familyMemberId = familiarCreado.id
+
+      // 2. Preparar datos para MercadoPago con familyMemberId
+      const orderData = {
+        planType: 'basic' as const,
+        strategyData: {
+          ...confirmationStrategy,
+          familyMemberId // Incluir el ID del familiar
+        },
+        userData: {
+          ...datosUsuario,
+          familyMemberId,
+          familyMemberName
+        },
+        amount: 50 // Monto fijo para estrategias básicas
+      }
+
+      // 3. Procesar compra con MercadoPago
+      const success = await processMercadoPagoPurchase(orderData)
+      
+      if (success) {
+        console.log('✅ Compra básica iniciada exitosamente con MercadoPago')
+        // La redirección a MercadoPago ya se maneja en el hook
+      } else {
+        console.error('❌ Error al procesar la compra básica con MercadoPago')
+      }
+    } catch (error) {
+      console.error('❌ Error en handleMercadoPagoWithFamily:', error)
+      toast.error('Error al procesar la compra')
     }
   }
 
@@ -484,7 +604,7 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
 
                          {/* Botones de acción */}
              <div className="flex gap-4">
-               {session?.user?.subscription === 'premium' ? (
+               {(session?.user as any)?.subscription === 'premium' ? (
                  // Usuario Premium - Guardar estrategia directamente
                  <TooltipInteligente termino="Guardar Estrategia">
                    <button
@@ -499,16 +619,36 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
                  // Usuario no Premium - Comprar estrategia
                  <TooltipInteligente termino="Comprar Estrategia">
                    <button
-                     onClick={() => handlePurchaseFromHeroOnboard(estrategia)}
-                     className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                     onClick={() => {
+                       if ((session?.user as any)?.id) {
+                         // Usuario logueado - mostrar modal de confirmación directamente
+                         setShowConfirmationModal(true)
+                         setConfirmationStrategy(estrategia)
+                         setIsPremiumConfirmation(false)
+                       } else {
+                         // Usuario no logueado - usar flujo existente
+                         handlePurchaseFromHeroOnboard(estrategia)
+                       }
+                     }}
+                     disabled={mercadoPagoLoading}
+                     className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                    >
-                     <DollarSign size={18} />
-                     Comprar $50
+                     {mercadoPagoLoading ? (
+                       <>
+                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                         Procesando...
+                       </>
+                     ) : (
+                       <>
+                         <DollarSign size={18} />
+                         Comprar $50
+                       </>
+                     )}
                    </button>
                  </TooltipInteligente>
                )}
               
-              {session?.user?.subscription !== 'premium' && (
+              {(session?.user as any)?.subscription !== 'premium' && (
                 <TooltipInteligente termino="Ver Detalles del Plan">
                   <button
                     onClick={() => {
@@ -528,7 +668,7 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
       </div>
 
                      {/* Promoción del Plan Premium - Solo para usuarios no Premium */}
-        {session?.user?.subscription !== 'premium' && (
+        {(session?.user as any)?.subscription !== 'premium' && (
           <motion.div 
             className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-2xl p-6 mt-8"
             initial={{ opacity: 0, y: 20 }}
@@ -672,8 +812,8 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
               onConfirm={handleConfirmation}
               strategy={confirmationStrategy}
               userData={datosUsuario}
-              isPremium={isPremiumConfirmation || session?.user?.subscription === 'premium'}
-              isPremiumStrategy={session?.user?.subscription === 'premium' && !isPremiumConfirmation}
+              isPremium={isPremiumConfirmation || (session?.user as any)?.subscription === 'premium'}
+              isPremiumStrategy={(session?.user as any)?.subscription === 'premium' && !isPremiumConfirmation}
             />,
             document.body
           )}

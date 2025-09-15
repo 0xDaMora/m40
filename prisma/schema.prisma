@@ -31,6 +31,7 @@ model User {
   savedStrategies SavedStrategy[]
   estrategiasGuardadas EstrategiaGuardada[]
   purchases Purchase[]
+  orders Order[]
   
   @@map("users")
 }
@@ -142,4 +143,57 @@ model Purchase {
   user         User     @relation(fields: [userId], references: [id])
   
   @@map("purchases")
+}
+
+// Sistema de órdenes para MercadoPago
+model Order {
+  id                  String   @id @default(cuid())
+  userId              String
+  orderNumber         String   @unique // ORD-2024-001
+  status              String   @default("pending") // 'pending' | 'paid' | 'failed' | 'cancelled' | 'expired'
+  planType            String   // 'basic' | 'premium'
+  amount              Decimal  @db.Decimal(10,2)
+  currency            String   @default("MXN")
+  
+  // Datos de MercadoPago
+  mercadopagoId       String?  // ID de la preferencia o pago
+  externalReference   String?  // Referencia externa para webhooks
+  paymentMethod       String?  // Método de pago usado
+  
+  // Datos de la estrategia (si aplica)
+  strategyData        Json?
+  strategyCode        String?  // Código de la estrategia generada
+  userData            Json?
+  
+  // Timestamps
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  paidAt              DateTime?
+  expiresAt           DateTime // 24 horas después de creación
+  
+  // Metadatos adicionales
+  metadata            Json?
+  
+  // Relaciones
+  user                User     @relation(fields: [userId], references: [id])
+  orderItems          OrderItem[]
+  
+  @@map("orders")
+}
+
+// Items de cada orden
+model OrderItem {
+  id          String   @id @default(cuid())
+  orderId     String
+  itemType    String   // 'strategy' | 'premium'
+  itemId      String?  // ID de la estrategia o 'premium'
+  itemName    String
+  quantity    Int      @default(1)
+  unitPrice   Decimal  @db.Decimal(10,2)
+  totalPrice  Decimal  @db.Decimal(10,2)
+  createdAt   DateTime @default(now())
+  
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  
+  @@map("order_items")
 }
