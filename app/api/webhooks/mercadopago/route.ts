@@ -7,19 +7,31 @@ import crypto from 'crypto'
 
 export async function POST(req: NextRequest) {
   try {
+    console.log('🔔 [WEBHOOK_START] === WEBHOOK RECIBIDO ===')
+    console.log('🔔 [WEBHOOK_START] Timestamp:', new Date().toISOString())
+    console.log('🔔 [WEBHOOK_START] URL:', req.url)
+    console.log('🔔 [WEBHOOK_START] Method:', req.method)
+    
     // 1. Obtener headers y query parameters
     const xSignature = req.headers.get('x-signature')
     const xRequestId = req.headers.get('x-request-id')
+    const userAgent = req.headers.get('user-agent')
     const url = new URL(req.url)
     const dataId = url.searchParams.get('data.id')
     const type = url.searchParams.get('type')
     
+    console.log('🔔 [WEBHOOK_HEADERS] User-Agent:', userAgent)
+    console.log('🔔 [WEBHOOK_HEADERS] X-Signature:', xSignature)
+    console.log('🔔 [WEBHOOK_HEADERS] X-Request-ID:', xRequestId)
+    console.log('🔔 [WEBHOOK_QUERY] data.id:', dataId)
+    console.log('🔔 [WEBHOOK_QUERY] type:', type)
+    
     // 2. Obtener payload
     const payload: MercadoPagoWebhookPayload = await req.json()
     
-    console.log(`[WEBHOOK_RECEIVED] Type: ${payload.type}, ID: ${payload.id}, Live Mode: ${payload.live_mode}`)
-    console.log(`[WEBHOOK_HEADERS] X-Signature: ${xSignature?.substring(0, 20)}..., X-Request-ID: ${xRequestId}`)
-    console.log(`[WEBHOOK_QUERY] data.id: ${dataId}, type: ${type}`)
+    console.log(`🔔 [WEBHOOK_PAYLOAD] Type: ${payload.type}, ID: ${payload.id}, Live Mode: ${payload.live_mode}`)
+    console.log(`🔔 [WEBHOOK_PAYLOAD] Action: ${payload.action}`)
+    console.log(`🔔 [WEBHOOK_PAYLOAD] Data:`, JSON.stringify(payload.data, null, 2))
     
     // 3. Validar firma (solo en producción o si tenemos webhook secret)
     if (process.env.MERCADOPAGO_WEBHOOK_SECRET && xSignature) {
@@ -86,15 +98,22 @@ export async function POST(req: NextRequest) {
     // 10. Procesar según estado del pago
     if (paymentData.status === 'approved') {
       await processApprovedPayment(order, paymentData)
-      console.log(`[PAYMENT_APPROVED] Order: ${order.id}, Payment: ${paymentData.id}`)
+      console.log(`✅ [PAYMENT_APPROVED] Order: ${order.id}, Payment: ${paymentData.id}`)
     } else if (paymentData.status === 'rejected') {
       await processRejectedPayment(order, paymentData)
-      console.log(`[PAYMENT_REJECTED] Order: ${order.id}, Payment: ${paymentData.id}`)
+      console.log(`❌ [PAYMENT_REJECTED] Order: ${order.id}, Payment: ${paymentData.id}`)
     } else {
-      console.log(`[PAYMENT_OTHER_STATUS] Status: ${paymentData.status}, Order: ${order.id}`)
+      console.log(`⚠️ [PAYMENT_OTHER_STATUS] Status: ${paymentData.status}, Order: ${order.id}`)
     }
     
-    return NextResponse.json({ success: true })
+    console.log('🔔 [WEBHOOK_SUCCESS] Webhook procesado exitosamente')
+    return NextResponse.json({ 
+      success: true,
+      message: 'Webhook processed successfully',
+      timestamp: new Date().toISOString(),
+      orderId: order.id,
+      paymentId: paymentData.id
+    })
     
   } catch (error) {
     console.error('[WEBHOOK_ERROR]:', error)

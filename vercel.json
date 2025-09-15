@@ -1,5 +1,22 @@
 {
   "buildCommand": "prisma generate && next build",
   "installCommand": "pnpm install",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "rewrites": [
+    {
+      "source": "/api/webhooks/mercadopago",
+      "destination": "/api/webhooks/mercadopago"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/webhooks/mercadopago",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    }
+  ]
 }
