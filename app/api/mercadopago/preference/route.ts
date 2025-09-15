@@ -69,10 +69,32 @@ export async function POST(req: NextRequest) {
     console.log('🔧 URLs de retorno configuradas:', backUrls)
     console.log('🔧 Modo desarrollo:', isDevelopment)
     
-    // Crear preferencia ultra-simplificada para debug
+    // Generar nombre del producto basado en el tipo de orden
+    const getProductTitle = () => {
+      if (order.planType === 'premium') {
+        return 'Plan Premium Modalidad 40 - Acceso Ilimitado de por Vida'
+      } else if (order.planType === 'basic') {
+        // Si tenemos datos de estrategia, crear nombre más específico
+        if (strategyData && strategyData.familyMemberId) {
+          const familyMemberName = userData?.familyMemberName || 'Familiar'
+          const estrategia = strategyData.estrategia === 'fijo' ? 'Fija' : 'Progresiva'
+          const uma = strategyData.umaElegida || 'UMA'
+          const meses = strategyData.mesesM40 || 'meses'
+          
+          return `Estrategia ${estrategia} Modalidad 40 - ${familyMemberName} (${uma} UMA, ${meses} meses)`
+        }
+        return 'Estrategia Personalizada Modalidad 40'
+      }
+      return 'Servicio Modalidad 40'
+    }
+
+    // Crear preferencia con nombre descriptivo
+    const productTitle = getProductTitle()
+    console.log('🛍️ Nombre del producto generado:', productTitle)
+    
     const preferenceData: any = {
       items: [{
-        title: 'Test Product',
+        title: productTitle,
         quantity: 1,
         unit_price: Number(amount)
       }],
