@@ -18,6 +18,7 @@ export const MERCADOPAGO_CONFIG = {
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
   publicKey: process.env.MERCADOPAGO_PUBLIC_KEY!,
   baseUrl: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+  webhookUrl: process.env.MERCADOPAGO_WEBHOOK_URL || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
   webhookSecret: process.env.MERCADOPAGO_WEBHOOK_SECRET
 }
 
@@ -43,7 +44,8 @@ if (process.env.NODE_ENV === 'development') {
   console.log('🔧 MercadoPago Config:')
   console.log('- Access Token:', process.env.MERCADOPAGO_ACCESS_TOKEN?.substring(0, 10) + '...')
   console.log('- Public Key:', process.env.MERCADOPAGO_PUBLIC_KEY?.substring(0, 10) + '...')
-  console.log('- Base URL:', MERCADOPAGO_CONFIG.baseUrl)
+  console.log('- Base URL (back_urls):', MERCADOPAGO_CONFIG.baseUrl)
+  console.log('- Webhook URL (notification_url):', MERCADOPAGO_CONFIG.webhookUrl)
 }
 
 export default client

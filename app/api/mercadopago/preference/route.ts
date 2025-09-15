@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
 
     // Habilitar webhooks (funcionará en producción)
     if (!isDevelopment) {
-      preferenceData.notification_url = `${MERCADOPAGO_CONFIG.baseUrl}/api/webhooks/mercadopago`
+      preferenceData.notification_url = `${MERCADOPAGO_CONFIG.webhookUrl}/api/webhooks/mercadopago`
     }
 
     // Agregar payer solo si tenemos datos válidos
@@ -122,6 +122,9 @@ export async function POST(req: NextRequest) {
     
     console.log('🔧 Access Token (primeros 10 caracteres):', MERCADOPAGO_CONFIG.accessToken.substring(0, 10))
     console.log('🔧 Public Key (primeros 10 caracteres):', MERCADOPAGO_CONFIG.publicKey.substring(0, 10))
+    console.log('🔧 Base URL (back_urls):', MERCADOPAGO_CONFIG.baseUrl)
+    console.log('🔧 Webhook URL (notification_url):', MERCADOPAGO_CONFIG.webhookUrl)
+    console.log('🔧 Is Development:', isDevelopment)
     
     try {
       const response = await preference.create({ body: preferenceData })
