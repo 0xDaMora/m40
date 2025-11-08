@@ -171,12 +171,12 @@ export default function QuickRegistrationModal({
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-gray-900">
-                      {step === 'info' && (strategyData ? 'Completar tu compra' : 'Acceder a Herramienta Avanzada')}
+                      {step === 'info' && (strategyData ? 'Obtener tu Estrategia Gratis' : 'Acceder a Herramienta Avanzada')}
                       {step === 'register' && 'Registro rápido'}
                       {step === 'login' && 'Iniciar sesión'}
                     </h2>
                     <p className="text-sm text-gray-600">
-                      {step === 'info' && (strategyData ? 'Necesitamos algunos datos para procesar tu compra' : 'Crea tu cuenta para acceder a cálculos personalizados')}
+                      {step === 'info' && (strategyData ? 'Regístrate gratis y obtén tu estrategia personalizada sin costo' : 'Crea tu cuenta para acceder a cálculos personalizados')}
                       {step === 'register' && 'Crea tu cuenta en segundos'}
                       {step === 'login' && 'Accede a tu cuenta existente'}
                     </p>
@@ -197,8 +197,15 @@ export default function QuickRegistrationModal({
                 <div className="space-y-6">
                   {/* Resumen de la estrategia - Solo mostrar si hay estrategia */}
                   {strategyData ? (
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
-                      <h3 className="font-semibold text-blue-900 mb-3">Estrategia seleccionada:</h3>
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-green-200">
+                      <div className="flex items-center gap-2 mb-3">
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        <h3 className="font-semibold text-green-900">¡Tu Estrategia Gratis!</h3>
+                      </div>
+                      <p className="text-sm text-green-700 mb-3">
+                        Esta es tu <strong>única estrategia gratis</strong>. Regístrate ahora para obtenerla sin costo.
+                      </p>
+                      <h4 className="font-semibold text-green-900 mb-3 text-sm">Estrategia seleccionada:</h4>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
                           <span className="text-blue-600">Pensión mensual:</span>

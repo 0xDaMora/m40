@@ -20,9 +20,11 @@ import {
 } from "lucide-react"
 import TooltipInteligente from "./TooltipInteligente"
 import EstrategiaDetalladaTramites from "./EstrategiaDetalladaTramites"
+import PremiumUpsellSection from "./PremiumUpsellSection/index"
 import { calcularISRPension, calcularProyeccionPension, calcularPensionViudez } from "@/lib/all/calcularISR"
 import html2canvas from "html2canvas"
 import jsPDF from "jspdf"
+import { useSession } from "next-auth/react"
 
 interface EstrategiaDetalladaProps {
   estrategia: {
@@ -69,6 +71,7 @@ const tabs = [
 ]
 
 export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver, debugCode, familyMemberId }: EstrategiaDetalladaProps) {
+  const { data: session, update } = useSession()
   const [tabActivo, setTabActivo] = useState("resumen")
   const [guardando, setGuardando] = useState(false)
   const [guardada, setGuardada] = useState(false)
@@ -179,10 +182,18 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
       if (response.ok) {
         setGuardada(true)
         console.log('Estrategia guardada exitosamente')
+        // Refrescar la sesión para actualizar hasUsedFreeStrategy
+        if (update) {
+          await update()
+        }
       } else if (response.status === 409) {
         // La estrategia ya existe
         setGuardada(true)
         console.log('Estrategia ya estaba guardada')
+      } else if (response.status === 403) {
+        // Usuario ya usó su estrategia gratis
+        const errorData = await response.json()
+        alert(errorData.error || 'Ya has usado tu estrategia gratis')
       } else {
         throw new Error('Error al guardar estrategia')
       }
@@ -967,11 +978,16 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
       console.log('📸 Capturando con html2canvas...')
       
       // Capturar usando html2canvas desde el iframe
+      // Excluir elementos con clase "no-pdf" (aunque no debería ser necesario porque el PDF se genera desde HTML manual)
       const canvas = await html2canvas(contentElement, {
         scale: 2,
         useCORS: false,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        ignoreElements: (element) => {
+          // Excluir elementos con clase "no-pdf" por si acaso
+          return element.classList?.contains('no-pdf') || false
+        }
       })
       
       console.log('✅ Canvas generado exitosamente')
@@ -1138,7 +1154,7 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
           <div className="bg-white/10 p-3 md:p-4 rounded-lg">
             <div className="text-lg md:text-2xl font-bold">{formatCurrency(estrategia.pensionMensual)}</div>
             <div className="text-xs md:text-sm text-blue-100">
-              <TooltipInteligente termino="Pensión mensual">
+              <TooltipInteligente termino="Pensión mensual" colorTexto="text-white hover:text-blue-100">
                 Pensión mensual
               </TooltipInteligente>
             </div>
@@ -1146,7 +1162,7 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
           <div className="bg-white/10 p-3 md:p-4 rounded-lg">
             <div className="text-lg md:text-2xl font-bold">{formatCurrency(isr.pensionNeta)}</div>
             <div className="text-xs md:text-sm text-blue-100">
-              <TooltipInteligente termino="Pensión neta">
+              <TooltipInteligente termino="Pensión neta" colorTexto="text-white hover:text-blue-100">
                 Neta (después ISR)
               </TooltipInteligente>
             </div>
@@ -1154,7 +1170,7 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
           <div className="bg-white/10 p-3 md:p-4 rounded-lg">
             <div className="text-lg md:text-2xl font-bold">{formatCurrency(estrategia.inversionTotal || 0)}</div>
             <div className="text-xs md:text-sm text-blue-100">
-              <TooltipInteligente termino="Inversión total">
+              <TooltipInteligente termino="Inversión total" colorTexto="text-white hover:text-blue-100">
                 Inversión total
               </TooltipInteligente>
             </div>
@@ -1162,7 +1178,7 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
           <div className="bg-white/10 p-3 md:p-4 rounded-lg">
             <div className="text-lg md:text-2xl font-bold">{estrategia.ROI}%</div>
             <div className="text-xs md:text-sm text-blue-100">
-              <TooltipInteligente termino="ROI">
+              <TooltipInteligente termino="ROI" colorTexto="text-white hover:text-blue-100">
                 ROI 20 años
               </TooltipInteligente>
             </div>
@@ -1341,6 +1357,12 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
           )}
         </AnimatePresence>
       </div>
+
+      {/* Componente de Upsell Premium - No aparece en PDF (clase no-pdf) */}
+      <PremiumUpsellSection 
+        estrategiaActual={estrategia}
+        datosUsuario={datosUsuario}
+      />
 
       {/* Estilos para ocultar scrollbar pero mantener funcionalidad */}
       <style jsx global>{`

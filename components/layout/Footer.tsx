@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Shield, Phone, Mail, FileText, HelpCircle, Calculator } from "lucide-react"
+import { Shield, Mail, FileText, HelpCircle, Calculator } from "lucide-react"
 
 export function Footer() {
   return (
@@ -9,8 +9,34 @@ export function Footer() {
           {/* Información de la empresa */}
           <div className="col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="bg-blue-600 text-white font-bold text-lg px-3 py-1 rounded-lg">
-                M40
+              <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+                <svg 
+                  width="32" 
+                  height="32" 
+                  viewBox="0 0 32 32" 
+                  fill="none" 
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-8 h-8"
+                >
+                  {/* Fondo circular azul */}
+                  <circle cx="16" cy="16" r="16" fill="#2563eb"/>
+                  
+                  {/* Texto M40 en blanco */}
+                  <text 
+                    x="16" 
+                    y="22" 
+                    fontFamily="Arial, sans-serif" 
+                    fontSize="14" 
+                    fontWeight="bold" 
+                    textAnchor="middle" 
+                    fill="white"
+                  >
+                    M40
+                  </text>
+                  
+                  {/* Pequeño acento dorado */}
+                  <circle cx="24" cy="8" r="3" fill="#f59e0b"/>
+                </svg>
               </div>
               <span className="font-bold text-white">Pensiones</span>
             </div>
@@ -54,12 +80,6 @@ export function Footer() {
                 <Link href="#preguntas-frecuentes" className="text-gray-400 hover:text-white flex items-center gap-2">
                   <HelpCircle className="w-4 h-4" />
                   Preguntas frecuentes
-                </Link>
-              </li>
-              <li>
-                <Link href="tel:+525555555555" className="text-gray-400 hover:text-white flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  55-5555-5555
                 </Link>
               </li>
               <li>

@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { ArrowUpRight, Star, TrendingUp, Calendar, DollarSign, Target, Users, Shield, CheckCircle, ArrowRight, Info } from "lucide-react"
+import { ArrowUpRight, Star, TrendingUp, Calendar, DollarSign, Target, Users, Shield, CheckCircle, ArrowRight, Info, Crown } from "lucide-react"
 import { toast } from "react-hot-toast"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
@@ -24,7 +24,7 @@ interface ComparativoEstrategiasProps {
 }
 
 export default function ComparativoEstrategias({ data, onReinicio, datosUsuario }: ComparativoEstrategiasProps) {
-  const { data: session } = useSession()
+  const { data: session, update } = useSession()
   const router = useRouter()
   const { currency: formatCurrency, percentage: formatPercentage } = useFormatters()
   const { procesarEstrategia, actualizarPlanUsuario, loading, isAuthenticated, isPremium } = useStrategy()
@@ -57,6 +57,17 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
     // Ordenar por pensión mensual de mayor a menor
     return b.pensionMensual - a.pensionMensual
   })
+
+  // Mostrar solo 2 estrategias: la de mayor pensión (índice 0) y la segunda mejor si existe
+  // Si solo hay 1 estrategia, mostrar solo esa
+  const estrategiasAMostrar = estrategias.length >= 2 
+    ? [estrategias[0], estrategias[1]] // Primera (mayor pensión) y segunda mejor
+    : estrategias.slice(0, 1)
+  
+  // Etiquetas para las estrategias
+  const etiquetasEstrategias = estrategias.length >= 2
+    ? ['Tu Estrategia Recomendada', 'Mayor Pensión Posible']
+    : ['Tu Estrategia Recomendada']
 
   const handlePurchaseFromHeroOnboard = (estrategia: any) => {
     console.log('🔍 Estrategia seleccionada para compra:', estrategia)
@@ -142,10 +153,16 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
         return
       }
 
-      // Para usuarios NO Premium: crear familiar y luego orden con MercadoPago
+      // Para usuarios NO Premium: verificar si pueden guardar gratis
       if ((session?.user as any)?.subscription !== 'premium') {
-        await handleMercadoPagoWithFamily(familyMemberName)
-        return
+        const hasUsedFree = (session?.user as any)?.hasUsedFreeStrategy
+        if (hasUsedFree) {
+          // Ya usó su estrategia gratis, invitar a Premium
+          toast.error('Ya has usado tu estrategia gratis. Actualiza a Premium para guardar más estrategias.')
+          setShowPremiumModal(true)
+          return
+        }
+        // Aún no ha usado su estrategia gratis, continuar con el flujo normal (guardar gratis)
       }
 
       // Derivar estado civil de forma robusta
@@ -277,9 +294,22 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
 
       if (response.ok) {
         console.log('✅ Estrategia guardada exitosamente (Sistema Unificado)')
-        toast.success('¡Estrategia guardada exitosamente!')
+        const responseData = await response.json()
+        // Verificar si fue guardada gratis
+        const wasFree = !(session?.user as any)?.hasUsedFreeStrategy && (session?.user as any)?.subscription !== 'premium'
+        toast.success(wasFree ? '¡Estrategia guardada gratis exitosamente! 🎉' : '¡Estrategia guardada exitosamente!')
+        // Refrescar la sesión para actualizar hasUsedFreeStrategy
+        if (update) {
+          await update()
+        }
         const url = `/estrategia/${strategyCode}`
         router.push(url)
+      } else if (response.status === 403) {
+        // Usuario ya usó su estrategia gratis
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Ya has usado tu estrategia gratis')
+        setShowPremiumModal(true)
+        return
       } else if (response.status === 409) {
         // La estrategia ya existe, abrir directamente
         console.log('✅ Estrategia ya existe, abriendo directamente')
@@ -373,7 +403,7 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
         planType: 'premium' as const,
         strategyData: null, // Premium no tiene estrategia específica
         userData: datosUsuario,
-        amount: 500 // Monto fijo para plan Premium
+        amount: 200 // Monto fijo para plan Premium (200MXN de por vida)
       }
 
       // Procesar compra con MercadoPago
@@ -391,71 +421,11 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
     }
   }
 
-  // Nueva función para manejar compras básicas con MercadoPago (después de crear familiar)
-  const handleMercadoPagoWithFamily = async (familyMemberName: string) => {
-    try {
-      // 1. Crear familiar (igual que el flujo Premium)
-      const normalize = (s: any) => (s ? s.toString().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '') : '')
-      const rawEstado = normalize((datosUsuario as any).estadoCivil || (datosUsuario as any).civilStatus || (datosUsuario as any)["Estado Civil"]) 
-      const rawDep = normalize((datosUsuario as any).dependiente)
-      const civilStatusValue = (rawEstado.includes('casad') || rawDep.includes('cony')) ? 'casado' : 'soltero'
-
-      const crearFamiliarResponse = await fetch('/api/family', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          name: familyMemberName,
-          birthDate: datosUsuario.fechaNacimiento || new Date().toISOString().split('T')[0],
-          weeksContributed: datosUsuario.semanasPrevias,
-          lastGrossSalary: datosUsuario.sdiHistorico * 30.4,
-          civilStatus: civilStatusValue
-        }),
-      })
-
-      if (!crearFamiliarResponse.ok) {
-        throw new Error('Error al crear el familiar')
-      }
-
-      const familiarCreado = await crearFamiliarResponse.json()
-      const familyMemberId = familiarCreado.id
-
-      // 2. Preparar datos para MercadoPago con familyMemberId
-      const orderData = {
-        planType: 'basic' as const,
-        strategyData: {
-          ...confirmationStrategy,
-          familyMemberId // Incluir el ID del familiar
-        },
-        userData: {
-          ...datosUsuario,
-          familyMemberId,
-          familyMemberName
-        },
-        amount: 50 // Monto fijo para estrategias básicas
-      }
-
-      // 3. Procesar compra con MercadoPago
-      const success = await processMercadoPagoPurchase(orderData)
-      
-      if (success) {
-        console.log('✅ Compra básica iniciada exitosamente con MercadoPago')
-        // La redirección a MercadoPago ya se maneja en el hook
-      } else {
-        console.error('❌ Error al procesar la compra básica con MercadoPago')
-      }
-    } catch (error) {
-      console.error('❌ Error en handleMercadoPagoWithFamily:', error)
-      toast.error('Error al procesar la compra')
-    }
-  }
 
 
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10 md:space-y-12">
       {/* Header mejorado */}
       <div className="text-center">
         <motion.div
@@ -463,10 +433,10 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-                     <h2 className="text-3xl font-bold text-gray-900 mb-3">
-             🎯 Tus 5 Mejores Estrategias
+                     <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 text-center">
+             🎯 Tus Mejores Estrategias
            </h2>
-           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+           <p className="text-base md:text-lg text-gray-700 max-w-2xl mx-auto text-center px-4">
              Basadas en tu perfil y optimizadas para maximizar tu pensión con <TooltipInteligente termino="Modalidad 40"><strong>Modalidad 40</strong></TooltipInteligente>
            </p>
           <div className="mt-4 flex items-center justify-center gap-4 text-sm text-gray-500">
@@ -492,175 +462,154 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
         </motion.div>
       </div>
 
-      {/* Estrategias con diseño mejorado */}
-      <div className="grid gap-6">
-        {estrategias.slice(0, 5).map((estrategia: any, index: number) => (
+      {/* Estrategias con diseño mejorado - Solo 2 estrategias para gente mayor y móvil */}
+      <div className="grid gap-6 md:gap-8 px-4">
+        {estrategiasAMostrar.map((estrategia: any, index: number) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.15 }}
-            className="bg-white rounded-2xl border border-gray-200 p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden"
+            className="bg-white rounded-2xl border-2 border-gray-200 p-6 md:p-8 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 relative overflow-hidden"
           >
-                         {/* Badge de ranking */}
-             <div className="absolute top-4 left-4">
-               <TooltipInteligente termino="Ranking de Estrategia">
-                 <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold cursor-help">
-                   #{index + 1} Mejor
-                 </div>
-               </TooltipInteligente>
-             </div>
+            {/* Badge de ranking - Rediseñado sin sobreposición */}
+            <div className="mb-6">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-5 py-3 rounded-full text-lg md:text-xl font-bold inline-block">
+                {etiquetasEstrategias[index] || `Estrategia ${index + 1}`}
+              </div>
+            </div>
 
-            {/* Header de la estrategia */}
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center">
-                  <Target className="w-8 h-8 text-blue-600" />
+            {/* Header de la estrategia - Mejorado para móvil y gente mayor */}
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-6">
+              <div className="flex items-center gap-5 w-full md:w-auto">
+                <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Target className="w-10 h-10 md:w-12 md:h-12 text-blue-600" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">
+                <div className="flex-1">
+                  <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">
                     Estrategia {estrategia.estrategia === 'progresivo' ? 'Progresiva' : 'Fija'}
                     <TooltipInteligente termino={estrategia.estrategia === 'progresivo' ? 'Estrategia Progresiva' : 'Estrategia Fija'}>
-                      <span className="text-blue-600">ℹ️</span>
+                      <span className="text-blue-600 ml-2 text-lg">ℹ️</span>
                     </TooltipInteligente>
                   </h3>
-                                     <p className="text-gray-600">
-                     <Calendar className="w-4 h-4 inline mr-1" />
-                     {estrategia.mesesM40} meses • {datosUsuario.edad || 65} años
-                   </p>
+                  <p className="text-base md:text-lg text-gray-700">
+                    <Calendar className="w-5 h-5 inline mr-2" />
+                    {estrategia.mesesM40} meses • {datosUsuario.edad || 65} años
+                  </p>
                 </div>
               </div>
               
-                             <div className="text-right">
-                                   <div className="text-3xl font-bold text-green-600 mb-1">
-                    {formatCurrency(estrategia.pensionMensual)}
+              <div className="text-left md:text-right w-full md:w-auto">
+                <div className="text-3xl md:text-4xl font-bold text-green-600 mb-2">
+                  {formatCurrency(estrategia.pensionMensual)}
+                </div>
+                <TooltipInteligente termino="Pensión Mensual">
+                  <div className="text-base md:text-lg text-gray-700 bg-green-50 px-4 py-2 rounded-full cursor-help inline-block font-medium">
+                    pensión mensual
                   </div>
-                 <TooltipInteligente termino="Pensión Mensual">
-                   <div className="text-sm text-gray-500 bg-green-50 px-2 py-1 rounded-full cursor-help">
-                     pensión mensual
-                   </div>
-                 </TooltipInteligente>
-               </div>
+                </TooltipInteligente>
+              </div>
             </div>
 
-            {/* Métricas principales - Optimizado para móvil */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 sm:gap-4 mb-6 sm:mb-6">
-              <div className="text-center p-4 bg-blue-50 rounded-lg sm:rounded-xl relative group">
-                <div className="text-lg sm:text-2xl font-bold text-blue-600 mb-2">
+            {/* Métricas principales - Optimizado para móvil y gente mayor (solo 4 métricas principales) */}
+            <div className="grid grid-cols-2 gap-4 md:gap-6 mb-8">
+              <div className="text-center p-5 md:p-6 bg-blue-50 rounded-xl md:rounded-2xl relative group">
+                <div className="text-2xl md:text-3xl font-bold text-blue-600 mb-3">
                   {formatCurrency(estrategia.inversionTotal)}
                 </div>
-                <div className="text-xs text-gray-600 font-medium flex items-center justify-center gap-1">
+                <div className="text-base md:text-lg text-gray-700 font-medium flex items-center justify-center gap-2">
                   Inversión total
                   <TooltipInteligente termino="Inversión Total">
-                    <span className="text-blue-400 hover:text-blue-600 transition-colors cursor-help">ℹ️</span>
+                    <span className="text-blue-500 hover:text-blue-700 transition-colors cursor-help text-lg">ℹ️</span>
                   </TooltipInteligente>
                 </div>
               </div>
-              <div className="text-center p-4 bg-purple-50 rounded-lg sm:rounded-xl relative group">
-                <div className="text-lg sm:text-2xl font-bold text-purple-600 mb-2">
+              <div className="text-center p-5 md:p-6 bg-purple-50 rounded-xl md:rounded-2xl relative group">
+                <div className="text-2xl md:text-3xl font-bold text-purple-600 mb-3">
                   {formatPercentage(estrategia.ROI)}
                 </div>
-                <div className="text-xs text-gray-600 font-medium flex items-center justify-center gap-1">
+                <div className="text-base md:text-lg text-gray-700 font-medium flex items-center justify-center gap-2">
                   ROI
                   <TooltipInteligente termino="ROI">
-                    <span className="text-purple-400 hover:text-purple-600 transition-colors cursor-help">ℹ️</span>
+                    <span className="text-purple-500 hover:text-purple-700 transition-colors cursor-help text-lg">ℹ️</span>
                   </TooltipInteligente>
                 </div>
               </div>
-              <div className="text-center p-4 bg-orange-50 rounded-lg sm:rounded-xl relative group">
-                <div className="text-lg sm:text-2xl font-bold text-orange-600 mb-2">
+              <div className="text-center p-5 md:p-6 bg-orange-50 rounded-xl md:rounded-2xl relative group">
+                <div className="text-2xl md:text-3xl font-bold text-orange-600 mb-3">
                   {estrategia.umaElegida} UMA
                 </div>
-                <div className="text-xs text-gray-600 font-medium flex items-center justify-center gap-1">
+                <div className="text-base md:text-lg text-gray-700 font-medium flex items-center justify-center gap-2">
                   Nivel UMA
                   <TooltipInteligente termino="UMA">
-                    <span className="text-orange-400 hover:text-orange-600 transition-colors cursor-help">ℹ️</span>
+                    <span className="text-orange-500 hover:text-orange-700 transition-colors cursor-help text-lg">ℹ️</span>
                   </TooltipInteligente>
                 </div>
               </div>
-              <div className="text-center p-4 bg-indigo-50 rounded-lg sm:rounded-xl relative group">
-                <div className="text-lg sm:text-2xl font-bold text-indigo-600 mb-2">
+              <div className="text-center p-5 md:p-6 bg-indigo-50 rounded-xl md:rounded-2xl relative group">
+                <div className="text-2xl md:text-3xl font-bold text-indigo-600 mb-3">
                   {formatCurrency(Math.round(estrategia.inversionTotal / estrategia.mesesM40))}
                 </div>
-                <div className="text-xs text-gray-600 font-medium flex items-center justify-center gap-1">
+                <div className="text-base md:text-lg text-gray-700 font-medium flex items-center justify-center gap-2">
                   Promedio mensual
                   <TooltipInteligente termino="Aportación Mensual Promedio">
-                    <span className="text-indigo-400 hover:text-indigo-600 transition-colors cursor-help">ℹ️</span>
-                  </TooltipInteligente>
-                </div>
-              </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg sm:rounded-xl relative group">
-                <div className="text-lg sm:text-2xl font-bold text-green-600 mb-2">
-                  {estrategia.mesesM40}
-                </div>
-                <div className="text-xs text-gray-600 font-medium flex items-center justify-center gap-1">
-                  Duración (meses)
-                  <TooltipInteligente termino="Duración">
-                    <span className="text-green-400 hover:text-green-600 transition-colors cursor-help">ℹ️</span>
+                    <span className="text-indigo-500 hover:text-indigo-700 transition-colors cursor-help text-lg">ℹ️</span>
                   </TooltipInteligente>
                 </div>
               </div>
             </div>
 
-                         {/* Botones de acción */}
-             <div className="flex gap-4">
-               {(session?.user as any)?.subscription === 'premium' ? (
-                 // Usuario Premium - Guardar estrategia directamente
-                 <TooltipInteligente termino="Guardar Estrategia">
-                   <button
-                     onClick={() => handlePurchaseFromHeroOnboard(estrategia)}
-                     className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                   >
-                     <Target size={18} />
-                     Guardar Estrategia
-                   </button>
-                 </TooltipInteligente>
-               ) : (
-                 // Usuario no Premium - Comprar estrategia
-                 <TooltipInteligente termino="Comprar Estrategia">
-                   <button
-                     onClick={() => {
-                       if ((session?.user as any)?.id) {
-                         // Usuario logueado - mostrar modal de confirmación directamente
-                         setShowConfirmationModal(true)
-                         setConfirmationStrategy(estrategia)
-                         setIsPremiumConfirmation(false)
-                       } else {
-                         // Usuario no logueado - usar flujo existente
-                         handlePurchaseFromHeroOnboard(estrategia)
-                       }
-                     }}
-                     disabled={mercadoPagoLoading}
-                     className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                   >
-                     {mercadoPagoLoading ? (
-                       <>
-                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                         Procesando...
-                       </>
-                     ) : (
-                       <>
-                         <DollarSign size={18} />
-                         Comprar $50
-                       </>
-                     )}
-                   </button>
-                 </TooltipInteligente>
-               )}
-              
-              {(session?.user as any)?.subscription !== 'premium' && (
-                <TooltipInteligente termino="Ver Detalles del Plan">
-                  <button
-                    onClick={() => {
-                      setEstrategiaSeleccionada(estrategia)
-                      setModalAbierto('basico')
-                    }}
-                    className="px-6 py-3 text-blue-600 border-2 border-blue-200 rounded-xl hover:bg-blue-50 transition-all duration-200 font-medium flex items-center gap-2"
-                  >
-                    <span className="text-lg">ℹ️</span>
-                    ¿Qué incluye?
-                  </button>
-                </TooltipInteligente>
+            {/* Botones de acción - Mejorados para móvil y gente mayor */}
+            <div className="flex flex-col sm:flex-row gap-4 md:gap-5">
+              {!session ? (
+                // Usuario no logueado - Invitar a registrarse para obtener estrategia gratis
+                <button
+                  onClick={() => handlePurchaseFromHeroOnboard(estrategia)}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-5 md:py-4 rounded-xl text-lg md:text-xl font-bold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-3 min-h-[64px]"
+                >
+                  <Target size={24} />
+                  <span>Registrarse y Obtener Gratis</span>
+                </button>
+              ) : (session?.user as any)?.subscription === 'premium' ? (
+                // Usuario Premium - Guardar estrategia directamente
+                <button
+                  onClick={() => handlePurchaseFromHeroOnboard(estrategia)}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-5 md:py-4 rounded-xl text-lg md:text-xl font-bold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-3 min-h-[64px]"
+                >
+                  <Target size={24} />
+                  <span>Guardar Estrategia</span>
+                </button>
+              ) : (
+                // Usuario logueado pero no premium - Verificar si ya usó su estrategia gratis
+                <button
+                  onClick={() => {
+                    // Verificar si ya usó su estrategia gratis
+                    const hasUsedFree = (session?.user as any)?.hasUsedFreeStrategy
+                    if (hasUsedFree) {
+                      // Ya usó su estrategia gratis, invitar a Premium
+                      setShowPremiumModal(true)
+                    } else {
+                      // Aún no ha usado su estrategia gratis, permitir guardar gratis
+                      setShowConfirmationModal(true)
+                      setConfirmationStrategy(estrategia)
+                      setIsPremiumConfirmation(false)
+                    }
+                  }}
+                  disabled={mercadoPagoLoading}
+                  className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-5 md:py-4 rounded-xl text-lg md:text-xl font-bold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed min-h-[64px]"
+                >
+                  {mercadoPagoLoading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                      <span>Procesando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Target size={24} />
+                      <span>Obtener Estrategia Gratis</span>
+                    </>
+                  )}
+                </button>
               )}
             </div>
           </motion.div>
@@ -670,44 +619,49 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
                      {/* Promoción del Plan Premium - Solo para usuarios no Premium */}
         {(session?.user as any)?.subscription !== 'premium' && (
           <motion.div 
-            className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-2xl p-6 mt-8"
+            className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-2xl p-6 md:p-8 mt-8"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9 }}
           >
           <div className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <Star className="w-6 h-6 text-purple-600" />
-              <h3 className="text-xl font-bold text-purple-800">¿Quieres ver TODAS tus opciones?</h3>
-              <Star className="w-6 h-6 text-purple-600" />
+            <div className="flex items-center justify-center gap-2 mb-3 md:mb-4">
+              <Star className="w-6 h-6 md:w-7 md:h-7 text-purple-600" />
+              <h3 className="text-xl md:text-2xl font-bold text-purple-800">¿Quieres ver TODAS tus opciones?</h3>
+              <Star className="w-6 h-6 md:w-7 md:h-7 text-purple-600" />
             </div>
-            <p className="text-gray-700 mb-4">
+            <p className="text-base md:text-lg text-gray-700 mb-4 md:mb-6 px-4">
               Con el <strong>Plan Premium</strong> accedes a <strong>más de 2,000 estrategias</strong> personalizadas, 
-              PDFs ilimitados, y análisis completo de tu situación.
+              PDFs ilimitados, y análisis completo de tu situación por solo <strong className="text-purple-600">$200 MXN de por vida</strong>.
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-white p-4 rounded-lg border border-purple-200">
-                <div className="text-2xl mb-2">📊</div>
-                <div className="font-semibold text-purple-800">2,000+ Estrategias</div>
-                <div className="text-sm text-gray-600">Todas las combinaciones posibles</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
+              <div className="bg-white p-4 md:p-5 rounded-lg border-2 border-purple-200">
+                <div className="text-3xl md:text-4xl mb-2">📊</div>
+                <div className="font-semibold text-purple-800 text-base md:text-lg">2,000+ Estrategias</div>
+                <div className="text-sm md:text-base text-gray-600">Todas las combinaciones posibles</div>
               </div>
-              <div className="bg-white p-4 rounded-lg border border-purple-200">
-                <div className="text-2xl mb-2">📄</div>
-                <div className="font-semibold text-purple-800">PDFs Ilimitados</div>
-                <div className="text-sm text-gray-600">Descarga todas las que quieras</div>
+              <div className="bg-white p-4 md:p-5 rounded-lg border-2 border-purple-200">
+                <div className="text-3xl md:text-4xl mb-2">📄</div>
+                <div className="font-semibold text-purple-800 text-base md:text-lg">PDFs Ilimitados</div>
+                <div className="text-sm md:text-base text-gray-600">Descarga todas las que quieras</div>
               </div>
-              <div className="bg-white p-4 rounded-lg border border-purple-200">
-                <div className="text-2xl mb-2">🎯</div>
-                <div className="font-semibold text-purple-800">Análisis Completo</div>
-                <div className="text-sm text-gray-600">Proyección de 20 años</div>
+              <div className="bg-white p-4 md:p-5 rounded-lg border-2 border-purple-200">
+                <div className="text-3xl md:text-4xl mb-2">🎯</div>
+                <div className="font-semibold text-purple-800 text-base md:text-lg">Análisis Completo</div>
+                <div className="text-sm md:text-base text-gray-600">Proyección de 20 años</div>
               </div>
+            </div>
+            <div className="bg-white rounded-xl p-4 md:p-6 mb-6 border-2 border-purple-200">
+              <div className="text-4xl md:text-5xl font-bold text-purple-600 mb-2">$200 MXN</div>
+              <div className="text-base md:text-lg text-gray-700 mb-4">Pago único de por vida</div>
             </div>
                         <button
                onClick={() => setShowPremiumModal(true)}
-               className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 mx-auto"
+               className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 md:py-5 rounded-xl text-lg md:text-xl font-bold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-3 mx-auto min-h-[64px] w-full sm:w-auto sm:min-w-[300px]"
              >
-               <TrendingUp size={18} />
-               Ver Plan Premium
+               <Crown className="w-6 h-6 md:w-7 md:h-7" />
+               <span>Ver Plan Premium</span>
+               <ArrowRight className="w-6 h-6 md:w-7 md:h-7" />
              </button>
           </div>
         </motion.div>

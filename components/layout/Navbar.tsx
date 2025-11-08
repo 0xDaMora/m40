@@ -23,8 +23,34 @@ export function Navbar() {
           <div className="flex justify-between items-center h-16">
             {/* Logo y nombre - Responsive */}
             <Link href="/" className="flex items-center space-x-2 flex-shrink-0">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">M40</span>
+              <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+                <svg 
+                  width="32" 
+                  height="32" 
+                  viewBox="0 0 32 32" 
+                  fill="none" 
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-8 h-8"
+                >
+                  {/* Fondo circular azul */}
+                  <circle cx="16" cy="16" r="16" fill="#2563eb"/>
+                  
+                  {/* Texto M40 en blanco */}
+                  <text 
+                    x="16" 
+                    y="22" 
+                    fontFamily="Arial, sans-serif" 
+                    fontSize="14" 
+                    fontWeight="bold" 
+                    textAnchor="middle" 
+                    fill="white"
+                  >
+                    M40
+                  </text>
+                  
+                  {/* Pequeño acento dorado */}
+                  <circle cx="24" cy="8" r="3" fill="#f59e0b"/>
+                </svg>
               </div>
               <span className="text-lg sm:text-xl font-bold text-gray-900 hidden sm:block">Modalidad 40</span>
               <span className="text-lg font-bold text-gray-900 sm:hidden">M40</span>

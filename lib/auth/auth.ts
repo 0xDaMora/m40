@@ -97,17 +97,19 @@ export const authOptions: NextAuthOptions = {
           if (dbUser) {
             token.id = dbUser.id
             token.subscription = dbUser.subscription
+            token.hasUsedFreeStrategy = dbUser.hasUsedFreeStrategy
           } else {
             token.id = user.id
           }
         } else {
           token.id = user.id
-          // Para usuarios de credentials, obtener subscription de la base de datos
+          // Para usuarios de credentials, obtener subscription y hasUsedFreeStrategy de la base de datos
           const dbUser = await prisma.user.findUnique({
             where: { id: user.id }
           })
           if (dbUser) {
             token.subscription = dbUser.subscription
+            token.hasUsedFreeStrategy = dbUser.hasUsedFreeStrategy
           }
         }
         token.authProvider = account?.provider || 'credentials'
@@ -118,6 +120,7 @@ export const authOptions: NextAuthOptions = {
         })
         if (dbUser) {
           token.subscription = dbUser.subscription
+          token.hasUsedFreeStrategy = dbUser.hasUsedFreeStrategy
         }
       }
       return token
@@ -127,6 +130,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string
         session.user.authProvider = token.authProvider as string
         session.user.subscription = token.subscription as string
+        session.user.hasUsedFreeStrategy = token.hasUsedFreeStrategy as boolean
       }
       return session
     }

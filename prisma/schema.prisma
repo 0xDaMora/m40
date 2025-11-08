@@ -26,6 +26,7 @@ model User {
   image         String?  // Para avatar de Google
   createdAt     DateTime @default(now())
   subscription  String   @default("basic") // 'basic' | 'premium'
+  hasUsedFreeStrategy Boolean @default(false) // Indica si ya usó su estrategia gratis
   
   familyMembers FamilyMember[]
   savedStrategies SavedStrategy[]

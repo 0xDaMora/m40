@@ -1,5 +1,5 @@
 import { motion } from "framer-motion"
-import { Lock, Eye, Download, ChevronDown, ChevronUp } from "lucide-react"
+import { Lock, Eye, ChevronDown, ChevronUp } from "lucide-react"
 import { StrategyResult } from "@/types/strategy"
 import { useFormatters } from "@/hooks/useFormatters"
 import TooltipInteligente from "@/components/TooltipInteligente"
@@ -45,77 +45,120 @@ export function StrategyRow({
     >
       {/* Header de fila - Siempre visible */}
       <div 
-        className={`py-2 px-2 sm:py-3 sm:px-3 md:py-4 md:px-4 lg:py-5 lg:px-5 cursor-pointer transition-colors duration-200 ${
+        className={`py-3 px-2 sm:py-4 sm:px-4 md:py-5 md:px-5 lg:py-6 lg:px-6 cursor-pointer transition-colors duration-200 ${
           isExpanded 
             ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200' 
             : 'hover:bg-gray-50'
         }`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        {/* Layout móvil optimizado - Información en fila horizontal */}
-        <div className="flex items-center gap-2 sm:gap-1.5 md:gap-2 lg:gap-4">
-          {/* Columna 1: Tipo de estrategia */}
-          <div className="flex items-center gap-1.5 sm:gap-1.5 md:gap-2 min-w-0 flex-shrink-0">
-            <div className={`p-1 sm:p-1.5 md:p-2 rounded-lg ${
-              strategy.estrategia === 'progresivo' 
-                ? 'bg-purple-100 text-purple-700' 
-                : 'bg-green-100 text-green-700'
-            }`}>
-              <span className="text-xs sm:text-sm md:text-lg">
-                {strategy.estrategia === 'progresivo' ? '📈' : '📊'}
-              </span>
+        {/* Layout responsivo: dos filas en móvil, una fila en desktop */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 md:gap-5 lg:gap-6">
+          {/* Fila 1: Datos principales */}
+          <div className="flex items-center gap-2 sm:gap-4 md:gap-5 lg:gap-6 flex-1">
+            {/* Columna 1: Tipo de estrategia - Compacta */}
+            <div className="flex items-center justify-center min-w-0 flex-shrink-0">
+              <div className={`p-1.5 sm:p-2 rounded-lg ${
+                strategy.estrategia === 'progresivo' 
+                  ? 'bg-purple-100 text-purple-700' 
+                  : 'bg-green-100 text-green-700'
+              }`}>
+                <span className="text-lg sm:text-xl">
+                  {strategy.estrategia === 'progresivo' ? '📈' : '📊'}
+                </span>
+              </div>
             </div>
-            <div className="min-w-0">
-              <h3 className="font-semibold text-gray-900 text-xs sm:text-sm lg:text-base leading-tight">
-                {strategy.estrategia === 'fijo' ? 'Fija' : 'Progresiva'}
-              </h3>
-              <p className="text-xs text-gray-500">M40</p>
+
+            {/* Separador visual - Solo visible en desktop */}
+            <div className="hidden sm:block h-12 w-px bg-gray-200 flex-shrink-0"></div>
+
+            {/* Columna 2: UMA - Compacta con ancho fijo */}
+            <div className="text-center w-10 sm:w-14 flex-shrink-0 px-1">
+              <div className="text-xs sm:text-sm text-gray-500 mb-1.5">UMA</div>
+              <div className="font-bold text-gray-900 text-lg sm:text-2xl md:text-3xl leading-tight">{strategy.umaElegida}</div>
+            </div>
+
+            {/* Separador visual - Solo visible en desktop */}
+            <div className="hidden sm:block h-12 w-px bg-gray-200 flex-shrink-0"></div>
+
+            {/* Columna 3: Aportación Mensual */}
+            <div className="text-center min-w-0 flex-1 sm:flex-1 px-2 sm:px-5 md:px-6">
+              <div className="text-xs sm:text-sm text-gray-500 mb-1.5">Aportación</div>
+              <div className="font-bold text-blue-600 text-lg sm:text-2xl md:text-3xl leading-tight">
+                {formatCurrency(aportacionPromedio)}
+              </div>
+              <div className="text-xs sm:text-sm text-gray-500 leading-tight mt-0.5">{strategy.mesesM40}m</div>
+            </div>
+
+            {/* Separador visual con más espacio - Solo visible en desktop */}
+            <div className="hidden sm:block h-12 w-px bg-gray-200 flex-shrink-0 mx-2 sm:mx-3"></div>
+
+            {/* Columna 4: Pensión Mensual */}
+            <div className="text-center min-w-0 flex-1 sm:flex-1 px-2 sm:px-5 md:px-6">
+              <div className="text-xs sm:text-sm text-gray-500 mb-1.5">Pensión</div>
+              <div className="font-bold text-green-600 text-lg sm:text-2xl md:text-3xl leading-tight">
+                {formatCurrency(strategy.pensionMensual || 0)}
+              </div>
+              <div className="text-xs sm:text-sm text-gray-500 leading-tight mt-0.5">Al jubilarse</div>
+            </div>
+
+            {/* Columna 5: ROI - Solo visible en tablet y desktop */}
+            <div className="hidden sm:block text-center min-w-0 flex-shrink-0 px-2">
+              <div className="text-xs sm:text-sm text-gray-500 mb-1.5">ROI</div>
+              <div className="font-bold text-orange-600 text-xl sm:text-2xl md:text-3xl leading-tight">
+                {(strategy.ROI || 0).toFixed(1)}%
+              </div>
+            </div>
+
+            {/* Separador visual antes de acciones - Solo visible en desktop */}
+            <div className="hidden sm:block h-12 w-px bg-gray-200 flex-shrink-0"></div>
+
+            {/* Columna 6: Acciones - Solo visible en desktop */}
+            <div className="hidden sm:flex items-center gap-2 sm:gap-2.5 min-w-0 flex-shrink-0 px-2">
+              {(!session || userPlan === 'free' || userPlan === 'basic') ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onStrategyPurchase(strategy)
+                  }}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-lg text-sm sm:text-base font-semibold transition-colors duration-200 min-h-[44px] flex items-center justify-center whitespace-nowrap"
+                >
+                  Comprar
+                </button>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onViewDetails(strategy)
+                  }}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-lg text-sm sm:text-base font-semibold transition-colors duration-200 min-h-[44px] flex items-center justify-center whitespace-nowrap"
+                >
+                  Ver
+                </button>
+              )}
+              
+              {/* Indicador de collapse */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsExpanded(!isExpanded)
+                }}
+                className="text-gray-400 hover:text-gray-600 min-w-[32px] min-h-[32px] flex items-center justify-center transition-colors"
+              >
+                {isExpanded ? <ChevronUp className="w-5 h-5 sm:w-6 sm:h-6" /> : <ChevronDown className="w-5 h-5 sm:w-6 sm:h-6" />}
+              </button>
             </div>
           </div>
 
-          {/* Columna 2: UMA */}
-          <div className="text-center min-w-0 flex-shrink-0">
-            <div className="text-xs text-gray-500 mb-0.5">UMA</div>
-            <div className="font-bold text-gray-900 text-sm sm:text-base leading-tight">{strategy.umaElegida}</div>
-          </div>
-
-          {/* Columna 3: Aportación Mensual */}
-          <div className="text-center min-w-0 flex-1 sm:flex-1">
-            <div className="text-xs text-gray-500 mb-0.5">Aportación</div>
-            <div className="font-bold text-blue-600 text-sm sm:text-base leading-tight">
-              {formatCurrency(aportacionPromedio)}
-            </div>
-            <div className="text-xs text-gray-500 leading-tight">{strategy.mesesM40}m</div>
-          </div>
-
-          {/* Columna 4: Pensión Mensual */}
-          <div className="text-center min-w-0 flex-1 sm:flex-1">
-            <div className="text-xs text-gray-500 mb-0.5">Pensión</div>
-            <div className="font-bold text-green-600 text-sm sm:text-base leading-tight">
-              {formatCurrency(strategy.pensionMensual || 0)}
-            </div>
-            <div className="text-xs text-gray-500 leading-tight">Al jubilarse</div>
-          </div>
-
-          {/* Columna 5: ROI - Solo visible en tablet y desktop */}
-          <div className="hidden sm:block text-center min-w-0 flex-shrink-0">
-            <div className="text-xs text-gray-500 mb-0.5">ROI</div>
-            <div className="font-bold text-orange-600 text-sm sm:text-base leading-tight">
-              {(strategy.ROI || 0).toFixed(1)}%
-            </div>
-          </div>
-
-
-
-          {/* Columna 6: Acciones */}
-          <div className="flex items-center gap-1.5 sm:gap-1.5 md:gap-2 min-w-0 flex-shrink-0">
+          {/* Fila 2: Acciones - Solo visible en móvil */}
+          <div className="flex sm:hidden items-center gap-2 w-full">
             {(!session || userPlan === 'free' || userPlan === 'basic') ? (
               <button
                 onClick={(e) => {
                   e.stopPropagation()
                   onStrategyPurchase(strategy)
                 }}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 md:py-2 rounded-lg text-xs font-medium transition-colors duration-200"
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-200 min-h-[44px] flex items-center justify-center"
               >
                 Comprar
               </button>
@@ -125,16 +168,22 @@ export function StrategyRow({
                   e.stopPropagation()
                   onViewDetails(strategy)
                 }}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-1.5 sm:px-2 md:px-3 py-1 sm:py-1.5 md:py-2 rounded-lg text-xs font-medium transition-colors duration-200"
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors duration-200 min-h-[44px] flex items-center justify-center"
               >
                 Ver
               </button>
             )}
             
             {/* Indicador de collapse */}
-            <div className="text-gray-400">
-              {isExpanded ? <ChevronUp className="w-4 h-4 sm:w-5 sm:h-5" /> : <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />}
-            </div>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsExpanded(!isExpanded)
+              }}
+              className="text-gray-400 hover:text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center transition-colors border border-gray-300 rounded-lg"
+            >
+              {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            </button>
           </div>
         </div>
 
@@ -157,47 +206,47 @@ export function StrategyRow({
           transition={{ duration: 0.3 }}
           className="border-t border-gray-200"
         >
-          <div className="p-4 sm:p-5 bg-gray-50">
+          <div className="p-5 sm:p-6 md:p-8 bg-gray-50">
             {/* Información destacada en grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6 mb-4">
               {/* Aportación mensual promedio */}
-              <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="bg-white p-5 sm:p-6 rounded-lg border border-gray-200">
                 <div className="text-center">
                   <TooltipInteligente termino="Aportación mensual promedio">
-                    <p className="text-sm text-blue-600 font-medium mb-2">Aportación Mensual</p>
+                    <p className="text-base sm:text-lg text-blue-600 font-medium mb-2">Aportación Mensual</p>
                   </TooltipInteligente>
-                  <p className="text-xl font-bold text-blue-700">{formatCurrency(aportacionPromedio)}</p>
-                  <p className="text-xs text-blue-500 mt-1">Durante {strategy.mesesM40} meses</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-blue-700">{formatCurrency(aportacionPromedio)}</p>
+                  <p className="text-sm sm:text-base text-blue-500 mt-1">Durante {strategy.mesesM40} meses</p>
                 </div>
               </div>
 
               {/* Pensión mensual */}
-              <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="bg-white p-5 sm:p-6 rounded-lg border border-gray-200">
                 <div className="text-center">
                   <TooltipInteligente termino="Pensión mensual">
-                    <p className="text-sm text-green-600 font-medium mb-2">Pensión Mensual</p>
+                    <p className="text-base sm:text-lg text-green-600 font-medium mb-2">Pensión Mensual</p>
                   </TooltipInteligente>
-                  <p className="text-xl font-bold text-green-700">{formatCurrency(strategy.pensionMensual || 0)}</p>
-                  <p className="text-xs text-green-500 mt-1">Al jubilarse</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-green-700">{formatCurrency(strategy.pensionMensual || 0)}</p>
+                  <p className="text-sm sm:text-base text-green-500 mt-1">Al jubilarse</p>
                 </div>
               </div>
 
               {/* Inversión total */}
-              <div className="bg-white p-4 rounded-lg border border-gray-200">
+              <div className="bg-white p-5 sm:p-6 rounded-lg border border-gray-200">
                 <div className="text-center">
                   <TooltipInteligente termino="Inversión total">
-                    <p className="text-sm text-purple-600 font-medium mb-2">Inversión Total</p>
+                    <p className="text-base sm:text-lg text-purple-600 font-medium mb-2">Inversión Total</p>
                   </TooltipInteligente>
-                  <p className="text-xl font-bold text-purple-700">{formatCurrency(strategy.inversionTotal || 0)}</p>
-                  <p className="text-xs text-purple-500 mt-1">Inversión estimada</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-purple-700">{formatCurrency(strategy.inversionTotal || 0)}</p>
+                  <p className="text-sm sm:text-base text-purple-500 mt-1">Inversión estimada</p>
                 </div>
               </div>
             </div>
 
             {/* Detalles técnicos */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
-              <h4 className="font-semibold text-gray-900 mb-3">Detalles Técnicos</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <div className="bg-white p-5 sm:p-6 rounded-lg border border-gray-200 mb-4">
+              <h4 className="font-semibold text-gray-900 mb-3 text-base sm:text-lg">Detalles Técnicos</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-base sm:text-lg">
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <TooltipInteligente termino="Nivel UMA">
                     <span className="text-gray-600">UMA elegida:</span>
@@ -226,42 +275,32 @@ export function StrategyRow({
             </div>
 
             {/* Botones de acción expandidos */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-4">
               {(!session || userPlan === 'free' || userPlan === 'basic') ? (
                 <>
                   <button
                     onClick={() => onStrategyPurchase(strategy)}
-                    className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
+                    className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white py-4 px-6 sm:py-5 sm:px-8 rounded-lg text-lg sm:text-xl font-bold hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 min-h-[56px]"
                   >
-                    <Lock className="w-4 h-4" />
+                    <Lock className="w-5 h-5 sm:w-6 sm:h-6" />
                     <span>Comprar Estrategia</span>
                   </button>
                   <button
                     onClick={onPremiumModalOpen}
-                    className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                    className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white py-4 px-6 sm:py-5 sm:px-8 rounded-lg text-lg sm:text-xl font-semibold hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2 min-h-[56px]"
                   >
-                    <span>🚀</span>
+                    <span className="text-xl sm:text-2xl">🚀</span>
                     <span>Desbloquear con Premium</span>
                   </button>
                 </>
               ) : (
-                <>
-                  <button
-                    onClick={() => onViewDetails(strategy)}
-                    className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2"
-                  >
-                    <Eye className="w-4 h-4" />
-                    <span>Ver Detalles Completos</span>
-                  </button>
-                  <button
-                    onClick={() => onDownloadPDF(strategy)}
-                    className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-4 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
-                    title="Descargar PDF"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span>Descargar PDF</span>
-                  </button>
-                </>
+                <button
+                  onClick={() => onViewDetails(strategy)}
+                  className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 px-6 sm:py-5 sm:px-8 rounded-lg text-lg sm:text-xl font-bold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 min-h-[56px]"
+                >
+                  <Eye className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <span>Ver Detalles Completos</span>
+                </button>
               )}
             </div>
           </div>

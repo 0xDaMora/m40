@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader"
 import { DashboardStats } from "@/components/dashboard/DashboardStats"
 import { FamilyMembersList } from "@/components/family/FamilyMembersList"
@@ -15,13 +15,40 @@ import { motion } from "framer-motion"
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const hasRedirected = useRef(false)
+  const lastStatusRef = useRef<string | null>(null)
 
+  // Redirigir solo si definitivamente no hay sesión (después de que termine de cargar)
+  // Usar un enfoque que solo verifique una vez cuando el status cambia de "loading" a "unauthenticated"
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.push("/")
+    // Solo verificar si el status cambió y NO es "loading"
+    if (status === "loading") {
+      lastStatusRef.current = status
+      return
     }
-  }, [status, router])
 
+    // Si el status no ha cambiado desde la última vez, no hacer nada
+    if (lastStatusRef.current === status && hasRedirected.current) {
+      return
+    }
+
+    // Solo redirigir si el status cambió a "unauthenticated" y no hemos redirigido ya
+    if (status === "unauthenticated" && !hasRedirected.current) {
+      hasRedirected.current = true
+      lastStatusRef.current = status
+      // Usar router.replace en lugar de window.location para evitar recargas completas
+      router.replace("/")
+      return
+    }
+
+    // Actualizar el último status solo si no es "loading"
+    if (status !== "loading") {
+      lastStatusRef.current = status
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]) // Solo ejecutar cuando status cambia
+
+  // Mostrar loading mientras se carga la sesión
   if (status === "loading") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -33,7 +60,8 @@ export default function DashboardPage() {
     )
   }
 
-  if (!session) {
+  // Si no hay sesión después de cargar, no renderizar nada (ya se redirigió)
+  if (!session || status === "unauthenticated") {
     return null
   }
 
@@ -42,11 +70,12 @@ export default function DashboardPage() {
       <DashboardHeader />
       
       <main className="max-w-7xl mx-auto px-6 py-8">
-        <motion.div
+        <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-8"
         >
+          {/* Resumen de cuenta */}
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Resumen de tu cuenta
@@ -54,22 +83,23 @@ export default function DashboardPage() {
             <DashboardStats />
           </div>
 
-
-
+          {/* Grid de dos columnas: Familiares y Estrategias */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-             {/* Sección de Familiares */}
-             <motion.div
-               initial={{ opacity: 0, x: -20 }}
-               animate={{ opacity: 1, x: 0 }}
-               className="bg-white p-6 rounded-xl border border-gray-200"
-             >
-               <FamilyMembersList />
-             </motion.div>
+            {/* Sección de Familiares */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white p-6 rounded-xl border border-gray-200"
+            >
+              <FamilyMembersList />
+            </motion.div>
 
             {/* Sección de Estrategias */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
               className="bg-white p-6 rounded-xl border border-gray-200"
             >
               <div className="flex items-center justify-between mb-4">
@@ -91,18 +121,18 @@ export default function DashboardPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
             className="bg-white p-6 rounded-xl border border-gray-200"
             data-section="orders"
           >
             <OrdersDashboard />
           </motion.div>
 
-
-
           {/* Acciones Rápidas */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
             className="bg-white p-6 rounded-xl border border-gray-200"
           >
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -116,16 +146,15 @@ export default function DashboardPage() {
                 <div className="font-medium text-gray-900">Nueva Simulación</div>
                 <div className="text-sm text-gray-600">Calcular estrategia de pensión</div>
               </button>
-                             <button 
-                 onClick={() => router.push('/simulador')}
-                 className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
-               >
-                 <div className="font-medium text-gray-900">Agregar Familiar</div>
-                 <div className="text-sm text-gray-600">Registrar datos de familiar</div>
-               </button>
+              <button 
+                onClick={() => router.push('/simulador')}
+                className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+              >
+                <div className="font-medium text-gray-900">Agregar Familiar</div>
+                <div className="text-sm text-gray-600">Registrar datos de familiar</div>
+              </button>
               <button 
                 onClick={() => {
-                  // Scroll hacia la sección de órdenes
                   const ordersSection = document.querySelector('[data-section="orders"]')
                   ordersSection?.scrollIntoView({ behavior: 'smooth' })
                 }}

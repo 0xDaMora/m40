@@ -137,6 +137,10 @@ export default function ConfirmationModal({
                 // Contenido para estrategia individual
                 <div className="space-y-4">
                   <div className="text-center">
+                    <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-semibold mb-3">
+                      <Star className="w-4 h-4" />
+                      ¡Tu Estrategia Gratis!
+                    </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
                       Estrategia Seleccionada
                     </h3>
@@ -152,6 +156,9 @@ export default function ConfirmationModal({
                         Pensión mensual proyectada
                       </div>
                     </div>
+                    <p className="text-sm text-gray-600 mt-3">
+                      Esta es tu <strong>única estrategia gratis</strong>. Para guardar más estrategias, actualiza a Premium.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-sm">
@@ -229,7 +236,7 @@ export default function ConfirmationModal({
                       Procesando...
                     </div>
                   ) : (
-                    isPremium && !isPremiumStrategy ? 'Confirmar Premium' : 'Comprar por 50$'
+                    isPremium && !isPremiumStrategy ? 'Confirmar Premium' : 'Obtener Gratis'
                   )}
                 </button>
               </div>

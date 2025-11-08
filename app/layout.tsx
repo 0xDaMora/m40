@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ToastProvider } from "@/components/ui/ToastProvider";
+import FloatingHelpButton from "@/components/help/FloatingHelpButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -117,6 +118,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <ToastProvider />
+          <FloatingHelpButton />
         </AuthProvider>
       </body>
     </html>

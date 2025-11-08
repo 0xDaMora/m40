@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
 import { 
   ShoppingCart, 
   Clock, 
@@ -194,8 +193,23 @@ export function OrdersDashboard({ onOrderClick }: OrdersDashboardProps) {
       const result = await response.json()
       toast.success('Orden procesada exitosamente')
       
-      // Recargar órdenes
-      window.location.reload()
+      // Recargar órdenes sin recargar toda la página
+      const loadOrders = async () => {
+        try {
+          const response = await fetch('/api/orders', {
+            credentials: 'include',
+            cache: 'no-store'
+          })
+          
+          if (response.ok) {
+            const data = await response.json()
+            setOrders(data.orders || [])
+          }
+        } catch (error) {
+          console.error('Error reloading orders:', error)
+        }
+      }
+      loadOrders()
       
     } catch (error) {
       console.error('Error processing order:', error)
@@ -384,11 +398,8 @@ export function OrdersDashboard({ onOrderClick }: OrdersDashboardProps) {
           
 
           return (
-            <motion.div
+            <div
               key={order.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
               className={`bg-white rounded-xl border ${status.bgColor} hover:shadow-lg transition-all duration-200 cursor-pointer group`}
               onClick={() => onOrderClick?.(order)}
             >
@@ -416,7 +427,25 @@ export function OrdersDashboard({ onOrderClick }: OrdersDashboardProps) {
                         <div className="mt-2">
                           <OrderTimer 
                             expiresAt={order.expiresAt} 
-                            onExpired={() => window.location.reload()}
+                            onExpired={() => {
+                              // Recargar órdenes sin recargar toda la página
+                              const loadOrders = async () => {
+                                try {
+                                  const response = await fetch('/api/orders', {
+                                    credentials: 'include',
+                                    cache: 'no-store'
+                                  })
+                                  
+                                  if (response.ok) {
+                                    const data = await response.json()
+                                    setOrders(data.orders || [])
+                                  }
+                                } catch (error) {
+                                  console.error('Error reloading orders:', error)
+                                }
+                              }
+                              loadOrders()
+                            }}
                           />
                         </div>
                       )}
@@ -559,7 +588,7 @@ export function OrdersDashboard({ onOrderClick }: OrdersDashboardProps) {
                   </div>
                 )}
               </div>
-            </motion.div>
+            </div>
           )
         })}
       </div>

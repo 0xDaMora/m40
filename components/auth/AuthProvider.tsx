@@ -9,7 +9,10 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   return (
-    <SessionProvider>
+    <SessionProvider
+      refetchInterval={0} // Deshabilitar polling automático para evitar loops
+      refetchOnWindowFocus={false} // Deshabilitar refetch al cambiar de ventana
+    >
       {children}
     </SessionProvider>
   )

@@ -497,7 +497,7 @@ export function FamilySimulatorIntegration() {
   }
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8 px-2 sm:px-4 lg:px-6 xl:px-8">
+    <div className="w-full max-w-full sm:max-w-7xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8 px-2 sm:px-3 md:px-4 lg:px-6">
       {/* Banner de migración desde HeroOnboard */}
       {selectedFamilyMember?.id === 'hero-simulation' && (
         <motion.div
@@ -627,7 +627,7 @@ export function FamilySimulatorIntegration() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-2 sm:p-4 lg:p-6 rounded-xl border border-gray-200"
+          className="bg-white py-3 px-0 sm:p-4 lg:p-6 rounded-xl border border-gray-200 -mx-2 sm:mx-0 sm:px-3 md:px-4 lg:px-6"
         >
                      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
              <div className="flex items-center gap-2">

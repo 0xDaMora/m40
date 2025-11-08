@@ -52,7 +52,7 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
           familyMemberName: familyMemberName || 'Usuario Premium',
           subscription: 'premium'
         },
-        amount: 999
+        amount: 200
       }
 
       const success = await processPurchase(orderData)
@@ -164,7 +164,7 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
                 {/* Precio y CTA */}
                 <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 mb-6">
                   <div className="text-center">
-                    <div className="text-5xl font-bold text-purple-600 mb-2">$999</div>
+                    <div className="text-5xl font-bold text-purple-600 mb-2">$200</div>
                     <div className="text-lg text-gray-700 mb-4">Pago único de por vida</div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

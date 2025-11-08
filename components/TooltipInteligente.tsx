@@ -11,6 +11,7 @@ interface TooltipInteligenteProps {
   children: React.ReactNode
   tipo?: "concepto" | "estrategia" | "numero" | "beneficio"
   posicion?: "top" | "bottom" | "left" | "right"
+  colorTexto?: string // Color personalizado para el texto del tooltip
 }
 
 const explicaciones = {
@@ -575,6 +576,40 @@ const explicaciones = {
            icono: DollarSign,
            color: "blue"
          },
+         "Pensión neta": {
+           titulo: "Pensión Neta",
+           subtitulo: "Pensión después de impuestos",
+           explicacion: "Es el monto que recibirás cada mes después de descontar el Impuesto Sobre la Renta (ISR). Las pensiones del IMSS tienen un umbral exento de impuestos, y solo se paga ISR sobre el excedente.",
+           ejemplo: "Si tu pensión bruta es $20,000 y el umbral exento es $15,000, solo pagarás ISR sobre $5,000. Tu pensión neta será aproximadamente $19,000.",
+           ventajas: [
+             "✅ Beneficio fiscal en pensiones",
+             "✅ Umbral exento de impuestos",
+             "✅ Pensión neta mayor que bruta"
+           ],
+           consideraciones: [
+             "⚠️ El umbral puede cambiar anualmente",
+             "⚠️ Solo aplica a pensiones del IMSS"
+           ],
+           icono: DollarSign,
+           color: "green"
+         },
+         "Inversión total": {
+           titulo: "Inversión Total",
+           subtitulo: "Costo total de tu estrategia M40",
+           explicacion: "Es la suma de todos los pagos que harás durante tu tiempo en Modalidad 40. Incluye todas las contribuciones voluntarias al IMSS durante los meses que elijas.",
+           ejemplo: "Si pagas $8,000 mensuales durante 36 meses, tu inversión total será $288,000.",
+           ventajas: [
+             "✅ Inversión única en tu futuro",
+             "✅ Pagos distribuidos en el tiempo",
+             "✅ Recuperable en 2-3 años"
+           ],
+           consideraciones: [
+             "⚠️ Requiere planificación financiera",
+             "⚠️ Compromiso de varios meses"
+           ],
+           icono: DollarSign,
+           color: "blue"
+         },
          "Pensión mensual": {
            titulo: "Pensión Mensual",
            subtitulo: "Ingreso mensual al jubilarse",
@@ -598,7 +633,8 @@ export default function TooltipInteligente({
   termino, 
   children, 
   tipo = "concepto",
-  posicion = "top" 
+  posicion = "top",
+  colorTexto 
 }: TooltipInteligenteProps) {
   // Siempre mantener el mismo orden/cantidad de hooks en todos los renders
   const [isOpen, setIsOpen] = useState(false)
@@ -681,24 +717,36 @@ export default function TooltipInteligente({
           ref={triggerRef}
           data-tooltip-trigger
           onClick={() => setIsOpen(!isOpen)}
-          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors cursor-pointer group relative"
+          className={`inline-flex items-center gap-1 transition-colors cursor-pointer group relative ${
+            colorTexto || "text-blue-600 hover:text-blue-800"
+          }`}
         >
           {children}
-          <Info className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          <Info className={`w-4 h-4 group-hover:scale-110 transition-transform ${
+            colorTexto || "text-blue-600"
+          }`} />
           {/* Indicador para móvil */}
-          <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse sm:hidden"></span>
+          <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full animate-pulse sm:hidden ${
+            colorTexto ? "bg-current" : "bg-blue-500"
+          }`}></span>
         </div>
       ) : (
         <button
           ref={triggerRef}
           data-tooltip-trigger
           onClick={() => setIsOpen(!isOpen)}
-          className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors cursor-pointer group relative"
+          className={`inline-flex items-center gap-1 transition-colors cursor-pointer group relative ${
+            colorTexto || "text-blue-600 hover:text-blue-800"
+          }`}
         >
           {children}
-          <Info className="w-4 h-4 group-hover:scale-110 transition-transform" />
+          <Info className={`w-4 h-4 group-hover:scale-110 transition-transform ${
+            colorTexto || "text-blue-600"
+          }`} />
           {/* Indicador para móvil */}
-          <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse sm:hidden"></span>
+          <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full animate-pulse sm:hidden ${
+            colorTexto ? "bg-current" : "bg-blue-500"
+          }`}></span>
         </button>
       )}
 
