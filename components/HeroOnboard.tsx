@@ -8,14 +8,9 @@ import StepFechaN from "./steps/StepFechaN"
 import StepSemanas from "./steps/StepSemanas"
 import StepJubi from "./steps/StepJubi"
 import StepEstadoCivil from "./steps/StepEstadoCivil"
-// 🆕 Nuevos imports
-import StepPensionObjetivo from "./steps/StepPensionObjetivo"
-import StepRitmoPago from "./steps/StepRitmoPago"
-import StepNivelUMA from "./steps/StepNivelUMA"
-import StepEstrategiaPersonalizada from "./steps/StepEstrategiaPersonalizada"
 import { ChevronLeft, ChevronRight, Calculator, TrendingUp, Users, Shield, CheckCircle, ArrowRight, Calendar, DollarSign, Target, Clock } from "lucide-react"
 import { toast } from "react-hot-toast"
-import ComparativoEstrategias from "./results/ComparativoEstrategias"
+import HeroOnboardStrategiesView from "./results/HeroOnboardStrategiesView"
 import ComparativaImpacto from "./ComparativaImpacto"
 import SidebarTips from "./SidebarTips"
 import TooltipInteligente from "./TooltipInteligente"
@@ -28,8 +23,6 @@ const preguntas = [
   { id: "Semanas", component: StepSemanas },
   { id: "sdi", component: StepSDI },
   { id: "Estado Civil", component: StepEstadoCivil },
-  // 🆕 NUEVA PREGUNTA COMBINADA
-  { id: "Estrategia Personalizada", component: StepEstrategiaPersonalizada },
 ]
 
 export default function HeroOnboard() {
@@ -77,37 +70,27 @@ export default function HeroOnboard() {
   const animationOpacity = 0.05 + (1 - scrollProgress) * 0.15 // De 0.2 a 0.05
   const animationScale = 0.5 + (1 - scrollProgress) * 0.5 // De 1 a 0.5
 
-  const handleNext = async (valor?: string | [string, string]) => {
+  const handleNext = async (valor?: string) => {
     let newRespuestas = { ...respuestas }
     
     if (valor !== undefined) {
-      if (Array.isArray(valor)) {
-        // Caso del nuevo componente StepEstrategiaPersonalizada
-        const [pensionObjetivo, nivelUMA] = valor
-        newRespuestas = { 
-          ...newRespuestas, 
-          "Pension Objetivo": pensionObjetivo,
-          "Nivel UMA": nivelUMA
-        }
-              } else {
-          // 🔹 Caso especial para StepSDI que ahora pasa JSON
-          if (preguntas[step].id === "sdi" && valor.startsWith('{')) {
-            try {
-              const datosSDI = JSON.parse(valor)
-              newRespuestas = { 
-                ...newRespuestas, 
-                "sdi": datosSDI.sdi,
-                "salarioBruto": datosSDI.salarioBruto // 🔹 Guardar también el salario bruto original
-              }
-            } catch (error) {
-              // Fallback al comportamiento anterior si hay error en el parsing
-              newRespuestas = { ...newRespuestas, [preguntas[step].id]: valor }
-            }
-          } else {
-            // Caso normal de otros componentes
-            newRespuestas = { ...newRespuestas, [preguntas[step].id]: valor }
+      // 🔹 Caso especial para StepSDI que ahora pasa JSON
+      if (preguntas[step].id === "sdi" && valor.startsWith('{')) {
+        try {
+          const datosSDI = JSON.parse(valor)
+          newRespuestas = { 
+            ...newRespuestas, 
+            "sdi": datosSDI.sdi,
+            "salarioBruto": datosSDI.salarioBruto // 🔹 Guardar también el salario bruto original
           }
+        } catch (error) {
+          // Fallback al comportamiento anterior si hay error en el parsing
+          newRespuestas = { ...newRespuestas, [preguntas[step].id]: valor }
         }
+      } else {
+        // Caso normal de otros componentes
+        newRespuestas = { ...newRespuestas, [preguntas[step].id]: valor }
+      }
     }
     
     setRespuestas(newRespuestas)
@@ -143,83 +126,9 @@ export default function HeroOnboard() {
     try {
       console.log("📤 Datos originales:", datos)
 
-             // Transformar datos de HeroOnboard al formato esperado por /api/calculate-strategies
-       const familyData = {
-         id: "hero-onboard",
-         name: "Usuario",
-         birthDate: new Date(datos.Nacimiento),
-         weeksContributed: parseInt(datos.Semanas),
-         lastGrossSalary: parseFloat(datos.sdi) * 30.4, // Convertir SDI diario a mensual
-         civilStatus: datos["Estado Civil"] === "conyuge" ? "casado" : "soltero"
-       }
-
-             // Calcular rango de aportación basado en el nivel UMA seleccionado por el usuario
-       const nivelUMA = datos["Nivel UMA"] || "equilibrado"
-       const pensionObjetivo = datos["Pension Objetivo"] || "equilibrada"
-       
-       console.log("🎯 Preferencias del usuario:", { nivelUMA, pensionObjetivo })
-       
-       let monthlyContributionRange = { min: 5000, max: 15000 } // Default
-       
-       switch (nivelUMA) {
-         case "conservador":
-           monthlyContributionRange = { min: 2000, max: 8000 }
-           break
-         case "equilibrado":
-           monthlyContributionRange = { min: 5000, max: 15000 }
-           break
-         case "maximo":
-           monthlyContributionRange = { min: 10000, max: 25000 }
-           break
-       }
-
-      const filters = {
-        familyMemberId: null,
-        monthlyContributionRange,
-        months: 58, // Default para HeroOnboard
-        retirementAge: parseInt(datos["Edad de Jubilacion"])
-      }
-
-      // Incluir las preferencias del usuario
-      const userPreferences = {
-        nivelUMA: nivelUMA,
-        pensionObjetivo: pensionObjetivo
-      }
-      
-      const requestData = { familyData, filters, userPreferences }
-      console.log("📤 Datos transformados:", requestData)
-      console.log("🎯 Preferencias del usuario incluidas:", userPreferences)
-
-      const res = await fetch("/api/calculate-strategies", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestData),
-      })
-
-      console.log("🔍 Response status:", res.status)
-      console.log("🔍 Response headers:", Object.fromEntries(res.headers.entries()))
-
-      const textResponse = await res.text()
-      console.log("🔍 Raw response:", textResponse)
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${textResponse}`)
-      }
-
-      let json
-      try {
-        json = JSON.parse(textResponse)
-      } catch (parseError) {
-        console.error("❌ Error parsing JSON:", parseError)
-        console.error("❌ Raw response was:", textResponse)
-        throw new Error(`Error parsing response: ${textResponse.substring(0, 200)}...`)
-      }
-
-      console.log("📊 Resultado Backend:", json)
-      
-      // Transformar la respuesta al formato esperado por ComparativoEstrategias
+      // Transformar datos de HeroOnboard al formato esperado por HeroOnboardStrategiesView
+      // Ya no necesitamos calcular estrategias aquí, solo preparar los datos
       const transformedResult = {
-        estrategias: json.strategies || [],
         datosUsuario: {
           edad: parseInt(datos["Edad de Jubilacion"]),
           // StepEstadoCivil guarda "conyuge" | "ninguno"
@@ -228,14 +137,18 @@ export default function HeroOnboard() {
           sdiHistorico: parseFloat(datos.sdi),
           semanasPrevias: parseInt(datos.Semanas),
           fechaNacimiento: datos.Nacimiento,
-          inicioM40: new Date().toISOString().split('T')[0]
+          inicioM40: new Date().toISOString().split('T')[0],
+          // Incluir todos los datos del HeroOnboard para el modal de registro
+          ...datos
         }
       }
       
       setResultado(transformedResult)
       
-      // Mostrar primero la comparativa de impacto
-      setMostrarComparativa(true)
+      // Mostrar primero la comparativa de impacto (opcional)
+      // setMostrarComparativa(true)
+      // Por ahora, mostrar directamente las estrategias
+      setMostrarComparativa(false)
     } catch (error) {
       console.error("❌ Error en cálculo:", error)
       alert(`Hubo un error: ${error instanceof Error ? error.message : 'Error desconocido'}`)
@@ -249,7 +162,7 @@ export default function HeroOnboard() {
   const progreso = Math.round(((step + 1) / total) * 100)
 
   // Determinar si estamos en la fase de preferencias personales
-  const enPreferenciasPersonales = step >= 5 // Después de las 5 preguntas básicas
+  const enPreferenciasPersonales = false // Ya no hay fase de preferencias personales
 
   return (
     <>
@@ -478,22 +391,6 @@ export default function HeroOnboard() {
                           icon = "💑"
                           bgColor = "bg-pink-50 border border-pink-200"
                           break
-                        case "Pension Objetivo":
-                          label = "Objetivo de Pensión"
-                          value = v === "equilibrada" ? "Equilibrada" : 
-                                 v === "conservadora" ? "Conservadora" : 
-                                 v === "agresiva" ? "Agresiva" : String(v)
-                          icon = "🎯"
-                          bgColor = "bg-orange-50 border border-orange-200"
-                          break
-                        case "Nivel UMA":
-                          label = "Nivel de UMA"
-                          value = v === "conservador" ? "Conservador" : 
-                                 v === "equilibrado" ? "Equilibrado" : 
-                                 v === "maximo" ? "Máximo" : String(v)
-                          icon = "📊"
-                          bgColor = "bg-teal-50 border border-teal-200"
-                          break
                         default:
                           icon = "ℹ️"
                       }
@@ -532,12 +429,6 @@ export default function HeroOnboard() {
                         key={`step-${step}`}
                         onNext={handleNext}
                         defaultValue={respuestas[preguntas[step].id]}
-                        // Pasar datos del usuario para StepEstrategiaPersonalizada
-                        datosUsuario={step === 5 ? {
-                          edadJubilacion: parseInt(respuestas["Edad de Jubilacion"]) || 65,
-                          semanasPrevias: parseInt(respuestas["Semanas"]) || 500,
-                          sdiHistorico: parseFloat(respuestas["sdi"]) || 100
-                        } : undefined}
                       />
                     )}
                   </AnimatePresence>
@@ -588,8 +479,9 @@ export default function HeroOnboard() {
               )}
             </AnimatePresence>
 
-                         {/* Mostrar comparativa de impacto primero */}
-             {resultado && mostrarComparativa && !loading && resultado.estrategias && resultado.estrategias.length > 0 && (
+                         {/* Mostrar comparativa de impacto primero - DESHABILITADO temporalmente */}
+             {/* La comparativa de impacto se puede habilitar más tarde si es necesario */}
+             {false && resultado && mostrarComparativa && !loading && (
                <ComparativaImpacto
                  pensionSinM40={(() => {
                    // Calcular pensión real sin M40 basada en SDI del usuario
@@ -613,17 +505,26 @@ export default function HeroOnboard() {
                    
                    return Math.max(pensionFinal, 5000) // Mínimo 5000 como fallback
                  })()}
-                 pensionConM40={resultado.estrategias[0]?.pensionMensual || 8000}
-                 inversionTotal={resultado.estrategias[0]?.inversionTotal || 50000}
-                 mesesRecuperacion={resultado.estrategias[0]?.recuperacionMeses || 24}
+                 pensionConM40={8000}
+                 inversionTotal={50000}
+                 mesesRecuperacion={24}
                  onContinuar={() => setMostrarComparativa(false)}
                />
              )}
 
-                                      {/* Mostrar estrategias después de la comparativa */}
-             {resultado && !mostrarComparativa && resultado.estrategias && resultado.estrategias.length > 0 && (
-               <ComparativoEstrategias 
-                 data={resultado} 
+                         {/* Mostrar estrategias después de la comparativa */}
+             {resultado && !mostrarComparativa && resultado.datosUsuario && (
+               <HeroOnboardStrategiesView
+                 datosUsuario={resultado.datosUsuario}
+                 initialFilters={{
+                   familyMemberId: null,
+                   monthlyContributionRange: { min: 1000, max: 25000 }, // Rango completo para obtener todas las estrategias
+                   months: 58, // No se usa cuando monthsMode es 'scan'
+                   retirementAge: resultado.datosUsuario.edad || 65,
+                   startMonth: new Date().getMonth() + 1,
+                   startYear: new Date().getFullYear(),
+                   monthsMode: 'scan' // CRÍTICO: generar todas las estrategias posibles
+                 }}
                  onReinicio={() => {
                    setResultado(null)
                    setRespuestas({})
@@ -631,44 +532,7 @@ export default function HeroOnboard() {
                    setStarted(false)
                    setMostrarComparativa(false)
                  }}
-                 datosUsuario={{
-                   edad: parseInt(respuestas["Edad de Jubilacion"]) || 65,
-                   dependiente: respuestas["Estado Civil"] === "conyuge" ? "conyuge" : "ninguno",
-                   estadoCivil: respuestas["Estado Civil"] === "conyuge" ? "casado" : "soltero",
-                   sdiHistorico: parseFloat(respuestas["sdi"]) || 100,
-                   semanasPrevias: parseInt(respuestas["Semanas"]) || 500,
-                   inicioM40: resultado.datosUsuario?.inicioM40 || "2024-02-01",
-                   fechaNacimiento: respuestas["Nacimiento"],
-                   // Datos completos del HeroOnboard para el modal de registro
-                   ...respuestas
-                 }}
                />
-             )}
-
-             {/* Mostrar mensaje si no se encontraron estrategias */}
-             {resultado && !mostrarComparativa && (!resultado.estrategias || resultado.estrategias.length === 0) && (
-               <div className="text-center py-12">
-                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-                   <h3 className="text-lg font-semibold text-yellow-800 mb-2">
-                     No se encontraron estrategias válidas
-                   </h3>
-                   <p className="text-yellow-700 mb-4">
-                     Con los datos proporcionados, no se encontraron estrategias de Modalidad 40 que cumplan con los requisitos.
-                   </p>
-                   <button
-                     onClick={() => {
-                       setResultado(null)
-                       setRespuestas({})
-                       setStep(0)
-                       setStarted(false)
-                       setMostrarComparativa(false)
-                     }}
-                     className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-                   >
-                     Intentar de nuevo
-                   </button>
-                 </div>
-               </div>
              )}
           </div>
 

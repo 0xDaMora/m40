@@ -10,6 +10,7 @@ interface StrategyListProps {
   onStrategyFiltersChange: (filters: StrategyFilters) => void
   session: Session | null
   userPlan: string
+  hasUsedFreeStrategy?: boolean // Nuevo: indica si el usuario ya usó su estrategia gratis
   onStrategyPurchase: (strategy: StrategyResult) => void
   onPremiumModalOpen: () => void
   onViewDetails: (strategy: StrategyResult) => void
@@ -22,6 +23,7 @@ export function StrategyList({
   onStrategyFiltersChange,
   session,
   userPlan,
+  hasUsedFreeStrategy = false,
   onStrategyPurchase,
   onPremiumModalOpen,
   onViewDetails,
@@ -35,36 +37,36 @@ export function StrategyList({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden"
+      className="bg-white rounded-2xl shadow-lg border border-gray-100"
     >
              <div className="bg-gradient-to-r from-purple-50 to-indigo-50 px-3 sm:px-4 md:px-5 lg:px-6 py-3 sm:py-4 md:py-5 lg:py-6 border-b border-gray-200">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="bg-purple-600 p-2 rounded-lg self-start sm:self-center">
-            <ArrowUp className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 md:gap-4">
+          <div className="bg-purple-600 p-2 md:p-2.5 rounded-lg self-start sm:self-center">
+            <ArrowUp className="w-5 h-5 sm:w-6 sm:h-6 md:w-6 md:h-6 text-white" />
           </div>
           <div>
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <h3 className="text-2xl sm:text-3xl md:text-3xl lg:text-3xl font-bold text-gray-900">
               Estrategias Calculadas
             </h3>
-            <p className="text-base sm:text-lg text-gray-600">
+            <p className="text-base sm:text-lg md:text-lg lg:text-lg text-gray-600 mt-1">
               Filtra y ordena las estrategias según tus preferencias
             </p>
           </div>
         </div>
       </div>
 
-      <div className="p-2 sm:p-4 md:p-5 lg:p-6">
+      <div className="p-2 sm:p-4 md:p-3 lg:p-4">
         {/* Filtros de estrategias */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-5 lg:gap-6 mb-4 sm:mb-6 md:mb-6 lg:mb-8">
           {/* Tipo de estrategia */}
           <div>
-            <label className="block text-base sm:text-lg font-medium text-gray-700 mb-2">
+            <label className="block text-base sm:text-lg md:text-lg font-medium text-gray-700 mb-2">
               Tipo de estrategia
             </label>
             <select
               value={strategyFilters.strategyType}
               onChange={(e) => updateStrategyFilters({ strategyType: e.target.value as 'all' | 'fijo' | 'progresivo' })}
-              className="w-full px-4 py-3 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
+              className="w-full px-4 py-3 sm:px-4 sm:py-3 md:px-4 md:py-3 lg:px-4 lg:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
             >
               <option value="all">Todas</option>
               <option value="fijo">Fija</option>
@@ -74,7 +76,7 @@ export function StrategyList({
 
           {/* Rango de UMA */}
           <div>
-            <label className="block text-base sm:text-lg font-medium text-gray-700 mb-2">
+            <label className="block text-base sm:text-lg md:text-lg font-medium text-gray-700 mb-2">
               Rango de UMA
             </label>
             <div className="flex gap-2">
@@ -92,7 +94,7 @@ export function StrategyList({
                     }
                   })
                 }}
-                className="w-1/2 px-4 py-3 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
+                className="w-1/2 px-4 py-3 sm:px-4 sm:py-3 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
                 placeholder="Min"
                 min="1"
                 max="25"
@@ -111,7 +113,7 @@ export function StrategyList({
                     }
                   })
                 }}
-                className="w-1/2 px-4 py-3 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
+                className="w-1/2 px-4 py-3 sm:px-4 sm:py-3 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
                 placeholder="Max"
                 min="1"
                 max="25"
@@ -121,7 +123,7 @@ export function StrategyList({
 
           {/* Rango de meses */}
           <div>
-            <label className="block text-base sm:text-lg font-medium text-gray-700 mb-2">
+            <label className="block text-base sm:text-lg md:text-lg font-medium text-gray-700 mb-2">
               Rango de meses
             </label>
             <div className="flex gap-2">
@@ -139,7 +141,7 @@ export function StrategyList({
                     }
                   })
                 }}
-                className="w-1/2 px-4 py-3 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
+                className="w-1/2 px-4 py-3 sm:px-4 sm:py-3 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
                 placeholder="Min"
                 min="1"
                 max="58"
@@ -158,7 +160,7 @@ export function StrategyList({
                     }
                   })
                 }}
-                className="w-1/2 px-4 py-3 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
+                className="w-1/2 px-4 py-3 sm:px-4 sm:py-3 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
                 placeholder="Max"
                 min="1"
                 max="58"
@@ -168,14 +170,14 @@ export function StrategyList({
 
           {/* Ordenar por */}
           <div>
-            <label className="block text-base sm:text-lg font-medium text-gray-700 mb-2">
+            <label className="block text-base sm:text-lg md:text-lg font-medium text-gray-700 mb-2">
               Ordenar por
             </label>
             <div className="flex gap-2">
               <select
                 value={strategyFilters.sortBy}
                 onChange={(e) => updateStrategyFilters({ sortBy: e.target.value as 'roi' | 'pension' | 'investment' | 'months' })}
-                className="flex-1 px-4 py-3 sm:px-4 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
+                className="flex-1 px-4 py-3 sm:px-4 sm:py-3 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
               >
                 <option value="roi">ROI</option>
                 <option value="pension">Pensión</option>
@@ -188,7 +190,7 @@ export function StrategyList({
                 })}
                 className="px-4 py-3 sm:px-4 sm:py-3 border border-gray-300 rounded-lg hover:bg-gray-50 min-w-[48px] min-h-[48px] flex items-center justify-center"
               >
-                {strategyFilters.sortOrder === 'desc' ? <ArrowDown className="w-4 h-4" /> : <ArrowUp className="w-4 h-4" />}
+                {strategyFilters.sortOrder === 'desc' ? <ArrowDown className="w-4 h-4 md:w-5 md:h-5" /> : <ArrowUp className="w-4 h-4 md:w-5 md:h-5" />}
               </button>
             </div>
           </div>
@@ -204,6 +206,7 @@ export function StrategyList({
               isFirstCard={index === 0}
               session={session}
               userPlan={userPlan}
+              hasUsedFreeStrategy={hasUsedFreeStrategy}
               onStrategyPurchase={onStrategyPurchase}
               onPremiumModalOpen={onPremiumModalOpen}
               onViewDetails={onViewDetails}

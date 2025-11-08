@@ -1,10 +1,11 @@
 import { motion } from "framer-motion"
-import { Filter, DollarSign, Target, Calendar, Users } from "lucide-react"
+import { Filter, DollarSign, Target, Calendar, Users, AlertCircle } from "lucide-react"
 import { FamilyMember } from "@/types/family"
 import { IntegrationFilters } from "@/types/strategy"
 import { RangeSlider } from "@/components/ui/RangeSlider"
 import { useFormatters } from "@/hooks/useFormatters"
 import { calculateAge, calcularSDI, calcularSDIEnUMAs, getOptimalStartDate } from "../utils/calculations"
+import { calculateMaxMonthsM40 } from "../utils/calculateMaxMonths"
 
 interface StrategyFiltersProps {
   selectedFamilyMember: FamilyMember
@@ -142,6 +143,64 @@ export function StrategyFiltersPanel({
               </div>
             </div>
             
+            {/* Cuadro informativo de máximo de meses disponibles */}
+            {(() => {
+              const maxMonthsInfo = calculateMaxMonthsM40(
+                selectedFamilyMember.birthDate,
+                filters.retirementAge,
+                filters.startMonth || new Date().getMonth() + 1,
+                filters.startYear || new Date().getFullYear()
+              )
+              
+              return (
+                <div className={`mt-3 p-4 rounded-xl border ${
+                  maxMonthsInfo.isLimited && maxMonthsInfo.maxMonths > 0
+                    ? 'bg-yellow-50 border-yellow-200'
+                    : maxMonthsInfo.maxMonths === 0
+                    ? 'bg-red-50 border-red-200'
+                    : 'bg-blue-50 border-blue-200'
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      maxMonthsInfo.isLimited && maxMonthsInfo.maxMonths > 0
+                        ? 'bg-yellow-100'
+                        : maxMonthsInfo.maxMonths === 0
+                        ? 'bg-red-100'
+                        : 'bg-blue-100'
+                    }`}>
+                      <AlertCircle className={`w-4 h-4 ${
+                        maxMonthsInfo.isLimited && maxMonthsInfo.maxMonths > 0
+                          ? 'text-yellow-600'
+                          : maxMonthsInfo.maxMonths === 0
+                          ? 'text-red-600'
+                          : 'text-blue-600'
+                      }`} />
+                    </div>
+                    <div className="flex-1">
+                      <div className={`font-semibold text-sm mb-1 ${
+                        maxMonthsInfo.isLimited && maxMonthsInfo.maxMonths > 0
+                          ? 'text-yellow-800'
+                          : maxMonthsInfo.maxMonths === 0
+                          ? 'text-red-800'
+                          : 'text-blue-800'
+                      }`}>
+                        Máximo de meses en Modalidad 40: {maxMonthsInfo.message}
+                      </div>
+                      <div className={`text-xs ${
+                        maxMonthsInfo.isLimited && maxMonthsInfo.maxMonths > 0
+                          ? 'text-yellow-700'
+                          : maxMonthsInfo.maxMonths === 0
+                          ? 'text-red-700'
+                          : 'text-blue-700'
+                      }`}>
+                        {maxMonthsInfo.details}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
+            
             {/* Explicación contextual */}
             <div className="mt-4 p-4 bg-green-50 rounded-xl border border-green-200">
               <div className="flex items-start gap-3">
@@ -224,7 +283,7 @@ export function StrategyFiltersPanel({
             <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200">
               <div className="text-center">
                 <div className="text-2xl font-bold text-purple-600">
-                  {getMonthName(filters.startMonth)} {filters.startYear}
+                  {getMonthName(filters.startMonth || new Date().getMonth() + 1)} {filters.startYear || new Date().getFullYear()}
                 </div>
                 <div className="text-sm text-gray-600">Fecha de inicio</div>
               </div>

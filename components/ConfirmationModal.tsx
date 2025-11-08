@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X, User, Crown, Star, CheckCircle } from "lucide-react"
 import { toast } from "react-hot-toast"
@@ -13,6 +13,7 @@ interface ConfirmationModalProps {
   userData?: any
   isPremium?: boolean
   isPremiumStrategy?: boolean // Para distinguir entre compra Premium y ver estrategia Premium
+  isIndividualPurchase?: boolean // Para indicar que es compra individual (50 MXN)
 }
 
 export default function ConfirmationModal({ 
@@ -22,14 +23,22 @@ export default function ConfirmationModal({
   strategy, 
   userData,
   isPremium = false,
-  isPremiumStrategy = false
+  isPremiumStrategy = false,
+  isIndividualPurchase = false
 }: ConfirmationModalProps) {
   const [familyMemberName, setFamilyMemberName] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
+  // Resetear nombre cuando se cierra el modal
+  useEffect(() => {
+    if (!isOpen) {
+      setFamilyMemberName("")
+    }
+  }, [isOpen])
+
   const handleConfirm = async () => {
-    // Requerir nombre cuando se va a guardar/crear familiar (usuarios normales y Premium viendo estrategia)
-    const requiereNombre = !isPremium || (isPremium && isPremiumStrategy)
+    // Requerir nombre cuando se va a guardar/crear familiar (usuarios normales, Premium viendo estrategia, o compra individual)
+    const requiereNombre = !isPremium || (isPremium && isPremiumStrategy) || isIndividualPurchase
     if (requiereNombre && !familyMemberName.trim()) {
       toast.error("Por favor ingresa el nombre del familiar")
       return
@@ -39,7 +48,10 @@ export default function ConfirmationModal({
     try {
       await onConfirm(familyMemberName)
       setFamilyMemberName("")
-      onClose()
+      // No cerrar el modal aquí si es compra individual, el padre lo manejará
+      if (!isIndividualPurchase) {
+        onClose()
+      }
     } catch (error) {
       console.error("Error:", error)
       toast.error("Error al procesar la confirmación")
@@ -67,16 +79,24 @@ export default function ConfirmationModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className={`relative w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden ${
-              isPremium ? 'border-2 border-purple-200' : ''
+              isPremium ? 'border-2 border-purple-200' : isIndividualPurchase ? 'border-2 border-orange-200' : ''
             }`}
           >
             {/* Header */}
-            <div className={`p-6 ${isPremium ? 'bg-gradient-to-r from-purple-600 to-blue-600' : 'bg-gradient-to-r from-blue-600 to-blue-700'}`}>
+            <div className={`p-6 ${
+              isPremium ? 'bg-gradient-to-r from-purple-600 to-blue-600' 
+              : isIndividualPurchase ? 'bg-gradient-to-r from-orange-500 to-orange-600'
+              : 'bg-gradient-to-r from-blue-600 to-blue-700'
+            }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {isPremium ? (
                     <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
                       <Crown className="w-6 h-6 text-white" />
+                    </div>
+                  ) : isIndividualPurchase ? (
+                    <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                      <Star className="w-6 h-6 text-white" />
                     </div>
                   ) : (
                     <div className="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
@@ -85,10 +105,14 @@ export default function ConfirmationModal({
                   )}
                   <div>
                     <h2 className="text-xl font-bold text-white">
-                      {isPremium && !isPremiumStrategy ? 'Confirmar Plan Premium' : 'Confirmar Compra'}
+                      {isPremium && !isPremiumStrategy ? 'Confirmar Plan Premium' 
+                       : isIndividualPurchase ? 'Compra de Estrategia' 
+                       : 'Confirmar Compra'}
                     </h2>
                     <p className="text-white text-opacity-90 text-sm">
-                      {isPremium && !isPremiumStrategy ? 'Acceso ilimitado de por vida' : 'Estrategia personalizada'}
+                      {isPremium && !isPremiumStrategy ? 'Acceso ilimitado de por vida' 
+                       : isIndividualPurchase ? 'Ingresa el nombre del familiar' 
+                       : 'Estrategia personalizada'}
                     </p>
                   </div>
                 </div>
@@ -137,9 +161,13 @@ export default function ConfirmationModal({
                 // Contenido para estrategia individual
                 <div className="space-y-4">
                   <div className="text-center">
-                    <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-semibold mb-3">
+                    <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold mb-3 ${
+                      isIndividualPurchase 
+                        ? 'bg-orange-100 text-orange-800' 
+                        : 'bg-green-100 text-green-800'
+                    }`}>
                       <Star className="w-4 h-4" />
-                      ¡Tu Estrategia Gratis!
+                      {isIndividualPurchase ? 'Compra Individual - 50 MXN' : '¡Tu Estrategia Gratis!'}
                     </div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-2">
                       Estrategia Seleccionada
@@ -157,7 +185,13 @@ export default function ConfirmationModal({
                       </div>
                     </div>
                     <p className="text-sm text-gray-600 mt-3">
-                      Esta es tu <strong>única estrategia gratis</strong>. Para guardar más estrategias, actualiza a Premium.
+                      {isIndividualPurchase 
+                        ? 'Ingresa el nombre del familiar para continuar con la compra de esta estrategia por 50 MXN.'
+                        : (
+                          <>
+                            Esta es tu <strong>única estrategia gratis</strong>. Para guardar más estrategias, actualiza a Premium.
+                          </>
+                        )}
                     </p>
                   </div>
 
@@ -191,7 +225,7 @@ export default function ConfirmationModal({
               )}
 
                              {/* Input para nombre del familiar - solo para estrategias individuales */}
-               {(!isPremium || (isPremium && isPremiumStrategy)) && (
+               {(!isPremium || (isPremium && isPremiumStrategy) || isIndividualPurchase) && (
                  <div className="mt-6">
                    <label className="block text-sm font-medium text-gray-700 mb-2">
                      <User className="w-4 h-4 inline mr-1" />
@@ -203,9 +237,12 @@ export default function ConfirmationModal({
                      onChange={(e) => setFamilyMemberName(e.target.value)}
                      placeholder="Ej: Juan Pérez"
                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     autoFocus={isIndividualPurchase}
                    />
                    <p className="text-xs text-gray-500 mt-1">
-                     Este nombre aparecerá en tu estrategia personalizada
+                     {isIndividualPurchase 
+                       ? 'Este nombre identificará al familiar en la estrategia que vas a comprar'
+                       : 'Este nombre aparecerá en tu estrategia personalizada'}
                    </p>
                  </div>
                )}
@@ -227,6 +264,8 @@ export default function ConfirmationModal({
                   className={`flex-1 px-4 py-3 text-white rounded-lg font-semibold transition-colors ${
                     isPremium && !isPremiumStrategy
                       ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700' 
+                      : isIndividualPurchase
+                      ? 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
                       : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
                   } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
@@ -236,7 +275,11 @@ export default function ConfirmationModal({
                       Procesando...
                     </div>
                   ) : (
-                    isPremium && !isPremiumStrategy ? 'Confirmar Premium' : 'Obtener Gratis'
+                    isPremium && !isPremiumStrategy 
+                      ? 'Confirmar Premium' 
+                      : isIndividualPurchase
+                      ? 'Continuar con Compra'
+                      : 'Obtener Gratis'
                   )}
                 </button>
               </div>

@@ -92,7 +92,7 @@ export function FamilySimulatorIntegration() {
 
   const [strategyFilters, setStrategyFilters] = useState<StrategyFilters>({
     monthsRange: { min: 1, max: 58 },
-    sortBy: 'roi',
+    sortBy: 'pension',
     sortOrder: 'desc',
     strategyType: 'all',
     umaRange: { min: 1, max: 25 }
@@ -712,6 +712,7 @@ export function FamilySimulatorIntegration() {
                 onStrategyFiltersChange={setStrategyFilters}
                 session={session}
                 userPlan={userPlan}
+                hasUsedFreeStrategy={(session?.user as any)?.hasUsedFreeStrategy || false}
                 onStrategyPurchase={openStrategyPurchaseModal}
                 onPremiumModalOpen={openPremiumModal}
                 onViewDetails={viewStrategyDetails}
