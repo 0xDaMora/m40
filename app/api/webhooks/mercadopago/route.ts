@@ -80,78 +80,126 @@ export async function POST(req: NextRequest) {
       }
       
       try {
-        // Consultar la preferencia/orden de MercadoPago para obtener los pagos asociados
-        // Nota: El SDK de MercadoPago no tiene MerchantOrder directamente, 
-        // pero podemos obtener los pagos desde la preferencia usando el external_reference
-        // O consultar directamente la API de MercadoPago
+        // Consultar la merchant_order de MercadoPago para obtener el preference_id
+        // El merchant_order_id es el ID de la orden de MercadoPago, no el preference_id
+        const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
+        if (!accessToken) {
+          console.error('❌ [MERCHANT_ORDER] Access token no configurado')
+          return NextResponse.json({ error: 'Access token not configured' }, { status: 500 })
+        }
         
-        // Buscar la orden en nuestra BD usando el ID de la preferencia
-        // El merchant_order_id puede ser el ID de la preferencia (mercadopagoId) o el ID de la orden de MercadoPago
-        let order = await prisma.order.findFirst({
-          where: {
-            mercadopagoId: merchantOrderId.toString()
-          },
-          include: { user: true }
-        })
+        // Consultar merchant_order de MercadoPago
+        let merchantOrderData: any = null
+        let preferenceId: string | null = null
+        let externalRef: string | null = null
         
-        // Si no encontramos por mercadopagoId, intentar buscar por external_reference
-        // consultando la preferencia de MercadoPago para obtener el external_reference
-        if (!order) {
-          console.log(`⚠️ [MERCHANT_ORDER] Orden no encontrada por mercadopagoId, intentando buscar por preferencia...`)
-          
-          // Consultar la preferencia de MercadoPago para obtener el external_reference
-          const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
-          if (accessToken) {
-            try {
-              const preferenceResponse = await fetch(
-                `https://api.mercadopago.com/checkout/preferences/${merchantOrderId}`,
-                {
-                  headers: {
-                    'Authorization': `Bearer ${accessToken}`,
-                    'Content-Type': 'application/json'
-                  }
-                }
-              )
-              
-              if (preferenceResponse.ok) {
-                const preferenceData = await preferenceResponse.json()
-                const externalRef = preferenceData.external_reference
-                
-                if (externalRef) {
-                  // Buscar orden por external_reference
-                  order = await prisma.order.findFirst({
-                    where: {
-                      externalReference: externalRef
-                    },
-                    include: { user: true }
-                  })
-                  
-                  if (order) {
-                    console.log(`✅ [MERCHANT_ORDER] Orden encontrada por external_reference: ${externalRef}`)
-                  }
-                }
+        try {
+          console.log(`🔍 [MERCHANT_ORDER] Consultando merchant_order: ${merchantOrderId}`)
+          const merchantOrderResponse = await fetch(
+            `https://api.mercadopago.com/merchant_orders/${merchantOrderId}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${accessToken}`,
+                'Content-Type': 'application/json'
               }
-            } catch (error) {
-              console.error('❌ [MERCHANT_ORDER] Error consultando preferencia:', error)
             }
+          )
+          
+          if (merchantOrderResponse.ok) {
+            merchantOrderData = await merchantOrderResponse.json()
+            preferenceId = merchantOrderData.preference_id || null
+            externalRef = merchantOrderData.external_reference || null
+            
+            console.log(`✅ [MERCHANT_ORDER] Merchant order obtenida:`, {
+              preferenceId,
+              externalRef,
+              orderStatus: merchantOrderData.status,
+              paymentsCount: merchantOrderData.payments?.length || 0
+            })
+          } else {
+            const errorText = await merchantOrderResponse.text()
+            console.error(`❌ [MERCHANT_ORDER] Error consultando merchant_order: ${merchantOrderResponse.status}`, errorText)
+            return NextResponse.json({ 
+              error: 'Merchant order not found',
+              details: `Status: ${merchantOrderResponse.status}`
+            }, { status: merchantOrderResponse.status })
+          }
+        } catch (error) {
+          console.error('❌ [MERCHANT_ORDER] Error consultando merchant_order:', error)
+          return NextResponse.json({ 
+            error: 'Error fetching merchant order',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          }, { status: 500 })
+        }
+        
+        // Buscar la orden en nuestra BD usando el preference_id
+        let order = null
+        if (preferenceId) {
+          console.log(`🔍 [MERCHANT_ORDER] Buscando orden por preference_id: ${preferenceId}`)
+          order = await prisma.order.findFirst({
+            where: {
+              mercadopagoId: preferenceId
+            },
+            include: { user: true }
+          })
+          
+          if (order) {
+            console.log(`✅ [MERCHANT_ORDER] Orden encontrada por preference_id: ${order.id}`)
+          }
+        }
+        
+        // Si no encontramos por preference_id, intentar por external_reference
+        if (!order && externalRef) {
+          console.log(`🔍 [MERCHANT_ORDER] Buscando orden por external_reference: ${externalRef}`)
+          order = await prisma.order.findFirst({
+            where: {
+              externalReference: externalRef
+            },
+            include: { user: true }
+          })
+          
+          if (order) {
+            console.log(`✅ [MERCHANT_ORDER] Orden encontrada por external_reference: ${order.id}`)
           }
         }
         
         if (!order) {
           console.log(`⚠️ [MERCHANT_ORDER] Orden no encontrada para merchant_order_id: ${merchantOrderId}`)
+          console.log(`⚠️ [MERCHANT_ORDER] Datos disponibles:`, {
+            preferenceId,
+            externalRef,
+            merchantOrderStatus: merchantOrderData?.status
+          })
           // Si no encontramos la orden, simplemente confirmamos que recibimos el webhook
           return NextResponse.json({ 
             message: 'Merchant order webhook received, order not found in database',
-            merchantOrderId 
+            merchantOrderId,
+            preferenceId,
+            externalRef
           })
         }
         
-        // Consultar los pagos asociados a esta preferencia desde MercadoPago
-        // Usamos la API REST directamente ya que el SDK puede no tener soporte completo
-        const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
-        if (accessToken && order.externalReference) {
+        // Obtener pagos desde la merchant_order o consultar por external_reference
+        const paymentsToProcess: any[] = []
+        
+        // Primero, intentar obtener pagos directamente desde la merchant_order
+        if (merchantOrderData?.payments && Array.isArray(merchantOrderData.payments)) {
+          console.log(`📦 [MERCHANT_ORDER] Obteniendo pagos desde merchant_order: ${merchantOrderData.payments.length} pagos`)
+          for (const paymentInfo of merchantOrderData.payments) {
+            if (paymentInfo.id) {
+              paymentsToProcess.push({
+                id: paymentInfo.id,
+                status: paymentInfo.status,
+                external_reference: externalRef || order.externalReference
+              })
+            }
+          }
+        }
+        
+        // Si no hay pagos en la merchant_order, consultar por external_reference
+        if (paymentsToProcess.length === 0 && order.externalReference) {
+          console.log(`🔍 [MERCHANT_ORDER] Consultando pagos por external_reference: ${order.externalReference}`)
           try {
-            // Buscar pagos por external_reference
             const paymentsResponse = await fetch(
               `https://api.mercadopago.com/v1/payments/search?external_reference=${order.externalReference}`,
               {
@@ -166,32 +214,11 @@ export async function POST(req: NextRequest) {
               const paymentsData = await paymentsResponse.json()
               const payments = paymentsData.results || []
               
-              console.log(`📦 [MERCHANT_ORDER] Encontrados ${payments.length} pagos para la orden`)
+              console.log(`📦 [MERCHANT_ORDER] Encontrados ${payments.length} pagos por external_reference`)
               
-              // Procesar cada pago encontrado
               for (const paymentItem of payments) {
-                const paymentId = paymentItem.id
-                const paymentStatus = paymentItem.status
-                const externalRef = paymentItem.external_reference
-                
-                // Verificar que el pago pertenece a nuestra orden
-                if (externalRef === order.externalReference) {
-                  console.log(`💳 [MERCHANT_ORDER] Procesando pago ${paymentId} con estado ${paymentStatus}`)
-                  
-                  // Obtener detalles completos del pago
-                  const paymentDetails = await payment.get({ id: paymentId })
-                  const paymentData = paymentDetails as any
-                  
-                  // Procesar según el estado del pago
-                  if (paymentData.status === 'approved' && order.status !== 'paid') {
-                    await processApprovedPayment(order, paymentData)
-                    console.log(`✅ [MERCHANT_ORDER] Pago aprobado procesado: ${paymentId}`)
-                  } else if (paymentData.status === 'rejected' && order.status !== 'failed') {
-                    await processRejectedPayment(order, paymentData)
-                    console.log(`❌ [MERCHANT_ORDER] Pago rechazado procesado: ${paymentId}`)
-                  } else {
-                    console.log(`⚠️ [MERCHANT_ORDER] Pago ${paymentId} ya procesado o con estado ${paymentData.status}`)
-                  }
+                if (paymentItem.external_reference === order.externalReference) {
+                  paymentsToProcess.push(paymentItem)
                 }
               }
             } else {
@@ -200,15 +227,53 @@ export async function POST(req: NextRequest) {
           } catch (error) {
             console.error('❌ [MERCHANT_ORDER] Error consultando pagos:', error)
           }
+        }
+        
+        // Procesar cada pago encontrado
+        if (paymentsToProcess.length > 0) {
+          console.log(`💳 [MERCHANT_ORDER] Procesando ${paymentsToProcess.length} pagos`)
+          
+          for (const paymentItem of paymentsToProcess) {
+            const paymentId = paymentItem.id
+            const paymentStatus = paymentItem.status
+            
+            try {
+              console.log(`💳 [MERCHANT_ORDER] Procesando pago ${paymentId} con estado ${paymentStatus}`)
+              
+              // Obtener detalles completos del pago
+              const paymentDetails = await payment.get({ id: paymentId })
+              const paymentData = paymentDetails as any
+              
+              // Verificar que el pago pertenece a nuestra orden
+              if (paymentData.external_reference === order.externalReference) {
+                // Procesar según el estado del pago
+                if (paymentData.status === 'approved' && order.status !== 'paid') {
+                  await processApprovedPayment(order, paymentData)
+                  console.log(`✅ [MERCHANT_ORDER] Pago aprobado procesado: ${paymentId}`)
+                } else if (paymentData.status === 'rejected' && order.status !== 'failed') {
+                  await processRejectedPayment(order, paymentData)
+                  console.log(`❌ [MERCHANT_ORDER] Pago rechazado procesado: ${paymentId}`)
+                } else {
+                  console.log(`⚠️ [MERCHANT_ORDER] Pago ${paymentId} ya procesado o con estado ${paymentData.status}`)
+                }
+              } else {
+                console.log(`⚠️ [MERCHANT_ORDER] Pago ${paymentId} no pertenece a esta orden (external_ref: ${paymentData.external_reference})`)
+              }
+            } catch (error) {
+              console.error(`❌ [MERCHANT_ORDER] Error procesando pago ${paymentId}:`, error)
+            }
+          }
         } else {
-          console.log(`⚠️ [MERCHANT_ORDER] No se puede consultar pagos: accessToken=${!!accessToken}, externalReference=${!!order.externalReference}`)
+          console.log(`⚠️ [MERCHANT_ORDER] No se encontraron pagos para procesar`)
         }
         
         return NextResponse.json({ 
           success: true,
           message: 'Merchant order webhook processed',
           merchantOrderId,
-          orderId: order.id
+          preferenceId,
+          orderId: order.id,
+          paymentsProcessed: paymentsToProcess.length
         })
       } catch (error) {
         console.error('❌ [MERCHANT_ORDER] Error procesando merchant_order:', error)
