@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { payment } from '@/lib/mercadopago/client'
+import { payment, preference } from '@/lib/mercadopago/client'
 import { prisma } from '@/lib/db/prisma'
 import { processApprovedPayment, processRejectedPayment } from '@/lib/mercadopago/utils'
 import { MercadoPagoWebhookPayload, MercadoPagoPayment } from '@/types/mercadopago'
@@ -17,23 +17,209 @@ export async function POST(req: NextRequest) {
     const xRequestId = req.headers.get('x-request-id')
     const userAgent = req.headers.get('user-agent')
     const url = new URL(req.url)
-    const dataId = url.searchParams.get('data.id')
-    const type = url.searchParams.get('type')
+    // Manejar ambos formatos: data.id (payment) o id (merchant_order)
+    const dataId = url.searchParams.get('data.id') || url.searchParams.get('id')
+    // Manejar ambos formatos: type (payment) o topic (merchant_order)
+    const type = url.searchParams.get('type') || url.searchParams.get('topic')
     
     console.log('🔔 [WEBHOOK_HEADERS] User-Agent:', userAgent)
     console.log('🔔 [WEBHOOK_HEADERS] X-Signature:', xSignature)
     console.log('🔔 [WEBHOOK_HEADERS] X-Request-ID:', xRequestId)
     console.log('🔔 [WEBHOOK_QUERY] data.id:', dataId)
-    console.log('🔔 [WEBHOOK_QUERY] type:', type)
+    console.log('🔔 [WEBHOOK_QUERY] type/topic:', type)
     
-    // 2. Obtener payload
-    const payload: MercadoPagoWebhookPayload = await req.json()
+    // 2. Obtener payload (manejar caso cuando body está vacío)
+    let payload: any = {}
+    let bodyText = ''
     
-    console.log(`🔔 [WEBHOOK_PAYLOAD] Type: ${payload.type}, ID: ${payload.id}, Live Mode: ${payload.live_mode}`)
-    console.log(`🔔 [WEBHOOK_PAYLOAD] Action: ${payload.action}`)
-    console.log(`🔔 [WEBHOOK_PAYLOAD] Data:`, JSON.stringify(payload.data, null, 2))
+    try {
+      // Intentar leer el body como texto primero
+      bodyText = await req.text()
+      
+      if (bodyText && bodyText.trim()) {
+        try {
+          payload = JSON.parse(bodyText)
+          console.log(`🔔 [WEBHOOK_PAYLOAD] Type: ${payload.type}, ID: ${payload.id}, Live Mode: ${payload.live_mode}`)
+          console.log(`🔔 [WEBHOOK_PAYLOAD] Action: ${payload.action}`)
+          console.log(`🔔 [WEBHOOK_PAYLOAD] Data:`, JSON.stringify(payload.data, null, 2))
+        } catch (parseError) {
+          console.log('⚠️ [WEBHOOK] Error parseando JSON del body:', parseError)
+          // Si no es JSON válido, usar query params
+          payload = {}
+        }
+      } else {
+        console.log('⚠️ [WEBHOOK] Body vacío, usando query params para determinar tipo')
+        payload = {}
+      }
+    } catch (error) {
+      console.log('⚠️ [WEBHOOK] Error leyendo body, usando query params:', error)
+      payload = {}
+    }
     
-    // 3. Validar firma (solo en producción o si tenemos webhook secret)
+    // Si el payload está vacío pero tenemos query params, construir payload desde query params
+    if (!payload.type && type === 'merchant_order' && dataId) {
+      payload = {
+        type: 'merchant_order',
+        id: dataId,
+        data: { id: dataId }
+      }
+    }
+    
+    // Determinar el tipo de webhook desde payload o query params
+    const webhookType = payload.type || type || 'unknown'
+    console.log(`🔔 [WEBHOOK_TYPE] Tipo detectado: ${webhookType}`)
+    
+    // 3. Manejar webhook de merchant_order
+    if (webhookType === 'merchant_order' || type === 'merchant_order') {
+      console.log('📦 [MERCHANT_ORDER] Procesando webhook de merchant_order')
+      const merchantOrderId = dataId || payload.data?.id || payload.id
+      
+      if (!merchantOrderId) {
+        console.error('❌ [MERCHANT_ORDER] No se encontró merchant_order_id')
+        return NextResponse.json({ error: 'Merchant order ID not found' }, { status: 400 })
+      }
+      
+      try {
+        // Consultar la preferencia/orden de MercadoPago para obtener los pagos asociados
+        // Nota: El SDK de MercadoPago no tiene MerchantOrder directamente, 
+        // pero podemos obtener los pagos desde la preferencia usando el external_reference
+        // O consultar directamente la API de MercadoPago
+        
+        // Buscar la orden en nuestra BD usando el ID de la preferencia
+        // El merchant_order_id puede ser el ID de la preferencia (mercadopagoId) o el ID de la orden de MercadoPago
+        let order = await prisma.order.findFirst({
+          where: {
+            mercadopagoId: merchantOrderId.toString()
+          },
+          include: { user: true }
+        })
+        
+        // Si no encontramos por mercadopagoId, intentar buscar por external_reference
+        // consultando la preferencia de MercadoPago para obtener el external_reference
+        if (!order) {
+          console.log(`⚠️ [MERCHANT_ORDER] Orden no encontrada por mercadopagoId, intentando buscar por preferencia...`)
+          
+          // Consultar la preferencia de MercadoPago para obtener el external_reference
+          const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
+          if (accessToken) {
+            try {
+              const preferenceResponse = await fetch(
+                `https://api.mercadopago.com/checkout/preferences/${merchantOrderId}`,
+                {
+                  headers: {
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
+                  }
+                }
+              )
+              
+              if (preferenceResponse.ok) {
+                const preferenceData = await preferenceResponse.json()
+                const externalRef = preferenceData.external_reference
+                
+                if (externalRef) {
+                  // Buscar orden por external_reference
+                  order = await prisma.order.findFirst({
+                    where: {
+                      externalReference: externalRef
+                    },
+                    include: { user: true }
+                  })
+                  
+                  if (order) {
+                    console.log(`✅ [MERCHANT_ORDER] Orden encontrada por external_reference: ${externalRef}`)
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('❌ [MERCHANT_ORDER] Error consultando preferencia:', error)
+            }
+          }
+        }
+        
+        if (!order) {
+          console.log(`⚠️ [MERCHANT_ORDER] Orden no encontrada para merchant_order_id: ${merchantOrderId}`)
+          // Si no encontramos la orden, simplemente confirmamos que recibimos el webhook
+          return NextResponse.json({ 
+            message: 'Merchant order webhook received, order not found in database',
+            merchantOrderId 
+          })
+        }
+        
+        // Consultar los pagos asociados a esta preferencia desde MercadoPago
+        // Usamos la API REST directamente ya que el SDK puede no tener soporte completo
+        const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
+        if (accessToken && order.externalReference) {
+          try {
+            // Buscar pagos por external_reference
+            const paymentsResponse = await fetch(
+              `https://api.mercadopago.com/v1/payments/search?external_reference=${order.externalReference}`,
+              {
+                headers: {
+                  'Authorization': `Bearer ${accessToken}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            )
+            
+            if (paymentsResponse.ok) {
+              const paymentsData = await paymentsResponse.json()
+              const payments = paymentsData.results || []
+              
+              console.log(`📦 [MERCHANT_ORDER] Encontrados ${payments.length} pagos para la orden`)
+              
+              // Procesar cada pago encontrado
+              for (const paymentItem of payments) {
+                const paymentId = paymentItem.id
+                const paymentStatus = paymentItem.status
+                const externalRef = paymentItem.external_reference
+                
+                // Verificar que el pago pertenece a nuestra orden
+                if (externalRef === order.externalReference) {
+                  console.log(`💳 [MERCHANT_ORDER] Procesando pago ${paymentId} con estado ${paymentStatus}`)
+                  
+                  // Obtener detalles completos del pago
+                  const paymentDetails = await payment.get({ id: paymentId })
+                  const paymentData = paymentDetails as any
+                  
+                  // Procesar según el estado del pago
+                  if (paymentData.status === 'approved' && order.status !== 'paid') {
+                    await processApprovedPayment(order, paymentData)
+                    console.log(`✅ [MERCHANT_ORDER] Pago aprobado procesado: ${paymentId}`)
+                  } else if (paymentData.status === 'rejected' && order.status !== 'failed') {
+                    await processRejectedPayment(order, paymentData)
+                    console.log(`❌ [MERCHANT_ORDER] Pago rechazado procesado: ${paymentId}`)
+                  } else {
+                    console.log(`⚠️ [MERCHANT_ORDER] Pago ${paymentId} ya procesado o con estado ${paymentData.status}`)
+                  }
+                }
+              }
+            } else {
+              console.error(`❌ [MERCHANT_ORDER] Error consultando pagos: ${paymentsResponse.status} ${paymentsResponse.statusText}`)
+            }
+          } catch (error) {
+            console.error('❌ [MERCHANT_ORDER] Error consultando pagos:', error)
+          }
+        } else {
+          console.log(`⚠️ [MERCHANT_ORDER] No se puede consultar pagos: accessToken=${!!accessToken}, externalReference=${!!order.externalReference}`)
+        }
+        
+        return NextResponse.json({ 
+          success: true,
+          message: 'Merchant order webhook processed',
+          merchantOrderId,
+          orderId: order.id
+        })
+      } catch (error) {
+        console.error('❌ [MERCHANT_ORDER] Error procesando merchant_order:', error)
+        return NextResponse.json({ 
+          error: 'Error processing merchant order',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 })
+      }
+    }
+    
+    // 4. Validar firma (solo en producción o si tenemos webhook secret)
     // TEMPORAL: Deshabilitar validación de firma para testing
     if (process.env.MERCADOPAGO_WEBHOOK_SECRET && xSignature) {
       console.log('[WEBHOOK_SECURITY] Signature validation temporarily disabled for testing')
@@ -56,17 +242,17 @@ export async function POST(req: NextRequest) {
       console.log('[WEBHOOK_SECURITY] Signature validation skipped (no secret configured)')
     }
     
-    // 4. Validar que sea un webhook de producción o prueba válido
-    // TEMPORAL: Permitir webhooks de prueba para testing
-    if (!payload.live_mode && process.env.NODE_ENV === 'production') {
+    // 5. Validar que sea un webhook de producción o prueba válido
+    // Solo validar live_mode si el payload tiene esa propiedad
+    if (payload.live_mode !== undefined && !payload.live_mode && process.env.NODE_ENV === 'production') {
       console.log('[WEBHOOK_TEST_MODE] Test webhook in production - processing for testing')
       // return NextResponse.json({ message: 'Test webhook ignored in production' })
     }
     
-    // 5. Verificar que sea un webhook de pago
-    if (payload.type !== 'payment') {
-      console.log(`[WEBHOOK_IGNORED] Type: ${payload.type}`)
-      return NextResponse.json({ message: 'Webhook ignored' })
+    // 6. Verificar que sea un webhook de pago
+    if (webhookType !== 'payment' && payload.type !== 'payment') {
+      console.log(`[WEBHOOK_IGNORED] Type: ${webhookType || payload.type}`)
+      return NextResponse.json({ message: 'Webhook ignored - not a payment webhook' })
     }
     
     // 6. Log de la acción recibida
