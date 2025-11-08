@@ -119,17 +119,32 @@ export async function POST(req: NextRequest) {
           } else {
             const errorText = await merchantOrderResponse.text()
             console.error(`❌ [MERCHANT_ORDER] Error consultando merchant_order: ${merchantOrderResponse.status}`, errorText)
+            
+            // Si es 404, puede ser una simulación con datos de prueba
+            // Siempre devolver 200 para confirmar recepción a MercadoPago
+            if (merchantOrderResponse.status === 404) {
+              console.log(`⚠️ [MERCHANT_ORDER] Merchant order no encontrada (posible simulación): ${merchantOrderId}`)
+              return NextResponse.json({ 
+                message: 'Merchant order webhook received, order not found (may be simulation)',
+                merchantOrderId 
+              }, { status: 200 })
+            }
+            
+            // Para otros errores, también devolver 200 para confirmar recepción
             return NextResponse.json({ 
-              error: 'Merchant order not found',
+              message: 'Merchant order webhook received, error fetching order',
+              merchantOrderId,
               details: `Status: ${merchantOrderResponse.status}`
-            }, { status: merchantOrderResponse.status })
+            }, { status: 200 })
           }
         } catch (error) {
           console.error('❌ [MERCHANT_ORDER] Error consultando merchant_order:', error)
+          // Siempre devolver 200 para confirmar recepción a MercadoPago, incluso si hay errores
           return NextResponse.json({ 
-            error: 'Error fetching merchant order',
+            message: 'Merchant order webhook received, error processing',
+            merchantOrderId,
             details: error instanceof Error ? error.message : 'Unknown error'
-          }, { status: 500 })
+          }, { status: 200 })
         }
         
         // Buscar la orden en nuestra BD usando el preference_id
@@ -360,9 +375,13 @@ export async function POST(req: NextRequest) {
     
     if (!order) {
       console.error(`[ORDER_NOT_FOUND] External Reference: ${paymentData.external_reference}`)
+      // Siempre devolver 200 para confirmar recepción a MercadoPago
+      // Esto es especialmente importante para notificaciones de simulación
       return NextResponse.json({ 
-        error: 'Order not found' 
-      }, { status: 404 })
+        message: 'Webhook received, order not found in database',
+        externalReference: paymentData.external_reference,
+        paymentId: paymentData.id
+      }, { status: 200 })
     }
     
     // 9. Verificar si ya fue procesado (idempotencia)
@@ -414,9 +433,14 @@ export async function POST(req: NextRequest) {
     
   } catch (error) {
     console.error('[WEBHOOK_ERROR]:', error)
+    // Siempre devolver 200 para confirmar recepción a MercadoPago
+    // Esto evita que MercadoPago marque la notificación como fallida
+    // Los errores se loguean pero no se reportan como fallo al webhook
     return NextResponse.json({ 
-      error: 'Internal server error' 
-    }, { status: 500 })
+      message: 'Webhook received, error processing',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    }, { status: 200 })
   }
 }
 
