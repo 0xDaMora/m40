@@ -665,25 +665,9 @@ export default function HeroOnboardStrategiesView({
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Calculando estrategias...</p>
         </div>
-      ) : displayedStrategies.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-yellow-800 mb-2">
-              No se encontraron estrategias válidas
-            </h3>
-            <p className="text-yellow-700 mb-4">
-              Con los filtros actuales, no se encontraron estrategias de Modalidad 40 que cumplan con los requisitos.
-            </p>
-            <button
-              onClick={onReinicio}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Intentar de nuevo
-            </button>
-          </div>
-        </div>
       ) : (
         <>
+          {/* Lista de Estrategias con Filtros - Siempre visible para que los filtros estén disponibles */}
           <StrategyList
             strategies={displayedStrategies}
             strategyFilters={strategyFilters}
@@ -697,15 +681,24 @@ export default function HeroOnboardStrategiesView({
             onDownloadPDF={handleDownloadPDF}
           />
           
-          {/* Controles de paginación */}
-          <PaginationControls
-            displayedCount={displayedStrategies.length}
-            totalCount={totalStrategies}
-            hasMore={hasMoreStrategies}
-            onLoadMore={loadMoreStrategies}
-            remainingCount={remainingStrategies}
-            strategiesPerPage={strategiesPerPage}
-          />
+          {/* Controles de paginación - Solo mostrar si hay estrategias */}
+          {displayedStrategies.length > 0 && (
+            <PaginationControls
+              displayedCount={displayedStrategies.length}
+              totalCount={totalStrategies}
+              hasMore={hasMoreStrategies}
+              onLoadMore={loadMoreStrategies}
+              remainingCount={remainingStrategies}
+              strategiesPerPage={strategiesPerPage}
+            />
+          )}
+          
+          {/* Mensaje adicional cuando no hay estrategias pero sí hay estrategias totales (filtradas) */}
+          {displayedStrategies.length === 0 && totalStrategies > 0 && (
+            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 text-center">
+              <strong>⚡ Optimización:</strong> Se encontraron {totalStrategies} estrategias en total, pero no coinciden con los filtros actuales. Ajusta los filtros arriba para ver más resultados.
+            </div>
+          )}
         </>
       )}
       

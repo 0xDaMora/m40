@@ -674,38 +674,9 @@ export function FamilySimulatorIntegration() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-2 text-gray-600">Calculando estrategias...</p>
             </div>
-                     ) : displayedStrategies.length === 0 ? (
-             <div className="text-center py-8">
-               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 sm:p-6 w-full">
-                 <div className="text-yellow-600 mb-2">
-                   <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                   </svg>
-                 </div>
-                                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    No se encontraron estrategias válidas
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Esto puede deberse a:
-                  </p>
-                  <ul className="text-xs text-gray-600 space-y-1 text-left">
-                    <li>• El SDI del familiar es muy alto para las UMAs disponibles</li>
-                    <li>• Los filtros aplicados son muy restrictivos</li>
-                    <li>• El rango de aportación mensual es muy limitado</li>
-                  </ul>
-                  <div className="mt-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
-                    <strong>💡 Sugerencia:</strong> Intenta ajustar el rango de aportación mensual o la edad de jubilación.
-                  </div>
-                  {totalStrategies > 0 && (
-                    <div className="mt-4 p-2 bg-green-50 border border-green-200 rounded text-xs text-green-700">
-                      <strong>⚡ Optimización:</strong> Se encontraron {totalStrategies} estrategias, pero se están cargando por lotes para mejor rendimiento.
-                    </div>
-                  )}
-               </div>
-             </div>
           ) : (
             <>
-              {/* Lista de Estrategias con Filtros */}
+              {/* Lista de Estrategias con Filtros - Siempre visible para que los filtros estén disponibles */}
               <StrategyList
                 strategies={displayedStrategies}
                 strategyFilters={strategyFilters}
@@ -719,15 +690,24 @@ export function FamilySimulatorIntegration() {
                 onDownloadPDF={downloadStrategyPDF}
               />
 
-              {/* Controles de Paginación */}
-              <PaginationControls
-                displayedCount={displayedStrategies.length}
-                totalCount={totalStrategies}
-                hasMore={hasMoreStrategies}
-                onLoadMore={loadMoreStrategies}
-                remainingCount={remainingStrategies}
-                strategiesPerPage={strategiesPerPage}
-              />
+              {/* Controles de Paginación - Solo mostrar si hay estrategias */}
+              {displayedStrategies.length > 0 && (
+                <PaginationControls
+                  displayedCount={displayedStrategies.length}
+                  totalCount={totalStrategies}
+                  hasMore={hasMoreStrategies}
+                  onLoadMore={loadMoreStrategies}
+                  remainingCount={remainingStrategies}
+                  strategiesPerPage={strategiesPerPage}
+                />
+              )}
+              
+              {/* Mensaje adicional cuando no hay estrategias pero sí hay estrategias totales (filtradas) */}
+              {displayedStrategies.length === 0 && totalStrategies > 0 && (
+                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 text-center">
+                  <strong>⚡ Optimización:</strong> Se encontraron {totalStrategies} estrategias en total, pero no coinciden con los filtros actuales. Ajusta los filtros arriba para ver más resultados.
+                </div>
+              )}
             </>
           )}
         </motion.div>

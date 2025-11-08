@@ -197,23 +197,49 @@ export function StrategyList({
         </div>
 
         {/* Lista de estrategias - COLUMNAS HORIZONTALES */}
-        <div className="space-y-3 sm:space-y-4">
-          {strategies.map((strategy, index) => (
-            <StrategyRow
-              key={`${strategy.estrategia}_${strategy.umaElegida}_${strategy.mesesM40}_${index}`}
-              strategy={strategy}
-              index={index}
-              isFirstCard={index === 0}
-              session={session}
-              userPlan={userPlan}
-              hasUsedFreeStrategy={hasUsedFreeStrategy}
-              onStrategyPurchase={onStrategyPurchase}
-              onPremiumModalOpen={onPremiumModalOpen}
-              onViewDetails={onViewDetails}
-              onDownloadPDF={onDownloadPDF}
-            />
-          ))}
-        </div>
+        {strategies.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 sm:p-6 w-full">
+              <div className="text-yellow-600 mb-2">
+                <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No se encontraron estrategias válidas
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Esto puede deberse a:
+              </p>
+              <ul className="text-xs text-gray-600 space-y-1 text-left max-w-md mx-auto">
+                <li>• El rango de UMA seleccionado es muy restrictivo</li>
+                <li>• El rango de meses seleccionado no tiene estrategias disponibles</li>
+                <li>• El tipo de estrategia filtrado no tiene resultados</li>
+              </ul>
+              <div className="mt-4 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700 max-w-md mx-auto">
+                <strong>💡 Sugerencia:</strong> Ajusta los filtros de arriba para ampliar el rango de búsqueda. Por ejemplo, aumenta el rango de UMA o cambia el tipo de estrategia a "Todas".
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3 sm:space-y-4">
+            {strategies.map((strategy, index) => (
+              <StrategyRow
+                key={`${strategy.estrategia}_${strategy.umaElegida}_${strategy.mesesM40}_${index}`}
+                strategy={strategy}
+                index={index}
+                isFirstCard={index === 0}
+                session={session}
+                userPlan={userPlan}
+                hasUsedFreeStrategy={hasUsedFreeStrategy}
+                onStrategyPurchase={onStrategyPurchase}
+                onPremiumModalOpen={onPremiumModalOpen}
+                onViewDetails={onViewDetails}
+                onDownloadPDF={onDownloadPDF}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </motion.div>
   )
