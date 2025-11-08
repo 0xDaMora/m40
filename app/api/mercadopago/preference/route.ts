@@ -96,9 +96,11 @@ export async function POST(req: NextRequest) {
       items: [{
         title: productTitle,
         quantity: 1,
-        unit_price: Number(amount)
+        unit_price: Number(amount),
+        currency_id: 'MXN' // Moneda explícita requerida en producción
       }],
-      external_reference: order.externalReference!
+      external_reference: order.externalReference!,
+      statement_descriptor: 'M40 Modalidad 40' // Descriptor para estado de cuenta
     }
 
     // Solo agregar back_urls si no estamos en desarrollo
@@ -149,8 +151,17 @@ export async function POST(req: NextRequest) {
     console.log('🔧 Is Development:', isDevelopment)
     
     try {
-      const response = await preference.create({ body: preferenceData })
+      // Generar idempotency key único para cada request
+      const idempotencyKey = `${order.id}-${Date.now()}-${Math.random().toString(36).substring(7)}`
+      
+      const response = await preference.create({ 
+        body: preferenceData,
+        requestOptions: {
+          idempotencyKey: idempotencyKey
+        }
+      })
       console.log('✅ Preferencia creada exitosamente:', response.id)
+      console.log('🔑 Idempotency Key usado:', idempotencyKey)
       
       // 9. Actualizar orden con ID de MercadoPago
       await prisma.order.update({
@@ -173,7 +184,10 @@ export async function POST(req: NextRequest) {
         message: error.message,
         status: error.status,
         cause: error.cause,
-        errors: error.errors
+        errors: error.errors,
+        code: error.code,
+        status_detail: error.status_detail,
+        response: error.response?.data || error.response
       })
       
       return NextResponse.json({ 
