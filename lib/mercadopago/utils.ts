@@ -57,11 +57,13 @@ export const validateOrderData = (data: any): string[] => {
 export const processApprovedPayment = async (order: any, payment: any) => {
   return await prisma.$transaction(async (tx) => {
     // 1. Actualizar orden
+    // Mantener mercadopagoId con el preference_id, guardar payment_id en paymentId
     const updatedOrder = await tx.order.update({
       where: { id: order.id },
       data: {
         status: 'paid',
-        mercadopagoId: payment.id.toString(),
+        mercadopagoId: order.mercadopagoId, // Mantener el preference_id
+        paymentId: payment.id.toString(), // Guardar el payment_id
         paymentMethod: payment.payment_method_id,
         paidAt: new Date()
       }
@@ -123,7 +125,8 @@ export const processRejectedPayment = async (order: any, payment: any) => {
     where: { id: order.id },
     data: {
       status: 'failed',
-      mercadopagoId: payment.id.toString(),
+      mercadopagoId: order.mercadopagoId, // Mantener el preference_id
+      paymentId: payment.id.toString(), // Guardar el payment_id
       paymentMethod: payment.payment_method_id
     }
   })

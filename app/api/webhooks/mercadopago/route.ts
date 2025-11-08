@@ -249,6 +249,27 @@ export async function POST(req: NextRequest) {
                 // Procesar según el estado del pago
                 if (paymentData.status === 'approved' && order.status !== 'paid') {
                   await processApprovedPayment(order, paymentData)
+                  
+                  // Actualizar preferencia con payment_id en metadatos para tracking de calidad
+                  if (order.mercadopagoId && paymentData.id) {
+                    try {
+                      await preference.update({
+                        id: order.mercadopagoId,
+                        body: {
+                          metadata: {
+                            payment_id: paymentData.id.toString(),
+                            order_id: order.id,
+                            updated_at: new Date().toISOString()
+                          }
+                        }
+                      })
+                      console.log(`✅ [PAYMENT_TRACKING] Preferencia actualizada con payment_id: ${paymentData.id}`)
+                    } catch (error) {
+                      console.error(`⚠️ [PAYMENT_TRACKING] Error actualizando preferencia:`, error)
+                      // No fallar el procesamiento si la actualización de metadatos falla
+                    }
+                  }
+                  
                   console.log(`✅ [MERCHANT_ORDER] Pago aprobado procesado: ${paymentId}`)
                 } else if (paymentData.status === 'rejected' && order.status !== 'failed') {
                   await processRejectedPayment(order, paymentData)
@@ -353,6 +374,27 @@ export async function POST(req: NextRequest) {
     // 10. Procesar según estado del pago
     if (paymentData.status === 'approved') {
       await processApprovedPayment(order, paymentData)
+      
+      // Actualizar preferencia con payment_id en metadatos para tracking de calidad
+      if (order.mercadopagoId && paymentData.id) {
+        try {
+          await preference.update({
+            id: order.mercadopagoId,
+            body: {
+              metadata: {
+                payment_id: paymentData.id.toString(),
+                order_id: order.id,
+                updated_at: new Date().toISOString()
+              }
+            }
+          })
+          console.log(`✅ [PAYMENT_TRACKING] Preferencia actualizada con payment_id: ${paymentData.id}`)
+        } catch (error) {
+          console.error(`⚠️ [PAYMENT_TRACKING] Error actualizando preferencia:`, error)
+          // No fallar el procesamiento si la actualización de metadatos falla
+        }
+      }
+      
       console.log(`✅ [PAYMENT_APPROVED] Order: ${order.id}, Payment: ${paymentData.id}`)
     } else if (paymentData.status === 'rejected') {
       await processRejectedPayment(order, paymentData)

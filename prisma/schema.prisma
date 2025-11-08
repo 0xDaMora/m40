@@ -18,22 +18,22 @@ datasource db {
 
 // Usuarios registrados
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  name          String?
-  password      String?  // Para autenticación por email
-  authProvider  String   @default("email") // 'email' | 'google'
-  image         String?  // Para avatar de Google
-  createdAt     DateTime @default(now())
-  subscription  String   @default("basic") // 'basic' | 'premium'
-  hasUsedFreeStrategy Boolean @default(false) // Indica si ya usó su estrategia gratis
-  
-  familyMembers FamilyMember[]
-  savedStrategies SavedStrategy[]
+  id                  String   @id @default(cuid())
+  email               String   @unique
+  name                String?
+  password            String? // Para autenticación por email
+  authProvider        String   @default("email") // 'email' | 'google'
+  image               String? // Para avatar de Google
+  createdAt           DateTime @default(now())
+  subscription        String   @default("basic") // 'basic' | 'premium'
+  hasUsedFreeStrategy Boolean  @default(false) // Indica si ya usó su estrategia gratis
+
+  familyMembers        FamilyMember[]
+  savedStrategies      SavedStrategy[]
   estrategiasGuardadas EstrategiaGuardada[]
-  purchases Purchase[]
-  orders Order[]
-  
+  purchases            Purchase[]
+  orders               Order[]
+
   @@map("users")
 }
 
@@ -42,9 +42,9 @@ model GuestUser {
   id        String   @id @default(cuid())
   email     String   @unique
   createdAt DateTime @default(now())
-  
+
   purchases GuestPurchase[]
-  
+
   @@map("guest_users")
 }
 
@@ -57,63 +57,63 @@ model GuestPurchase {
   purchaseDate DateTime @default(now())
   planType     String
   accessToken  String   @unique
-  
-  guestUser    GuestUser @relation(fields: [guestUserId], references: [id])
-  
+
+  guestUser GuestUser @relation(fields: [guestUserId], references: [id])
+
   @@map("guest_purchases")
 }
 
 // Miembros familiares
 model FamilyMember {
-  id                    String   @id @default(cuid())
-  userId                String
-  name                  String
-  birthDate             DateTime
-  weeksContributed      Int
-  lastGrossSalary       Float
-  civilStatus           String
-  createdAt             DateTime @default(now())
-  
-  user                  User     @relation(fields: [userId], references: [id])
-  savedStrategies       SavedStrategy[]
-  estrategiasGuardadas  EstrategiaGuardada[]
-  
+  id               String   @id @default(cuid())
+  userId           String
+  name             String
+  birthDate        DateTime
+  weeksContributed Int
+  lastGrossSalary  Float
+  civilStatus      String
+  createdAt        DateTime @default(now())
+
+  user                 User                 @relation(fields: [userId], references: [id])
+  savedStrategies      SavedStrategy[]
+  estrategiasGuardadas EstrategiaGuardada[]
+
   @@map("family_members")
 }
 
 // Estrategias guardadas
 model SavedStrategy {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   userId         String?
   familyMemberId String?
   strategyName   String
   strategyData   Json
   purchaseDate   DateTime?
   planType       String?
-  createdAt      DateTime @default(now())
-  
-  user           User?           @relation(fields: [userId], references: [id])
-  familyMember   FamilyMember?   @relation(fields: [familyMemberId], references: [id])
-  
+  createdAt      DateTime  @default(now())
+
+  user         User?         @relation(fields: [userId], references: [id])
+  familyMember FamilyMember? @relation(fields: [familyMemberId], references: [id])
+
   @@map("saved_strategies")
 }
 
 // Estrategias guardadas compartibles
 model EstrategiaGuardada {
-  id                String   @id @default(cuid())
-  userId            String
-  familyMemberId    String?
-  debugCode         String   @unique
-  datosEstrategia   Json
-  datosUsuario      Json
-  activa            Boolean  @default(true)
-  visualizaciones   Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
-  user              User           @relation(fields: [userId], references: [id])
-  familiar          FamilyMember?  @relation(fields: [familyMemberId], references: [id])
-  
+  id              String   @id @default(cuid())
+  userId          String
+  familyMemberId  String?
+  debugCode       String   @unique
+  datosEstrategia Json
+  datosUsuario    Json
+  activa          Boolean  @default(true)
+  visualizaciones Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id])
+  familiar FamilyMember? @relation(fields: [familyMemberId], references: [id])
+
   @@map("estrategias_guardadas")
 }
 
@@ -125,7 +125,7 @@ model PasswordResetToken {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
-  
+
   @@map("password_reset_tokens")
 }
 
@@ -133,68 +133,69 @@ model PasswordResetToken {
 model Purchase {
   id           String   @id @default(cuid())
   userId       String
-  plan         String   // 'basic' | 'premium'
+  plan         String // 'basic' | 'premium'
   amount       Float
   status       String   @default("pending") // 'pending' | 'completed' | 'failed'
   strategyData Json?
   userData     Json?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
-  user         User     @relation(fields: [userId], references: [id])
-  
+
+  user User @relation(fields: [userId], references: [id])
+
   @@map("purchases")
 }
 
 // Sistema de órdenes para MercadoPago
 model Order {
-  id                  String   @id @default(cuid())
-  userId              String
-  orderNumber         String   @unique // ORD-2024-001
-  status              String   @default("pending") // 'pending' | 'paid' | 'failed' | 'cancelled' | 'expired'
-  planType            String   // 'basic' | 'premium'
-  amount              Decimal  @db.Decimal(10,2)
-  currency            String   @default("MXN")
-  
+  id          String  @id @default(cuid())
+  userId      String
+  orderNumber String  @unique // ORD-2024-001
+  status      String  @default("pending") // 'pending' | 'paid' | 'failed' | 'cancelled' | 'expired'
+  planType    String // 'basic' | 'premium'
+  amount      Decimal @db.Decimal(10, 2)
+  currency    String  @default("MXN")
+
   // Datos de MercadoPago
-  mercadopagoId       String?  // ID de la preferencia o pago
-  externalReference   String?  // Referencia externa para webhooks
-  paymentMethod       String?  // Método de pago usado
-  
+  mercadopagoId     String? // ID de la preferencia
+  paymentId         String? // ID del pago (para tracking de calidad)
+  externalReference String? // Referencia externa para webhooks
+  paymentMethod     String? // Método de pago usado
+
   // Datos de la estrategia (si aplica)
-  strategyData        Json?
-  strategyCode        String?  // Código de la estrategia generada
-  userData            Json?
-  
+  strategyData Json?
+  strategyCode String? // Código de la estrategia generada
+  userData     Json?
+
   // Timestamps
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  paidAt              DateTime?
-  expiresAt           DateTime // 24 horas después de creación
-  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  paidAt    DateTime?
+  expiresAt DateTime // 24 horas después de creación
+
   // Metadatos adicionales
-  metadata            Json?
-  
+  metadata Json?
+
   // Relaciones
-  user                User     @relation(fields: [userId], references: [id])
-  orderItems          OrderItem[]
-  
+  user       User        @relation(fields: [userId], references: [id])
+  orderItems OrderItem[]
+
   @@map("orders")
 }
 
 // Items de cada orden
 model OrderItem {
-  id          String   @id @default(cuid())
-  orderId     String
-  itemType    String   // 'strategy' | 'premium'
-  itemId      String?  // ID de la estrategia o 'premium'
-  itemName    String
-  quantity    Int      @default(1)
-  unitPrice   Decimal  @db.Decimal(10,2)
-  totalPrice  Decimal  @db.Decimal(10,2)
-  createdAt   DateTime @default(now())
-  
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
+  id         String   @id @default(cuid())
+  orderId    String
+  itemType   String // 'strategy' | 'premium'
+  itemId     String? // ID de la estrategia o 'premium'
+  itemName   String
+  quantity   Int      @default(1)
+  unitPrice  Decimal  @db.Decimal(10, 2)
+  totalPrice Decimal  @db.Decimal(10, 2)
+  createdAt  DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
   @@map("order_items")
 }
