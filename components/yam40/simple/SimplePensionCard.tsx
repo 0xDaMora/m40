@@ -261,10 +261,24 @@ export default function SimplePensionCard({
       console.warn('Error al crear familiar después del registro:', error)
     }
 
-    // Continuar con la generación del PDF
+    // Esperar a que la sesión se actualice después del registro
+    // Refrescar la sesión antes de continuar
+    try {
+      await fetch('/api/auth/session', { 
+        cache: 'no-store', 
+        credentials: 'include' 
+      })
+      // Dar tiempo para que NextAuth actualice la sesión
+      await new Promise(resolve => setTimeout(resolve, 500))
+    } catch (error) {
+      console.warn('Error al refrescar sesión:', error)
+    }
+
+    // Abrir directamente el modal de compra en lugar de llamar a handleDownloadPDF
+    // porque handleDownloadPDF verifica la sesión y podría volver a abrir el modal de registro
     setTimeout(() => {
-      handleDownloadPDF()
-    }, 500)
+      setShowPurchaseModal(true)
+    }, 300)
   }
 
   if (loading) {
