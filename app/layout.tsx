@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import FloatingHelpButton from "@/components/help/FloatingHelpButton";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -120,6 +121,7 @@ export default function RootLayout({
           <ToastProvider />
           <FloatingHelpButton />
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
