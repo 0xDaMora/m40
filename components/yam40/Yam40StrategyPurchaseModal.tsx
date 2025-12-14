@@ -119,7 +119,7 @@ export default function Yam40StrategyPurchaseModal({
                 name: datosUsuario.name,
                 birthDate: datosUsuario.birthDate.toISOString().split('T')[0],
                 weeksContributed: datosUsuario.totalWeeksContributed,
-                lastGrossSalary: datosUsuario.sdiHistorico * 30.4,
+                lastGrossSalary: datosUsuario.sdiHistorico, // sdiHistorico ya es salario mensual bruto en el flujo de yam40
                 civilStatus: datosUsuario.civilStatus
               })
             })

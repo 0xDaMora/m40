@@ -191,7 +191,7 @@ export default function SimplePensionCard({
                   name: userName,
                   birthDate: birthDate.toISOString().split('T')[0],
                   weeksContributed: semanasAntesM40,
-                  lastGrossSalary: sdiHistorico * 30.4,
+                  lastGrossSalary: sdiHistorico, // sdiHistorico ya es salario mensual bruto en el flujo de yam40
                   civilStatus: civilStatus
                 })
               })
@@ -253,7 +253,7 @@ export default function SimplePensionCard({
           name: userName,
           birthDate: birthDate?.toISOString().split('T')[0],
           weeksContributed: semanasAntesM40,
-          lastGrossSalary: sdiHistorico * 30.4,
+          lastGrossSalary: sdiHistorico, // sdiHistorico ya es salario mensual bruto en el flujo de yam40
           civilStatus: civilStatus
         })
       })

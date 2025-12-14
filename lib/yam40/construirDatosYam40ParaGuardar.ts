@@ -19,7 +19,7 @@ export interface ConstruirDatosYam40Params {
     retirementAge: number
     totalWeeksContributed: number
     civilStatus: 'soltero' | 'casado'
-    sdiHistorico: number // SDI diario histórico
+    sdiHistorico: number // En flujo yam40: salario mensual bruto. En otros flujos: puede ser SDI diario
   }
 }
 
@@ -190,9 +190,9 @@ export function construirDatosYam40ParaGuardar(params: ConstruirDatosYam40Params
     edadActual,
     semanasPrevias: datosUsuario.totalWeeksContributed,
     semanasCotizadas: datosUsuario.totalWeeksContributed + Math.floor(mesesConSDI.length * 4.33),
-    sdiHistorico: datosUsuario.sdiHistorico, // SDI diario
+    sdiHistorico: datosUsuario.sdiHistorico, // En flujo yam40: salario mensual bruto. En flujo HeroOnboard: SDI diario
     sdiActual: datosUsuario.sdiHistorico,
-    salarioMensual: Math.round(datosUsuario.sdiHistorico * 30.4),
+    salarioMensual: Math.round(datosUsuario.sdiHistorico), // En flujo yam40: sdiHistorico ya es salario mensual bruto, no multiplicar
     dependiente: datosUsuario.civilStatus === 'casado' ? 'conyuge' : 'ninguno',
     estadoCivil: datosUsuario.civilStatus,
     inicioM40: fechaInicioISO,

@@ -101,7 +101,8 @@ export default function HeroOnboardStrategiesView({
     const birthDate = new Date(datosUsuario.fechaNacimiento)
     const weeksContributed = datosUsuario.semanasPrevias || datosUsuario.semanasCotizadas || 0
     const sdiHistorico = datosUsuario.sdiHistorico || 0
-    const lastGrossSalary = sdiHistorico * 30.4 // Convertir SDI diario a mensual
+    // Usar salarioBruto directamente si está disponible (del HeroOnboard), sino calcular desde SDI
+    const lastGrossSalary = datosUsuario.salarioBruto || (sdiHistorico * 30.4)
     
     // Determinar estado civil
     let civilStatus = 'soltero'
