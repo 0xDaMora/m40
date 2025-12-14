@@ -8,7 +8,7 @@ import { calcularEdad, calcularFechaInicioM40, calcularAportacionPromedio, calcu
  * Genera un código único para una estrategia
  * Ahora incluye la fecha de inicio (mes/año) para diferenciar estrategias con diferentes fechas
  */
-export const generarCodigoEstrategia = (tipo: 'compra' | 'integration' | 'premium', datos: any): string => {
+export const generarCodigoEstrategia = (tipo: 'compra' | 'integration' | 'premium' | 'yam40', datos: any): string => {
   const timestamp = Date.now()
   const random = Math.random().toString(36).substr(2, 9)
   
@@ -24,6 +24,10 @@ export const generarCodigoEstrategia = (tipo: 'compra' | 'integration' | 'premiu
       return `integration_${datos.familyMemberId}_${datos.estrategia}_${datos.umaElegida}_${datos.mesesM40}_${datos.edadJubilacion}_${mes.toString().padStart(2, '0')}${año}`
     case 'premium':
       return `premium_${timestamp}_${random}`
+    case 'yam40':
+      // Formato: yam40_[mesesPagados]_[timestamp]_[random]
+      const mesesPagados = datos.mesesPagados || datos.mesesM40 || 0
+      return `yam40_${mesesPagados}_${timestamp}_${random}`
     default:
       return `estrategia_${timestamp}_${random}`
   }

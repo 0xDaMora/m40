@@ -11,8 +11,9 @@ export async function POST(req: Request) {
     }
 
     // Verificar si el código es válido (SISTEMA UNIFICADO)
-    if (!code.startsWith("integration_")) {
-      return NextResponse.json({ error: "Código inválido - Solo se aceptan códigos integration_" }, { status: 400 })
+    // Aceptar códigos integration_ y yam40_
+    if (!code.startsWith("integration_") && !code.startsWith("yam40_")) {
+      return NextResponse.json({ error: "Código inválido - Solo se aceptan códigos integration_ o yam40_" }, { status: 400 })
     }
 
     // Buscar la estrategia en la base de datos (con reintentos ante fallas de conexión)
@@ -58,33 +59,107 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Estrategia no encontrada" }, { status: 404 })
     }
 
-    // Verificar si la estrategia ha expirado (30 días)
-    const fechaCreacion = new Date(estrategiaGuardada.createdAt)
-    const fechaExpiracion = new Date(fechaCreacion.getTime() + (30 * 24 * 60 * 60 * 1000)) // 30 días
-    
-    if (new Date() > fechaExpiracion) {
-      return NextResponse.json({ error: "Estrategia expirada" }, { status: 410 })
-    }
-
     // Reconstruir los parámetros para el cálculo
     const datosEstrategia = estrategiaGuardada.datosEstrategia as any
     const datosUsuario = estrategiaGuardada.datosUsuario as any
     
+    // Verificar si es estrategia yam40 (tiene registros guardados o tipo yam40)
+    const esYam40 = datosEstrategia.tipo === 'yam40' || 
+                    (datosEstrategia.registros && Array.isArray(datosEstrategia.registros) && datosEstrategia.registros.length > 0)
 
-    
-    const params = {
-      mesesM40: datosEstrategia.mesesM40 || 36,
-      estrategia: datosEstrategia.estrategia || "fijo",
-      umaElegida: datosEstrategia.umaElegida || 15,
-      edad: datosEstrategia.edad || 58,
-      dependiente: datosEstrategia.dependiente || "conyuge",
-      sdiHistorico: datosEstrategia.sdiHistorico || 150,
-      semanasPrevias: datosEstrategia.semanasPrevias || 500,
-      inicioM40: datosEstrategia.inicioM40 ? new Date(datosEstrategia.inicioM40) : new Date()
+    let resultado: any
+
+    if (esYam40) {
+      // Usar calculator recrear compatible con yam40
+      const { calcularEscenarioYam40Recrear } = await import('@/lib/yam40/calculatorYam40Recrear')
+      
+      // Extraer fechas inicio/fin desde datos guardados (prioridad) o registros
+      let fechaInicioM40 = { mes: 1, año: 2024 }
+      let fechaFinM40 = { mes: 1, año: 2024 }
+      let tipoPago: 'uma' | 'aportacion' = 'aportacion'
+      let valorInicial = 5000
+
+      // Prioridad 1: Usar fechas guardadas directamente si están disponibles
+      if (datosEstrategia.fechaInicioM40 && datosEstrategia.fechaFinM40) {
+        const inicio = new Date(datosEstrategia.fechaInicioM40)
+        const fin = new Date(datosEstrategia.fechaFinM40)
+        fechaInicioM40 = { mes: inicio.getMonth() + 1, año: inicio.getFullYear() }
+        fechaFinM40 = { mes: fin.getMonth() + 1, año: fin.getFullYear() }
+      } else if (datosEstrategia.registros && datosEstrategia.registros.length > 0) {
+        // Prioridad 2: Extraer desde registros
+        const primerRegistro = datosEstrategia.registros[0]
+        const ultimoRegistro = datosEstrategia.registros[datosEstrategia.registros.length - 1]
+        const fechaInicio = new Date(primerRegistro.fecha)
+        const fechaFin = new Date(ultimoRegistro.fecha)
+        fechaInicioM40 = { mes: fechaInicio.getMonth() + 1, año: fechaInicio.getFullYear() }
+        fechaFinM40 = { mes: fechaFin.getMonth() + 1, año: fechaFin.getFullYear() }
+      } else if (datosEstrategia.inicioM40) {
+        // Prioridad 3: Usar inicioM40 y calcular fin
+        const inicio = new Date(datosEstrategia.inicioM40)
+        fechaInicioM40 = { mes: inicio.getMonth() + 1, año: inicio.getFullYear() }
+        // Estimar fin basado en meses M40
+        const mesesM40 = datosEstrategia.mesesM40 || 12
+        const fin = new Date(inicio)
+        fin.setMonth(fin.getMonth() + mesesM40 - 1)
+        fechaFinM40 = { mes: fin.getMonth() + 1, año: fin.getFullYear() }
+      }
+
+      // Determinar tipo de pago y valor inicial
+      if (datosEstrategia.tipoPago) {
+        tipoPago = datosEstrategia.tipoPago
+        valorInicial = datosEstrategia.valorInicial || (tipoPago === 'uma' ? datosEstrategia.umaElegida || 15 : 5000)
+      } else if (datosEstrategia.umaElegida && datosEstrategia.registros && datosEstrategia.registros.length > 0) {
+        // Intentar determinar desde registros
+        const primerRegistro = datosEstrategia.registros[0]
+        // Si todos los registros tienen la misma UMA, es UMA fijo
+        const umasUnicas = new Set(datosEstrategia.registros.map((r: any) => r.uma))
+        if (umasUnicas.size === 1) {
+          tipoPago = 'uma'
+          valorInicial = datosEstrategia.umaElegida
+        } else {
+          tipoPago = 'aportacion'
+          valorInicial = primerRegistro.cuotaMensual || 5000
+        }
+      } else {
+        // Fallback
+        tipoPago = datosEstrategia.umaElegida ? 'uma' : 'aportacion'
+        valorInicial = datosEstrategia.umaElegida || datosEstrategia.valorInicial || 5000
+      }
+
+      const fechaNacimiento = datosUsuario.fechaNacimiento 
+        ? new Date(datosUsuario.fechaNacimiento)
+        : new Date('1970-01-01')
+
+      // Si hay listaSDI guardada (modo manual), usarla directamente
+      const listaSDI = datosEstrategia.listaSDI || null
+
+      resultado = calcularEscenarioYam40Recrear({
+        fechaNacimiento,
+        semanasPrevias: datosEstrategia.semanasPrevias || datosUsuario.semanasPrevias || 500,
+        sdiHistorico: datosEstrategia.sdiHistorico || datosUsuario.sdiHistorico || 150,
+        fechaInicioM40,
+        fechaFinM40,
+        tipoPago,
+        valorInicial,
+        edadJubilacion: datosEstrategia.edad || datosUsuario.edadJubilacion || 65,
+        dependiente: datosEstrategia.dependiente || datosUsuario.dependiente || "conyuge",
+        listaSDI: listaSDI
+      })
+    } else {
+      // Usar calculator normal para estrategias desde cero
+      const params = {
+        mesesM40: datosEstrategia.mesesM40 || 36,
+        estrategia: datosEstrategia.estrategia || "fijo",
+        umaElegida: datosEstrategia.umaElegida || 15,
+        edad: datosEstrategia.edad || 58,
+        dependiente: datosEstrategia.dependiente || "conyuge",
+        sdiHistorico: datosEstrategia.sdiHistorico || 150,
+        semanasPrevias: datosEstrategia.semanasPrevias || 500,
+        inicioM40: datosEstrategia.inicioM40 ? new Date(datosEstrategia.inicioM40) : new Date()
+      }
+
+      resultado = calcularEscenarioDetallado(params)
     }
-
-    // Calcular la estrategia usando los parámetros guardados
-    const resultado = calcularEscenarioDetallado(params)
     
     // Verificar que los resultados coincidan con los datos guardados
     console.log('🔍 Verificando consistencia de datos:')
@@ -110,6 +185,7 @@ export async function POST(req: Request) {
     })
 
     // Preparar datos de respuesta - USAR DATOS GUARDADOS para mantener consistencia
+    // Para yam40, priorizar datos guardados; para otras estrategias, usar datos calculados
     const responseData = {
       estrategia: {
         // Usar datos guardados para mantener consistencia con la compra
@@ -121,12 +197,21 @@ export async function POST(req: Request) {
         pensionConAguinaldo: datosEstrategia.pensionConAguinaldo || resultado.pensionConAguinaldo,
         ROI: datosEstrategia.ROI || resultado.ROI,
         recuperacionMeses: datosEstrategia.recuperacionMeses || resultado.recuperacionMeses,
-        // Usar datos calculados para campos que no se guardan
-        factorEdad: resultado.factorEdad,
-        conFactorEdad: resultado.conFactorEdad,
-        conLeyFox: resultado.conLeyFox,
-        conDependiente: resultado.conDependiente,
-        registros: resultado.registros || [],
+        // Usar datos guardados primero; si no existen, usar datos calculados como fallback
+        factorEdad: datosEstrategia.factorEdad ?? resultado.factorEdad ?? null,
+        conFactorEdad: datosEstrategia.conFactorEdad ?? resultado.conFactorEdad ?? null,
+        conLeyFox: datosEstrategia.conLeyFox ?? resultado.conLeyFox ?? null,
+        conDependiente: datosEstrategia.conDependiente ?? resultado.conDependiente ?? null,
+        // Para yam40, usar registros guardados si están disponibles; sino usar los calculados
+        registros: (esYam40 && datosEstrategia.registros && datosEstrategia.registros.length > 0) 
+          ? datosEstrategia.registros 
+          : (resultado.registros || []),
+        // Campos específicos de yam40
+        tipo: datosEstrategia.tipo || (esYam40 ? 'yam40' : undefined),
+        fechaInicioM40: datosEstrategia.fechaInicioM40,
+        fechaFinM40: datosEstrategia.fechaFinM40,
+        tipoPago: datosEstrategia.tipoPago,
+        modoEntradaPagos: datosEstrategia.modoEntradaPagos,
         // Incluir campos adicionales guardados
         puntaje: datosEstrategia.puntaje,
         ranking: datosEstrategia.ranking

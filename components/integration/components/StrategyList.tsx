@@ -1,8 +1,11 @@
 import { motion } from "framer-motion"
-import { ArrowUp, ArrowDown } from "lucide-react"
+import { ArrowUp, ArrowDown, RefreshCw } from "lucide-react"
 import { StrategyResult, StrategyFilters } from "@/types/strategy"
 import { StrategyRow } from "./StrategyRow"
 import { Session } from "next-auth"
+import { useState, useMemo, useEffect } from "react"
+import { useFormatters } from "@/hooks/useFormatters"
+// Ya no necesitamos importar funciones de conversión, usamos solo valores reales
 
 interface StrategyListProps {
   strategies: StrategyResult[]
@@ -29,8 +32,134 @@ export function StrategyList({
   onViewDetails,
   onDownloadPDF
 }: StrategyListProps) {
+  const { currency: formatCurrency } = useFormatters()
+  
+  // Estado para el modo de filtrado (UMA o Aportación Mensual)
+  const [filterMode, setFilterMode] = useState<'uma' | 'contribution'>(strategyFilters.filterMode || 'contribution')
+  
+  // Rango fijo de aportación mensual: 1000 a 25000
+  const contributionRangeFixed = { min: 1000, max: 25000 }
+  
+  // Rango fijo de UMA: siempre 1-25
+  const umaRangeFixed = { min: 1, max: 25 }
+  
+  // Inicializar contributionRange si no existe
+  useEffect(() => {
+    if (!strategyFilters.contributionRange && filterMode === 'contribution') {
+      updateStrategyFilters({ 
+        contributionRange: contributionRangeFixed,
+        filterMode: filterMode
+      })
+    }
+  }, [filterMode])
+  
+  // Inicializar umaRange con rango fijo 1-25 siempre al montar
+  useEffect(() => {
+    // Siempre establecer 1-25 al inicio, sin importar qué valores tenga
+    if (!strategyFilters.umaRange || 
+        strategyFilters.umaRange.min !== 1 || 
+        strategyFilters.umaRange.max !== 25) {
+      updateStrategyFilters({
+        umaRange: umaRangeFixed
+      })
+    }
+  }, []) // Solo al montar el componente
+  
+  // Forzar rango 1-25 cuando se cambia a modo UMA
+  useEffect(() => {
+    if (filterMode === 'uma') {
+      // Si el rango no es 1-25, forzarlo
+      const currentRange = strategyFilters.umaRange
+      if (!currentRange || currentRange.min !== 1 || currentRange.max !== 25) {
+        console.log('🔧 Forzando rango UMA a 1-25. Rango actual:', currentRange)
+        updateStrategyFilters({
+          umaRange: { min: 1, max: 25 }
+        })
+      }
+    }
+  }, [filterMode]) // Solo cuando cambia el modo de filtro
+  
+  // Sincronizar filterMode con strategyFilters
+  useEffect(() => {
+    if (strategyFilters.filterMode !== filterMode) {
+      updateStrategyFilters({ filterMode })
+    }
+  }, [filterMode, strategyFilters.filterMode])
+  
   const updateStrategyFilters = (updates: Partial<StrategyFilters>) => {
     onStrategyFiltersChange({ ...strategyFilters, ...updates })
+  }
+  
+  // Función para cambiar entre modos usando SOLO valores reales de estrategias
+  const toggleFilterMode = () => {
+    const newMode = filterMode === 'uma' ? 'contribution' : 'uma'
+    setFilterMode(newMode)
+    
+    if (newMode === 'contribution') {
+      // Al cambiar a aportación, buscar aportaciones reales de estrategias con esas UMAs
+      const umaMin = strategyFilters.umaRange.min
+      const umaMax = strategyFilters.umaRange.max
+      
+      // Buscar aportaciones reales de estrategias con esas UMAs
+      const aportacionesReales = strategies
+        .filter(s => s.umaElegida >= umaMin && s.umaElegida <= umaMax)
+        .map(s => s.inversionTotal && s.mesesM40 ? s.inversionTotal / s.mesesM40 : null)
+        .filter((a): a is number => a !== null && a > 0)
+      
+      if (aportacionesReales.length > 0) {
+        const aportMin = Math.max(1000, Math.floor(Math.min(...aportacionesReales) / 1000) * 1000)
+        const aportMax = Math.ceil(Math.max(...aportacionesReales) / 1000) * 1000
+        
+        updateStrategyFilters({
+          filterMode: newMode,
+          contributionRange: { min: aportMin, max: aportMax }
+        })
+      } else {
+        // Fallback: usar rango fijo
+        updateStrategyFilters({
+          filterMode: newMode,
+          contributionRange: contributionRangeFixed
+        })
+      }
+    } else {
+      // Al cambiar a UMA, siempre usar rango fijo 1-25
+      console.log('🔄 Cambiando a modo UMA - estableciendo rango 1-25')
+      updateStrategyFilters({
+        filterMode: newMode,
+        umaRange: { min: 1, max: 25 } // Forzar explícitamente 1-25
+      })
+    }
+  }
+  
+  // Función para actualizar rango de aportación con límites fijos
+  const handleContributionRangeChange = (range: { min: number; max: number }) => {
+    // Validar límites fijos: 1000 a 25000
+    const validMin = Math.max(
+      contributionRangeFixed.min, 
+      Math.min(range.min, contributionRangeFixed.max)
+    )
+    const validMax = Math.min(
+      contributionRangeFixed.max,
+      Math.max(range.max, validMin)
+    )
+    
+    // Buscar UMAs reales de estrategias con esas aportaciones
+    const umasEnRango = strategies
+      .map(s => {
+        const aportacion = s.inversionTotal && s.mesesM40 ? s.inversionTotal / s.mesesM40 : null
+        if (aportacion && aportacion >= validMin && aportacion <= validMax) {
+          return s.umaElegida
+        }
+        return null
+      })
+      .filter((u): u is number => u !== null && u >= 1 && u <= 25)
+    
+    // No actualizar el rango de UMA al cambiar aportación, mantener el rango actual
+    // El usuario puede ajustar el rango de UMA manualmente si lo desea
+    updateStrategyFilters({
+      contributionRange: { min: validMin, max: validMax }
+      // No actualizar umaRange aquí para mantener el rango fijo 1-25
+    })
   }
 
   return (
@@ -74,51 +203,130 @@ export function StrategyList({
             </select>
           </div>
 
-          {/* Rango de UMA */}
+          {/* Rango de Aportación Mensual / UMA con toggle */}
           <div>
-            <label className="block text-base sm:text-lg md:text-lg font-medium text-gray-700 mb-2">
-              Rango de UMA
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                value={strategyFilters.umaRange.min}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value) || 1
-                  const clampedValue = Math.max(1, Math.min(25, value))
-                  updateStrategyFilters({
-                    umaRange: {
-                      ...strategyFilters.umaRange,
-                      min: clampedValue,
-                      max: Math.max(clampedValue, strategyFilters.umaRange.max)
-                    }
-                  })
-                }}
-                className="w-1/2 px-4 py-3 sm:px-4 sm:py-3 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
-                placeholder="Min"
-                min="1"
-                max="25"
-              />
-              <input
-                type="number"
-                value={strategyFilters.umaRange.max}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value) || 25
-                  const clampedValue = Math.max(1, Math.min(25, value))
-                  updateStrategyFilters({
-                    umaRange: {
-                      ...strategyFilters.umaRange,
-                      max: clampedValue,
-                      min: Math.min(clampedValue, strategyFilters.umaRange.min)
-                    }
-                  })
-                }}
-                className="w-1/2 px-4 py-3 sm:px-4 sm:py-3 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
-                placeholder="Max"
-                min="1"
-                max="25"
-              />
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-base sm:text-lg md:text-lg font-medium text-gray-700">
+                {filterMode === 'contribution' ? 'Aportación Mensual' : 'Rango de UMA'}
+              </label>
+              <button
+                onClick={toggleFilterMode}
+                className="flex items-center gap-1 px-2 py-1 text-xs sm:text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors"
+                title={`Cambiar a ${filterMode === 'contribution' ? 'UMA' : 'Aportación Mensual'}`}
+              >
+                <RefreshCw className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden sm:inline">{filterMode === 'contribution' ? 'UMA' : 'Aportación'}</span>
+              </button>
             </div>
+            
+            {filterMode === 'contribution' ? (
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
+                    <input
+                      type="number"
+                      value={strategyFilters.contributionRange?.min || contributionRangeFixed.min}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value) || contributionRangeFixed.min
+                      const clampedValue = Math.max(
+                        contributionRangeFixed.min, 
+                        Math.min(value, contributionRangeFixed.max)
+                      )
+                      const currentMax = strategyFilters.contributionRange?.max || contributionRangeFixed.max
+                      const validMax = Math.max(clampedValue, Math.min(currentMax, contributionRangeFixed.max))
+                      
+                      handleContributionRangeChange({
+                        min: clampedValue,
+                        max: validMax
+                      })
+                    }}
+                    className="w-full pl-7 pr-4 py-3 sm:py-3 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
+                    placeholder="Mín"
+                    min={contributionRangeFixed.min}
+                    max={contributionRangeFixed.max}
+                    step={1000}
+                  />
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1 text-center">
+                    Mín: {formatCurrency(contributionRangeFixed.min)}
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">$</span>
+                    <input
+                      type="number"
+                      value={strategyFilters.contributionRange?.max || contributionRangeFixed.max}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value) || contributionRangeFixed.max
+                        // Límite fijo: máximo 25000
+                        const clampedValue = Math.min(
+                          contributionRangeFixed.max,
+                          Math.max(value, contributionRangeFixed.min)
+                        )
+                        const currentMin = strategyFilters.contributionRange?.min || contributionRangeFixed.min
+                        const validMin = Math.min(clampedValue, Math.max(currentMin, contributionRangeFixed.min))
+                        
+                        handleContributionRangeChange({
+                          min: validMin,
+                          max: clampedValue
+                        })
+                      }}
+                      className="w-full pl-7 pr-4 py-3 sm:py-3 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
+                      placeholder="Máx"
+                      min={contributionRangeFixed.min}
+                      max={contributionRangeFixed.max}
+                      step={1000}
+                    />
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1 text-center">
+                    Máx: {formatCurrency(contributionRangeFixed.max)}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="number"
+                  value={strategyFilters.umaRange.min}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 1
+                    const clampedValue = Math.max(1, Math.min(25, value))
+                    updateStrategyFilters({
+                      umaRange: {
+                        ...strategyFilters.umaRange,
+                        min: clampedValue,
+                        max: Math.max(clampedValue, Math.min(25, strategyFilters.umaRange.max))
+                      }
+                    })
+                  }}
+                  className="w-1/2 px-4 py-3 sm:px-4 sm:py-3 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
+                  placeholder="Min"
+                  min="1"
+                  max="25"
+                />
+                <input
+                  type="number"
+                  value={strategyFilters.umaRange.max}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value) || 25
+                    const clampedValue = Math.max(1, Math.min(25, value))
+                    updateStrategyFilters({
+                      umaRange: {
+                        ...strategyFilters.umaRange,
+                        max: clampedValue,
+                        min: Math.min(clampedValue, Math.max(1, strategyFilters.umaRange.min))
+                      }
+                    })
+                  }}
+                  className="w-1/2 px-4 py-3 sm:px-4 sm:py-3 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
+                  placeholder="Max"
+                  min="1"
+                  max="25"
+                />
+              </div>
+            )}
           </div>
 
           {/* Rango de meses */}
@@ -176,10 +384,9 @@ export function StrategyList({
             <div className="flex gap-2">
               <select
                 value={strategyFilters.sortBy}
-                onChange={(e) => updateStrategyFilters({ sortBy: e.target.value as 'roi' | 'pension' | 'investment' | 'months' })}
+                onChange={(e) => updateStrategyFilters({ sortBy: e.target.value as 'pension' | 'investment' | 'months' })}
                 className="flex-1 px-4 py-3 sm:px-4 sm:py-3 md:px-4 md:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-base sm:text-lg"
               >
-                <option value="roi">ROI</option>
                 <option value="pension">Pensión</option>
                 <option value="investment">Inversión</option>
                 <option value="months">Meses</option>

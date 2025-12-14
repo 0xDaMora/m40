@@ -246,29 +246,70 @@ export default function HeroOnboard() {
 
                 <div className="relative">
                   <div className="relative z-10 py-8">
-                    <motion.button
-                      className="bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold shadow-lg hover:bg-blue-800 transition-all duration-300 w-full sm:w-auto min-w-[280px] transform hover:scale-105 hover:shadow-xl"
-                      onClick={() => setStarted(true)}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.98 }}
-                      animate={{ 
-                        boxShadow: [
-                          "0 10px 25px -5px rgba(59, 130, 246, 0.3)",
-                          "0 15px 35px -5px rgba(59, 130, 246, 0.4)", 
-                          "0 10px 25px -5px rgba(59, 130, 246, 0.3)"
-                        ]
-                      }}
-                      transition={{ 
-                        boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-                      }}
-                    >
-                      <motion.span
-                        animate={{ x: [0, 5, 0] }}
-                        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
+                      {/* Botón azul - Calcular mi pensión ahora */}
+                      <motion.button
+                        className="bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold shadow-lg hover:bg-blue-800 transition-all duration-300 w-full sm:w-auto min-w-[280px] transform hover:scale-105 hover:shadow-xl"
+                        onClick={() => setStarted(true)}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.98 }}
+                        animate={{ 
+                          boxShadow: [
+                            "0 10px 25px -5px rgba(59, 130, 246, 0.3)",
+                            "0 15px 35px -5px rgba(59, 130, 246, 0.4)", 
+                            "0 10px 25px -5px rgba(59, 130, 246, 0.3)"
+                          ]
+                        }}
+                        transition={{ 
+                          boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+                        }}
                       >
-                        Calcular mi pensión ahora →
-                      </motion.span>
-                    </motion.button>
+                        <motion.span
+                          animate={{ x: [0, 5, 0] }}
+                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                        >
+                          Calcular mi pensión ahora →
+                        </motion.span>
+                      </motion.button>
+
+                      {/* Botón verde - Ya estoy en modalidad 40 */}
+                      <motion.button
+                        className="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold shadow-lg hover:bg-green-700 transition-all duration-300 w-full sm:w-auto min-w-[280px] transform hover:scale-105 hover:shadow-xl"
+                        onClick={() => router.push('/yam40')}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.98 }}
+                        animate={{ 
+                          boxShadow: [
+                            "0 10px 25px -5px rgba(34, 197, 94, 0.3)",
+                            "0 15px 35px -5px rgba(34, 197, 94, 0.4)", 
+                            "0 10px 25px -5px rgba(34, 197, 94, 0.3)"
+                          ]
+                        }}
+                        transition={{ 
+                          boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+                        }}
+                      >
+                        Ya estoy en modalidad 40
+                      </motion.button>
+                    </div>
+
+                    {/* Texto explicativo comparativo */}
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-gray-600 max-w-4xl mx-auto">
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
+                        <div>
+                          <span className="font-semibold text-gray-700">Calcular mi pensión ahora:</span>
+                          <span className="text-gray-600"> Para usuarios que aún no están en Modalidad 40. Te ayudamos a encontrar la mejor estrategia.</span>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <div className="w-2 h-2 bg-green-600 rounded-full mt-1.5"></div>
+                        <div>
+                          <span className="font-semibold text-gray-700">Ya estoy en modalidad 40:</span>
+                          <span className="text-gray-600"> Si ya llevas tiempo pagando, calcula tu pensión actual y estrategias futuras.</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 

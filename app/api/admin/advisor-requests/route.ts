@@ -1,0 +1,178 @@
+import { NextRequest, NextResponse } from "next/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth/auth"
+import { prisma } from "@/lib/db/prisma"
+
+// Función para verificar si el usuario es administrador
+async function isAdmin(session: any): Promise<boolean> {
+  if (!session?.user?.email) return false
+  
+  // Lista de emails de administradores (configurar en variables de entorno)
+  const adminEmails = process.env.ADMIN_EMAILS?.split(",").map(e => e.trim().toLowerCase()) || []
+  
+  return adminEmails.includes(session.user.email.toLowerCase())
+}
+
+// GET - Listar todas las solicitudes (solo administradores)
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      )
+    }
+
+    // Verificar que sea administrador
+    if (!(await isAdmin(session))) {
+      return NextResponse.json(
+        { error: "Acceso denegado. Solo administradores pueden ver estas solicitudes." },
+        { status: 403 }
+      )
+    }
+
+    // Obtener parámetros de query
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get("status") // 'pending' | 'contacted' | 'resolved' | null (todos)
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "50")
+    const skip = (page - 1) * limit
+
+    // Validar límites de paginación
+    const validLimit = Math.min(Math.max(1, limit), 100) // Máximo 100 por página
+    const validSkip = Math.max(0, skip)
+
+    // Construir filtro
+    const where: any = {}
+    if (status && ["pending", "contacted", "resolved"].includes(status)) {
+      where.status = status
+    }
+
+    // Obtener solicitudes con paginación
+    const [requests, total] = await Promise.all([
+      prisma.advisorRequest.findMany({
+        where,
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip: validSkip,
+        take: validLimit,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+            },
+          },
+        },
+      }),
+      prisma.advisorRequest.count({ where }),
+    ])
+
+    return NextResponse.json({
+      success: true,
+      data: requests,
+      pagination: {
+        page,
+        limit: validLimit,
+        total,
+        totalPages: Math.ceil(total / validLimit),
+      },
+    })
+  } catch (error: any) {
+    console.error("Error al obtener solicitudes de asesoría:", error)
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 }
+    )
+  }
+}
+
+// PATCH - Actualizar estado de una solicitud (solo administradores)
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "No autorizado" },
+        { status: 401 }
+      )
+    }
+
+    // Verificar que sea administrador
+    if (!(await isAdmin(session))) {
+      return NextResponse.json(
+        { error: "Acceso denegado. Solo administradores pueden actualizar solicitudes." },
+        { status: 403 }
+      )
+    }
+
+    const body = await request.json()
+
+    // Validar que el body sea un objeto
+    if (!body || typeof body !== "object") {
+      return NextResponse.json(
+        { error: "Datos inválidos" },
+        { status: 400 }
+      )
+    }
+
+    const { id, status } = body
+
+    // Validar ID
+    if (!id || typeof id !== "string") {
+      return NextResponse.json(
+        { error: "ID de solicitud requerido" },
+        { status: 400 }
+      )
+    }
+
+    // Validar status
+    if (!status || !["pending", "contacted", "resolved"].includes(status)) {
+      return NextResponse.json(
+        { error: "Estado inválido. Debe ser: pending, contacted o resolved" },
+        { status: 400 }
+      )
+    }
+
+    // Actualizar la solicitud
+    const updatedRequest = await prisma.advisorRequest.update({
+      where: { id },
+      data: { status },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: "Solicitud actualizada exitosamente",
+      data: updatedRequest,
+    })
+  } catch (error: any) {
+    console.error("Error al actualizar solicitud de asesoría:", error)
+    
+    if (error.code === "P2025") {
+      return NextResponse.json(
+        { error: "Solicitud no encontrada" },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json(
+      { error: "Error interno del servidor" },
+      { status: 500 }
+    )
+  }
+}
+

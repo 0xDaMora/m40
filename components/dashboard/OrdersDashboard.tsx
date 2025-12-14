@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { 
   ShoppingCart, 
   Clock, 
@@ -48,6 +48,12 @@ interface TimerProps {
 function OrderTimer({ expiresAt, onExpired }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState('')
   const [isExpired, setIsExpired] = useState(false)
+  const onExpiredRef = useRef(onExpired)
+
+  // Actualizar ref cuando cambia onExpired
+  useEffect(() => {
+    onExpiredRef.current = onExpired
+  }, [onExpired])
 
   useEffect(() => {
     const updateTimer = () => {
@@ -58,7 +64,7 @@ function OrderTimer({ expiresAt, onExpired }: TimerProps) {
       if (difference <= 0) {
         setIsExpired(true)
         setTimeLeft('Expirado')
-        onExpired?.()
+        onExpiredRef.current?.()
         return
       }
 
@@ -79,7 +85,7 @@ function OrderTimer({ expiresAt, onExpired }: TimerProps) {
     const interval = setInterval(updateTimer, 1000)
 
     return () => clearInterval(interval)
-  }, [expiresAt, onExpired])
+  }, [expiresAt])
 
   const isUrgent = () => {
     const now = new Date().getTime()
@@ -286,7 +292,9 @@ export function OrdersDashboard({ onOrderClick }: OrdersDashboardProps) {
   }
 
   // Obtener información del plan
-  const getPlanInfo = (planType: string) => {
+  const getPlanInfo = (planType: string, strategyData?: any) => {
+    const isYam40 = strategyData?.tipo === 'yam40' || strategyData?.strategyCode?.startsWith('yam40_')
+    
     switch (planType.toLowerCase()) {
       case 'basic':
         return {
@@ -294,6 +302,12 @@ export function OrdersDashboard({ onOrderClick }: OrdersDashboardProps) {
           description: 'Estrategia personalizada'
         }
       case 'premium':
+        if (isYam40) {
+          return {
+            name: 'Premium + Estrategia YaM40',
+            description: 'Plan Premium de por vida + Estrategia detallada YaM40'
+          }
+        }
         return {
           name: 'Plan Premium',
           description: 'Acceso completo de por vida'
@@ -390,7 +404,7 @@ export function OrdersDashboard({ onOrderClick }: OrdersDashboardProps) {
       <div className="space-y-3">
         {(showAllOrders ? orders : orders.slice(0, 4)).map((order, index) => {
           const status = getOrderStatus(order.status)
-          const planInfo = getPlanInfo(order.planType)
+          const planInfo = getPlanInfo(order.planType, order.strategyData)
           const familyInfo = getFamilyMemberInfo(order.userData)
           const strategyInfo = getStrategyInfo(order.strategyData)
           const isPending = order.status.toLowerCase() === 'pending'

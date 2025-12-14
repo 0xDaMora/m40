@@ -94,16 +94,6 @@ export function StrategyCard({
               <p className="text-xs text-green-500 mt-1">Al jubilarse</p>
             </div>
           </div>
-
-          {/* ROI destacado */}
-          <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-3 rounded-lg border border-orange-100">
-            <div className="text-center">
-              <TooltipInteligente termino="ROI">
-                <p className="text-sm text-orange-600 font-medium">Retorno de Inversión</p>
-              </TooltipInteligente>
-              <p className="text-xl font-bold text-orange-700">{(strategy.ROI || 0).toFixed(1)}%</p>
-            </div>
-          </div>
         </div>
 
         {/* Detalles técnicos */}

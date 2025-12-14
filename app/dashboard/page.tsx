@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader"
 import { DashboardStats } from "@/components/dashboard/DashboardStats"
 import { FamilyMembersList } from "@/components/family/FamilyMembersList"
@@ -17,6 +17,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const hasRedirected = useRef(false)
   const lastStatusRef = useRef<string | null>(null)
+  const [familyMembersCount, setFamilyMembersCount] = useState(0)
 
   // Redirigir solo si definitivamente no hay sesión (después de que termine de cargar)
   // Usar un enfoque que solo verifique una vez cuando el status cambia de "loading" a "unauthenticated"
@@ -47,6 +48,24 @@ export default function DashboardPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]) // Solo ejecutar cuando status cambia
+
+  // Cargar cantidad de familiares
+  useEffect(() => {
+    const loadFamilyCount = async () => {
+      try {
+        const response = await fetch('/api/family', { credentials: 'include', cache: 'no-store' })
+        if (response.ok) {
+          const data = await response.json()
+          setFamilyMembersCount(Array.isArray(data) ? data.length : 0)
+        }
+      } catch (error) {
+        console.error('Error loading family count:', error)
+      }
+    }
+    if (session) {
+      loadFamilyCount()
+    }
+  }, [session])
 
   // Mostrar loading mientras se carga la sesión
   if (status === "loading") {
@@ -84,13 +103,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Grid de dos columnas: Familiares y Estrategias */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-2 gap-3 md:gap-8">
             {/* Sección de Familiares */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white p-6 rounded-xl border border-gray-200"
+              className="bg-white p-2 md:p-6 rounded-lg md:rounded-xl border border-gray-200"
             >
               <FamilyMembersList />
             </motion.div>
@@ -100,20 +119,20 @@ export default function DashboardPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white p-6 rounded-xl border border-gray-200"
+              className="bg-white p-2 md:p-6 rounded-lg md:rounded-xl border border-gray-200"
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Estrategias Guardadas
+              <div className="flex items-center justify-between mb-2 md:mb-4">
+                <h3 className="text-xs md:text-lg font-semibold text-gray-900">
+                  Estrategias
                 </h3>
                 <button 
                   onClick={() => router.push('/mis-estrategias')}
-                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  className="text-blue-600 hover:text-blue-700 text-[10px] md:text-sm font-medium"
                 >
-                  Ver todas →
+                  Todas →
                 </button>
               </div>
-              <SavedStrategiesList />
+              <SavedStrategiesList familyMembersCount={familyMembersCount} />
             </motion.div>
           </div>
 

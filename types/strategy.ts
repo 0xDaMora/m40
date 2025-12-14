@@ -20,6 +20,8 @@ export interface StrategyResult {
   ROI: number | null
   inversionTotal: number | null
   error?: string
+  pmgAplicada?: boolean // Indica si se aplicó la Pensión Mínima Garantizada
+  pmgValor?: number // Valor de la PMG para referencia
 }
 
 export interface IntegrationFilters {
@@ -40,13 +42,18 @@ export interface StrategyFilters {
     min: number
     max: number
   }
-  sortBy: 'roi' | 'pension' | 'investment' | 'months'
+  sortBy: 'pension' | 'investment' | 'months'
   sortOrder: 'asc' | 'desc'
   strategyType: 'all' | 'fijo' | 'progresivo'
   umaRange: {
     min: number
     max: number
   }
+  contributionRange?: {
+    min: number
+    max: number
+  }
+  filterMode?: 'uma' | 'contribution' // Modo de filtrado: UMA o Aportación Mensual
 }
 
 export interface FamilyMemberData {

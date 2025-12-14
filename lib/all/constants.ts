@@ -50,10 +50,29 @@ export const tabla167 = [
     const diff = year - baseYear
     return parseFloat((baseValue * Math.pow(1.05, diff)).toFixed(2))
   }
+
+  // Función auxiliar para obtener UMA histórica (años anteriores a 2025 con -5% anual)
+  export function getUMAHistorica(year: number): number {
+    const baseYear = 2025
+    const baseValue = 113.07
+    
+    if (year >= baseYear) {
+      // Para años futuros o 2025, usar proyección normal
+      const diff = year - baseYear
+      return parseFloat((baseValue * Math.pow(1.05, diff)).toFixed(2))
+    } else {
+      // Para años anteriores a 2025, aplicar -5% por cada año hacia atrás
+      const diff = baseYear - year
+      return parseFloat((baseValue * Math.pow(0.95, diff)).toFixed(2))
+    }
+  }
   
   // Tasa M40 oficial escalonada (DOF 2020 reforma)
   // Después de 2030 se mantiene fijo en 18.8%
   export const tasaM40: Record<number, number> = {
+    2022: 0.10075,
+    2023: 0.11166,
+    2024: 0.12256,
     2025: 0.13347,
     2026: 0.1442,
     2027: 0.155,
@@ -64,5 +83,28 @@ export const tabla167 = [
   
   // Función helper para obtener tasa M40 con fallback
   export function getTasaM40(year: number): number {
-    return tasaM40[year] || 0.188 // Después de 2030 siempre 18.8%
+    // Si el año está en la tabla, usar ese valor
+    if (tasaM40[year]) {
+      return tasaM40[year]
+    }
+    // Si es antes de 2025, usar la tasa de 2025
+    if (year < 2025) {
+      return tasaM40[2025]
+    }
+    // Si es después de 2030, usar la tasa fija de 18.8%
+    if (year > 2030) {
+      return 0.188
+    }
+    // Para años entre 2025-2030, interpolar o usar la más cercana
+    // Por ahora, usar la tasa más cercana hacia abajo
+    const añosOrdenados = Object.keys(tasaM40).map(Number).sort((a, b) => a - b)
+    let tasa = tasaM40[2025] // Por defecto
+    for (const año of añosOrdenados) {
+      if (año <= year) {
+        tasa = tasaM40[año]
+      } else {
+        break
+      }
+    }
+    return tasa
   }

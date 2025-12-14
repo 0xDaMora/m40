@@ -69,12 +69,15 @@ export const processApprovedPayment = async (order: any, payment: any) => {
       }
     })
     
-    // 2. Crear estrategia guardada (si es plan básico)
-    if (order.planType === 'basic' && order.strategyData && order.userData) {
+    // 2. Crear estrategia guardada (si tiene strategyData - para basic o premium con estrategia yam40)
+    if (order.strategyData && order.userData) {
       // Generar código de estrategia con formato correcto
       let strategyCode
       
-      if (order.strategyData.familyMemberId) {
+      // Si tiene strategyCode ya generado (yam40), usarlo
+      if (order.strategyData.strategyCode) {
+        strategyCode = order.strategyData.strategyCode
+      } else if (order.strategyData.familyMemberId) {
         // Formato: integration_[familyMemberId]_[estrategia]_[uma]_[meses]_[edad]_[mesAño]
         const fechaInicio = order.userData.inicioM40 || order.strategyData.inicioM40 || "2024-02-01"
         const fecha = new Date(fechaInicio)
@@ -91,7 +94,7 @@ export const processApprovedPayment = async (order: any, payment: any) => {
       await tx.estrategiaGuardada.create({
         data: {
           userId: order.userId,
-          familyMemberId: order.strategyData.familyMemberId,
+          familyMemberId: order.strategyData.familyMemberId || null,
           debugCode: strategyCode,
           datosEstrategia: order.strategyData,
           datosUsuario: order.userData,

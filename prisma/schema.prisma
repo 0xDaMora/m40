@@ -33,6 +33,8 @@ model User {
   estrategiasGuardadas EstrategiaGuardada[]
   purchases            Purchase[]
   orders               Order[]
+  advisorRequests      AdvisorRequest[]
+  errorReports         ErrorReport[]
 
   @@map("users")
 }
@@ -198,4 +200,40 @@ model OrderItem {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("order_items")
+}
+
+// Solicitudes de asesoría especializada
+model AdvisorRequest {
+  id          String   @id @default(cuid())
+  email       String   @db.VarChar(255) // Límite de seguridad para email
+  userId      String? // Opcional, si el usuario está logueado
+  description String   @db.Text // Texto largo pero limitado por PostgreSQL
+  status      String   @default("pending") // 'pending' | 'contacted' | 'resolved'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([email])
+  @@map("advisor_requests")
+}
+
+// Reportes de errores, dudas y recomendaciones
+model ErrorReport {
+  id          String   @id @default(cuid())
+  email       String   @db.VarChar(255) // Límite de seguridad para email
+  userId      String? // Opcional, si el usuario está logueado
+  description String   @db.Text // Texto largo pero limitado por PostgreSQL
+  status      String   @default("pending") // 'pending' | 'reviewed' | 'resolved' | 'rewarded'
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([email])
+  @@map("error_reports")
 }

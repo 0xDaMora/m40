@@ -16,7 +16,10 @@ import {
   Clock,
   Target,
   CalendarDays,
-  ArrowLeft
+  ArrowLeft,
+  Rocket,
+  CheckCircle,
+  FileText
 } from "lucide-react"
 
 interface EstrategiaGuardada {
@@ -70,7 +73,11 @@ export default function MisEstrategiasPage() {
   }
 
   const compartirEstrategia = (debugCode: string) => {
-    const url = `${window.location.origin}/estrategia/${debugCode}`
+    // Detectar si es estrategia yam40 y usar la ruta correcta
+    const route = debugCode.startsWith('yam40_') 
+      ? `/yam40-estrategia/${debugCode}`
+      : `/estrategia/${debugCode}`
+    const url = `${window.location.origin}${route}`
     
     if (navigator.share) {
       navigator.share({
@@ -106,7 +113,11 @@ export default function MisEstrategiasPage() {
   }
 
   const verEstrategia = (debugCode: string) => {
-    router.push(`/estrategia/${debugCode}`)
+    // Detectar si es estrategia yam40 y redirigir a la ruta correcta
+    const route = debugCode.startsWith('yam40_') 
+      ? `/yam40-estrategia/${debugCode}`
+      : `/estrategia/${debugCode}`
+    router.push(route)
   }
 
   const formatCurrency = (amount: number) => {
@@ -138,6 +149,50 @@ export default function MisEstrategiasPage() {
 
   const calcularAportacionMensual = (inversionTotal: number, mesesM40: number) => {
     return inversionTotal / mesesM40
+  }
+
+  // Función para detectar tipo de estrategia
+  const getTipoEstrategia = (debugCode: string): 'desde-cero' | 'yam40-actual' | 'yam40-mejora' | 'otra' => {
+    if (debugCode.startsWith('integration_')) {
+      return 'desde-cero'
+    }
+    if (debugCode.startsWith('yam40_')) {
+      if (debugCode.includes('_mejora_')) {
+        return 'yam40-mejora'
+      }
+      return 'yam40-actual'
+    }
+    return 'otra'
+  }
+
+  // Función para obtener información del tipo de estrategia
+  const getTipoInfo = (tipo: 'desde-cero' | 'yam40-actual' | 'yam40-mejora' | 'otra') => {
+    switch (tipo) {
+      case 'desde-cero':
+        return {
+          badge: { text: 'Estrategia Nueva', icon: Rocket, color: 'bg-blue-100 text-blue-800 border-blue-300' },
+          border: 'border-l-4 border-blue-500',
+          title: null // Usar nombre del familiar
+        }
+      case 'yam40-actual':
+        return {
+          badge: { text: 'Mi M40 Actual', icon: CheckCircle, color: 'bg-green-100 text-green-800 border-green-300' },
+          border: 'border-l-4 border-green-500',
+          title: 'Mi Modalidad 40 Actual'
+        }
+      case 'yam40-mejora':
+        return {
+          badge: { text: 'Mejora de Estrategia', icon: TrendingUp, color: 'bg-purple-100 text-purple-800 border-purple-300' },
+          border: 'border-l-4 border-purple-500',
+          title: 'Mejora de Estrategia'
+        }
+      default:
+        return {
+          badge: { text: 'Estrategia', icon: FileText, color: 'bg-gray-100 text-gray-800 border-gray-300' },
+          border: 'border-l-4 border-gray-500',
+          title: null
+        }
+    }
   }
 
   if (loading) {
@@ -274,6 +329,11 @@ export default function MisEstrategiasPage() {
             const datosEstrategia = estrategia.datosEstrategia
             const datosUsuario = estrategia.datosUsuario
             
+            // Detectar tipo de estrategia
+            const tipoEstrategia = getTipoEstrategia(estrategia.debugCode)
+            const tipoInfo = getTipoInfo(tipoEstrategia)
+            const BadgeIcon = tipoInfo.badge.icon
+            
             // Calcular fechas importantes
             const fechaInicio = datosEstrategia?.inicioM40 || datosUsuario?.inicioM40 || "2024-02-01"
             const mesesM40 = datosEstrategia?.mesesM40 || 36
@@ -283,12 +343,15 @@ export default function MisEstrategiasPage() {
             const inversionTotal = datosEstrategia?.inversionTotal || 0
             const aportacionMensual = calcularAportacionMensual(inversionTotal, mesesM40)
             
+            // Determinar título a mostrar
+            const tituloMostrar = tipoInfo.title || datosUsuario?.nombreFamiliar || estrategia.familiar?.name || "Estrategia"
+            
             return (
               <motion.div
                 key={estrategia.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300"
+                className={`bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 ${tipoInfo.border}`}
               >
                 <div className="p-4 sm:p-6">
                   {/* Header de la estrategia */}
@@ -296,15 +359,25 @@ export default function MisEstrategiasPage() {
                     <div className="flex-1">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
                         <h3 className="text-lg sm:text-xl font-bold text-gray-900">
-                          {datosUsuario?.nombreFamiliar || estrategia.familiar?.name || "Estrategia"}
+                          {tituloMostrar}
                         </h3>
                         <div className="flex flex-wrap gap-2">
-                          <span className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 text-xs sm:text-sm font-medium rounded-full">
-                            {datosEstrategia?.estrategia || "Fijo"}
+                          {/* Badge de tipo de estrategia */}
+                          <span className={`px-2 sm:px-3 py-1 ${tipoInfo.badge.color} border text-xs sm:text-sm font-medium rounded-full flex items-center gap-1`}>
+                            <BadgeIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                            {tipoInfo.badge.text}
                           </span>
-                          <span className="px-2 sm:px-3 py-1 bg-green-100 text-green-800 text-xs sm:text-sm font-medium rounded-full">
-                            UMA {datosEstrategia?.umaElegida || "15"}
-                          </span>
+                          {/* Solo mostrar badges de estrategia y UMA si no es yam40 */}
+                          {tipoEstrategia !== 'yam40-actual' && tipoEstrategia !== 'yam40-mejora' && (
+                            <>
+                              <span className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-800 text-xs sm:text-sm font-medium rounded-full">
+                                {datosEstrategia?.estrategia || "Fijo"}
+                              </span>
+                              <span className="px-2 sm:px-3 py-1 bg-green-100 text-green-800 text-xs sm:text-sm font-medium rounded-full">
+                                UMA {datosEstrategia?.umaElegida || "15"}
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                       <p className="text-sm sm:text-base text-gray-600">

@@ -12,6 +12,7 @@ import { useStrategyCalculation } from "./hooks/useStrategyCalculation"
 import { useStrategyFiltering } from "./hooks/useStrategyFiltering"
 import { FamilySelector } from "./components/FamilySelector"
 import { StrategyFiltersPanel } from "./components/StrategyFilters"
+import { UserProfilePanel } from "./components/UserProfilePanel"
 import { StrategyCard } from "./components/StrategyCard"
 import { StrategyList } from "./components/StrategyList"
 import { PaginationControls } from "./components/PaginationControls"
@@ -82,7 +83,7 @@ export function FamilySimulatorIntegration() {
     familyMemberId: null,
     monthlyContributionRange: {
       min: 1000,
-      max: 15000
+      max: 25000
     },
     months: 24,
     retirementAge: 65,
@@ -95,7 +96,8 @@ export function FamilySimulatorIntegration() {
     sortBy: 'pension',
     sortOrder: 'desc',
     strategyType: 'all',
-    umaRange: { min: 1, max: 25 }
+    umaRange: { min: 1, max: 25 },
+    filterMode: 'contribution'
   })
 
   const currentYear = new Date().getFullYear()
@@ -125,7 +127,7 @@ export function FamilySimulatorIntegration() {
         retirementAge: parseInt(edad || '65'),
         monthlyContributionRange: {
           min: 1000,
-          max: 15000
+          max: 25000
         }
       }))
 
@@ -611,6 +613,14 @@ export function FamilySimulatorIntegration() {
          session={session}
          onOpenLoginModal={() => setShowLoginModal(true)}
        />
+
+       {/* Perfil de Usuario - Nueva sección arriba */}
+       {selectedFamilyMember && (
+         <UserProfilePanel
+           selectedFamilyMember={selectedFamilyMember}
+           filters={filters}
+         />
+       )}
 
              {/* Configuración de Estrategia - Componente Extraído */}
        {selectedFamilyMember && (

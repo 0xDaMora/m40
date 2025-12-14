@@ -126,7 +126,7 @@ export function StrategyRow({
 
             {/* Columna 3: Aportación Mensual */}
             <div className="text-center min-w-0 flex-1 px-2 sm:px-3 md:px-4 lg:min-w-[130px]">
-              <div className="text-xs sm:text-sm text-gray-500 mb-1.5">Aportación</div>
+              <div className="text-xs sm:text-sm text-gray-500 mb-1.5">Aportación Mensual</div>
               <div className="font-bold text-blue-600 text-lg sm:text-2xl md:text-2xl leading-tight truncate">
                 {formatCurrency(aportacionPromedio)}
               </div>
@@ -143,14 +143,6 @@ export function StrategyRow({
                 {formatCurrency(strategy.pensionMensual || 0)}
               </div>
               <div className="text-xs sm:text-sm text-gray-500 leading-tight mt-0.5">Al jubilarse</div>
-            </div>
-
-            {/* Columna 5: ROI - Solo visible en tablet y desktop */}
-            <div className="hidden sm:block text-center min-w-[70px] flex-shrink-0 px-1 md:px-2">
-              <div className="text-xs sm:text-sm text-gray-500 mb-1.5">ROI</div>
-              <div className="font-bold text-orange-600 text-xl sm:text-2xl md:text-2xl leading-tight">
-                {(strategy.ROI || 0).toFixed(1)}%
-              </div>
             </div>
 
             {/* Separador visual antes de acciones - Solo visible en desktop */}
@@ -206,15 +198,6 @@ export function StrategyRow({
             </button>
           </div>
         </div>
-
-        {/* Badge de popularidad si es el mejor ROI */}
-        {isFirstCard && (
-          <div className="absolute top-2 right-2">
-            <div className="bg-yellow-400 text-yellow-900 px-2 py-1 rounded-full text-xs font-bold animate-pulse">
-              ⭐ Mejor ROI
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Contenido expandido - Collapse */}
@@ -278,12 +261,6 @@ export function StrategyRow({
                     <span className="text-gray-600">Duración:</span>
                   </TooltipInteligente>
                   <span className="font-semibold text-gray-900">{strategy.mesesM40} meses</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                  <TooltipInteligente termino="Retorno de inversión">
-                    <span className="text-gray-600">ROI:</span>
-                  </TooltipInteligente>
-                  <span className="font-semibold text-orange-600">{(strategy.ROI || 0).toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between items-center py-2">
                   <TooltipInteligente termino="Inversión estimada">

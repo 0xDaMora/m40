@@ -12,6 +12,7 @@ interface TooltipInteligenteProps {
   tipo?: "concepto" | "estrategia" | "numero" | "beneficio"
   posicion?: "top" | "bottom" | "left" | "right"
   colorTexto?: string // Color personalizado para el texto del tooltip
+  asSpan?: boolean // Si es true, usa span en lugar de button (útil cuando está dentro de otro button)
 }
 
 const explicaciones = {
@@ -634,12 +635,13 @@ export default function TooltipInteligente({
   children, 
   tipo = "concepto",
   posicion = "top",
-  colorTexto 
+  colorTexto,
+  asSpan = false
 }: TooltipInteligenteProps) {
   // Siempre mantener el mismo orden/cantidad de hooks en todos los renders
   const [isOpen, setIsOpen] = useState(false)
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0, placement: 'bottom' })
-  const triggerRef = useRef<HTMLButtonElement>(null)
+  const triggerRef = useRef<HTMLButtonElement | HTMLSpanElement>(null)
   // Fallback seguro para evitar retornos condicionales antes/después de hooks
   const explicacion = explicaciones[termino as keyof typeof explicaciones] || {
     titulo: termino,
@@ -730,6 +732,27 @@ export default function TooltipInteligente({
             colorTexto ? "bg-current" : "bg-blue-500"
           }`}></span>
         </div>
+      ) : asSpan ? (
+        <span
+          ref={triggerRef}
+          data-tooltip-trigger
+          onClick={(e) => {
+            e.stopPropagation()
+            setIsOpen(!isOpen)
+          }}
+          className={`inline-flex items-center gap-1 transition-colors cursor-pointer group relative ${
+            colorTexto || "text-blue-600 hover:text-blue-800"
+          }`}
+        >
+          {children}
+          <Info className={`w-4 h-4 group-hover:scale-110 transition-transform ${
+            colorTexto || "text-blue-600"
+          }`} />
+          {/* Indicador para móvil */}
+          <span className={`absolute -top-1 -right-1 w-2 h-2 rounded-full animate-pulse sm:hidden ${
+            colorTexto ? "bg-current" : "bg-blue-500"
+          }`}></span>
+        </span>
       ) : (
         <button
           ref={triggerRef}

@@ -10,6 +10,7 @@ import { TrendingUp, ArrowRight } from "lucide-react"
 
 // Componentes de integración
 import { StrategyFiltersPanel } from "@/components/integration/components/StrategyFilters"
+import { UserProfilePanel } from "@/components/integration/components/UserProfilePanel"
 import { StrategyList } from "@/components/integration/components/StrategyList"
 import { PaginationControls } from "@/components/integration/components/PaginationControls"
 
@@ -71,7 +72,8 @@ export default function HeroOnboardStrategiesView({
     sortBy: 'pension',
     sortOrder: 'desc',
     strategyType: 'all',
-    umaRange: { min: 1, max: 25 }
+    umaRange: { min: 1, max: 25 },
+    filterMode: 'contribution'
   })
   
   // Estados para modales
@@ -649,6 +651,14 @@ export default function HeroOnboardStrategiesView({
         </motion.div>
       </div>
       
+      {/* Perfil de Usuario */}
+      {familyMemberForHooks && (
+        <UserProfilePanel
+          selectedFamilyMember={familyMemberForHooks}
+          filters={filters}
+        />
+      )}
+
       {/* Filtros de estrategia */}
       {familyMemberForHooks && (
         <StrategyFiltersPanel

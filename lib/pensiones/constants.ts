@@ -62,6 +62,9 @@ export const tabla167 = [
   
   // Tasa M40 oficial escalonada (DOF 2020 reforma)
   export const tasaM40: Record<number, number> = {
+    2022: 0.10075,
+    2023: 0.11166,
+    2024: 0.12256,
     2025: 0.13347,
     2026: 0.1442,
     2027: 0.155,

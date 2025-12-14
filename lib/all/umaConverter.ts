@@ -1,21 +1,21 @@
 // Función para convertir aportación mensual a UMA
 // Basado en las constantes oficiales del IMSS
 
-import { getTasaM40, getUMA } from './constants'
+import { getTasaM40, getUMA, getUMAHistorica } from './constants'
 
 // Función para convertir aportación mensual a UMA
 export function aportacionToUMA(aportacionMensual: number, year: number = 2025): number {
   // Obtener la tasa M40 para el año específico
   const tasaM40 = getTasaM40(year)
   
-  // Obtener el valor UMA para el año específico
-  const umaValue = getUMA(year)
+  // Obtener el valor UMA para el año específico (usar histórica para años anteriores a 2025)
+  const umaValue = year < 2025 ? getUMAHistorica(year) : getUMA(year)
   
   // La fórmula correcta es: aportación mensual = UMA * valor UMA * tasa M40 * 30.4
   // Por lo tanto: UMA = aportación mensual / (valor UMA * tasa M40 * 30.4)
   const uma = aportacionMensual / (umaValue * tasaM40 * 30.4)
   
-  console.log(`Debug - aportacionToUMA: ${aportacionMensual} → UMA ${uma} (tasa: ${tasaM40}, value: ${umaValue})`)
+  console.log(`Debug - aportacionToUMA: ${aportacionMensual} → UMA ${uma} (tasa: ${tasaM40}, value: ${umaValue}, year: ${year})`)
   
   return Math.round(uma * 100) / 100 // Redondear a 2 decimales
 }
@@ -88,6 +88,13 @@ export function getUMARange(aportacionMin: number, aportacionMax: number, year: 
   return { min, max }
 }
 
+// Calcular UMA desde aportación mensual y fecha
+// Esta función es útil cuando el usuario solo recuerda cuánto pagaba cada mes
+export function calcularUMADesdeAportacionYFecha(aportacionMensual: number, fecha: Date): number {
+  const year = fecha.getFullYear()
+  return aportacionToUMA(aportacionMensual, year)
+}
+
 // Validar límite de aportación (30,000 pesos)
 export function validateAportacionLimit(aportacion: number): boolean {
   return aportacion <= 30000
@@ -102,4 +109,11 @@ export function getMaxAportacion(year: number = 2025): number {
   const maxSimulador = 25000
   
   return Math.max(maxLegal, maxSimulador)
+}
+
+// Obtener aportación máxima permitida para un año específico (basada estrictamente en 25 UMA)
+// Esta función respeta el límite legal sin excepciones
+export function getMaxAportacionPorAño(year: number): number {
+  // 25 UMA es el máximo permitido legalmente, sin excepciones
+  return umaToAportacion(25, year)
 }

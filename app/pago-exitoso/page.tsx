@@ -92,7 +92,11 @@ export default function PagoExitosoPage() {
       const timer = setInterval(() => {
         setCountdown(prev => {
           if (prev <= 1) {
-            router.push(`/estrategia/${order.strategyCode}`)
+            // Detectar si es estrategia yam40 y redirigir a la ruta correcta
+            const route = order.strategyCode.startsWith('yam40_') 
+              ? `/yam40-estrategia/${order.strategyCode}`
+              : `/estrategia/${order.strategyCode}`
+            router.push(route)
             return 0
           }
           return prev - 1

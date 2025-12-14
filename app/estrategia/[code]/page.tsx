@@ -22,8 +22,8 @@ export default function EstrategiaCompartiblePage() {
       return
     }
 
-    // Verificar si el código es válido (empieza con compra_, integration_ o premium_)
-    if (!code.startsWith("compra_") && !code.startsWith("integration_") && !code.startsWith("premium_")) {
+    // Verificar si el código es válido (empieza con compra_, integration_, premium_ o yam40_)
+    if (!code.startsWith("compra_") && !code.startsWith("integration_") && !code.startsWith("premium_") && !code.startsWith("yam40_")) {
       setError("Código de estrategia no válido")
       setLoading(false)
       return
@@ -36,6 +36,77 @@ export default function EstrategiaCompartiblePage() {
   const cargarEstrategia = async (code: string) => {
     setLoading(true)
     setError("")
+
+    // Si es una estrategia yam40, intentar cargarla desde la BD o parámetros URL
+    if (code.startsWith("yam40_")) {
+      try {
+        const response = await fetch("/api/estrategia-compartible", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ code }),
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          setData(result)
+          return
+        }
+
+        // Si no está en BD, intentar desde URL params
+        const urlParams = new URLSearchParams(window.location.search)
+        if (urlParams.has('edadJubilacion') && urlParams.get('fechaNacimiento')) {
+          const datosUsuario = {
+            inicioM40: urlParams.get('fechaInicio') || urlParams.get('fecha') || new Date().toISOString().split('T')[0],
+            edad: parseInt(urlParams.get('edad') || "58"),
+            dependiente: urlParams.get('dependiente') || "ninguno",
+            sdiHistorico: parseFloat(urlParams.get('sdi') || "150"),
+            semanasPrevias: parseInt(urlParams.get('semanas') || "500"),
+            nombreFamiliar: urlParams.get('nombreFamiliar') || "Usuario",
+            edadActual: parseInt(urlParams.get('edadActual') || "0"),
+            semanasCotizadas: parseInt(urlParams.get('semanasCotizadas') || "500"),
+            sdiActual: parseFloat(urlParams.get('sdiActual') || "150"),
+            salarioMensual: parseFloat(urlParams.get('salarioMensual') || "0"),
+            estadoCivil: urlParams.get('estadoCivil') || "soltero",
+            fechaNacimiento: urlParams.get('fechaNacimiento'),
+            edadJubilacion: parseInt(urlParams.get('edadJubilacion') || "65"),
+            aportacionPromedio: parseFloat(urlParams.get('aportacionPromedio') || "0")
+          }
+
+          // Los datos de estrategia vienen en los params
+          const estrategia = {
+            mesesM40: parseInt(urlParams.get('meses') || "0"),
+            estrategia: urlParams.get('estrategia') || "fijo",
+            umaElegida: parseFloat(urlParams.get('uma') || "15"),
+            inversionTotal: parseInt(urlParams.get('inversionTotal') || "0"),
+            pensionMensual: parseInt(urlParams.get('pensionMensual') || "0"),
+            pensionConAguinaldo: parseInt(urlParams.get('pensionConAguinaldo') || "0"),
+            ROI: parseFloat(urlParams.get('ROI') || "0"),
+            recuperacionMeses: parseInt(urlParams.get('recuperacionMeses') || "0"),
+            factorEdad: parseFloat(urlParams.get('factorEdad') || "1"),
+            conFactorEdad: parseInt(urlParams.get('conFactorEdad') || "0"),
+            conLeyFox: parseInt(urlParams.get('conLeyFox') || "0"),
+            conDependiente: parseInt(urlParams.get('conDependiente') || "0"),
+            registros: []
+          }
+
+          setData({
+            estrategia,
+            datosUsuario,
+            infoCompartida: {
+              creadoPor: "Usuario",
+              familiar: datosUsuario.nombreFamiliar,
+              fechaCreacion: new Date(),
+              visualizaciones: 1
+            }
+          })
+          return
+        }
+      } catch (err: any) {
+        console.error('Error cargando estrategia yam40:', err)
+      }
+    }
 
     // Si es una estrategia Premium, intentar cargarla desde localStorage
     if (code.startsWith("premium_")) {

@@ -49,11 +49,26 @@ export function useStrategyFiltering() {
       s.mesesM40 <= filters.monthsRange.max
     )
 
-    // Filtrar por rango de UMA
-    filtered = filtered.filter(s => 
-      s.umaElegida >= filters.umaRange.min && 
-      s.umaElegida <= filters.umaRange.max
-    )
+    // Filtrar por rango de UMA o Aportación Mensual usando SOLO valores reales
+    if (filters.filterMode === 'contribution' && filters.contributionRange) {
+      // Filtrar por aportación mensual usando solo valores reales
+      filtered = filtered.filter(s => {
+        // Usar solo el valor real de inversiónTotal / mesesM40
+        if (s.inversionTotal && s.mesesM40) {
+          const aportacionEstrategia = s.inversionTotal / s.mesesM40
+          return aportacionEstrategia >= filters.contributionRange!.min && 
+                 aportacionEstrategia <= filters.contributionRange!.max
+        }
+        // Si no hay inversión total, excluir la estrategia del filtro
+        return false
+      })
+    } else {
+      // Filtrar por rango de UMA (modo por defecto)
+      filtered = filtered.filter(s => 
+        s.umaElegida >= filters.umaRange.min && 
+        s.umaElegida <= filters.umaRange.max
+      )
+    }
 
     // Ordenar de manera más eficiente
     const sortKey = filters.sortBy

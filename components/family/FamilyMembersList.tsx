@@ -116,8 +116,8 @@ export function FamilyMembersList() {
   return (
     <div className="space-y-4">
       {/* Header con botón agregar */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gray-900">
+      <div className="flex justify-between items-center mb-2 md:mb-4">
+        <h3 className="text-xs md:text-lg font-semibold text-gray-900">
           Familiares ({familyMembers.length}/10)
         </h3>
         <button
@@ -126,10 +126,11 @@ export function FamilyMembersList() {
             setShowForm(true)
           }}
           disabled={familyMembers.length >= 10}
-          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+          className="flex items-center gap-1 md:gap-2 bg-blue-600 text-white px-2 md:px-4 py-1 md:py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors text-[10px] md:text-sm"
         >
-          <Plus className="w-4 h-4" />
-          Agregar Familiar
+          <Plus className="w-3 h-3 md:w-4 md:h-4" />
+          <span className="hidden sm:inline">Agregar Familiar</span>
+          <span className="sm:hidden">+</span>
         </button>
       </div>
 
@@ -153,61 +154,61 @@ export function FamilyMembersList() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-2 md:gap-4">
           {familyMembers.map((member) => (
             <motion.div
               key={member.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
+              className="bg-gray-50 md:bg-white p-2 md:p-4 rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
             >
               {/* Header con nombre y acciones */}
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h4 className="font-semibold text-gray-900">{member.name}</h4>
-                  <p className="text-sm text-gray-600">
+              <div className="flex justify-between items-start mb-1 md:mb-3">
+                <div className="min-w-0 flex-1">
+                  <h4 className="font-semibold text-gray-900 text-xs md:text-base truncate">{member.name}</h4>
+                  <p className="text-[10px] md:text-sm text-gray-600">
                     {calculateAge(member.birthDate)} años
                   </p>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1 flex-shrink-0">
                   <button
                     onClick={() => handleEdit(member)}
-                    className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                    className="p-0.5 md:p-1 text-gray-400 hover:text-blue-600 transition-colors"
                     title="Editar"
                   >
-                    <Edit className="w-4 h-4" />
+                    <Edit className="w-3 h-3 md:w-4 md:h-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(member.id)}
-                    className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                    className="p-0.5 md:p-1 text-gray-400 hover:text-red-600 transition-colors"
                     title="Eliminar"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3 h-3 md:w-4 md:h-4" />
                   </button>
                 </div>
               </div>
 
               {/* Información del familiar */}
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Calendar className="w-4 h-4" />
-                  <span>{formatDate(member.birthDate)}</span>
+              <div className="space-y-1 md:space-y-2 text-[10px] md:text-sm">
+                <div className="flex items-center gap-1 md:gap-2 text-gray-600">
+                  <Calendar className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                  <span className="truncate">{formatDate(member.birthDate)}</span>
                 </div>
                 
-                <div className="flex items-center gap-2 text-gray-600">
-                  <TrendingUp className="w-4 h-4" />
-                  <span>{member.weeksContributed} semanas cotizadas</span>
+                <div className="flex items-center gap-1 md:gap-2 text-gray-600">
+                  <TrendingUp className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                  <span className="truncate">{member.weeksContributed} semanas</span>
                 </div>
                 
-                <div className="flex items-center gap-2 text-gray-600">
-                  <DollarSign className="w-4 h-4" />
-                  <span>{formatSalary(member.lastGrossSalary)}</span>
+                <div className="flex items-center gap-1 md:gap-2 text-gray-600">
+                  <DollarSign className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                  <span className="truncate">{formatSalary(member.lastGrossSalary)}</span>
                 </div>
                 
-                                 <div className="flex items-center gap-2 text-gray-600">
-                   <Heart className="w-4 h-4" />
-                   <span className="capitalize">{member.civilStatus}</span>
-                 </div>
+                <div className="flex items-center gap-1 md:gap-2 text-gray-600">
+                  <Heart className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                  <span className="capitalize truncate">{member.civilStatus}</span>
+                </div>
               </div>
             </motion.div>
           ))}

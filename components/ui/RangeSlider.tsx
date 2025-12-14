@@ -134,17 +134,17 @@ export function RangeSlider({
   const maxPercentage = ((value.max - min) / (max - min)) * 100
 
   return (
-    <div className={`w-full ${className}`}>
-      {/* Valores actuales */}
-      <div className="flex justify-between text-sm text-gray-600 mb-3">
-        <span className="font-medium">{formatValue(value.min)}</span>
-        <span className="font-medium">{formatValue(value.max)}</span>
+    <div className={`w-full max-w-full ${className}`}>
+      {/* Valores actuales - más compacto */}
+      <div className="flex justify-between text-xs text-gray-600 mb-2">
+        <span className="font-medium truncate text-xs">{formatValue(value.min)}</span>
+        <span className="font-medium truncate ml-2 text-xs">{formatValue(value.max)}</span>
       </div>
       
-      {/* Slider principal */}
+      {/* Slider principal - más pequeño */}
       <div
         ref={sliderRef}
-        className="relative h-8 bg-gray-200 rounded-lg cursor-pointer touch-none"
+        className="relative h-6 bg-gray-200 rounded-lg cursor-pointer touch-none w-full max-w-full"
         onClick={handleSliderClick}
         onTouchStart={handleSliderClick}
       >
@@ -160,31 +160,31 @@ export function RangeSlider({
           }}
         />
         
-        {/* Thumb mínimo */}
+        {/* Thumb mínimo - más pequeño */}
         <motion.div
-          className="absolute top-1/2 w-6 h-6 bg-white border-2 border-blue-500 rounded-full cursor-grab active:cursor-grabbing transform -translate-y-1/2 -translate-x-1/2 shadow-lg touch-none"
+          className="absolute top-1/2 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-grab active:cursor-grabbing transform -translate-y-1/2 -translate-x-1/2 shadow-md touch-none"
           style={{ left: `${minPercentage}%` }}
           onMouseDown={(e) => handleMouseDown(e, 'min')}
           onTouchStart={(e) => handleTouchStart(e, 'min')}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.9 }}
         />
         
-        {/* Thumb máximo */}
+        {/* Thumb máximo - más pequeño */}
         <motion.div
-          className="absolute top-1/2 w-6 h-6 bg-white border-2 border-blue-500 rounded-full cursor-grab active:cursor-grabbing transform -translate-y-1/2 -translate-x-1/2 shadow-lg touch-none"
+          className="absolute top-1/2 w-5 h-5 bg-white border-2 border-blue-500 rounded-full cursor-grab active:cursor-grabbing transform -translate-y-1/2 -translate-x-1/2 shadow-md touch-none"
           style={{ left: `${maxPercentage}%` }}
           onMouseDown={(e) => handleMouseDown(e, 'max')}
           onTouchStart={(e) => handleTouchStart(e, 'max')}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.9 }}
         />
       </div>
       
-      {/* Valores mínimo y máximo */}
-      <div className="flex justify-between text-xs text-gray-500 mt-2">
-        <span>Mín: {formatValue(min)}</span>
-        <span>Máx: {formatValue(max)}</span>
+      {/* Valores mínimo y máximo - más compacto, opcional */}
+      <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+        <span className="truncate">Mín: {formatValue(min)}</span>
+        <span className="truncate ml-1">Máx: {formatValue(max)}</span>
       </div>
     </div>
   )
