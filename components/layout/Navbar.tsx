@@ -52,8 +52,13 @@ export function Navbar() {
                   <circle cx="24" cy="8" r="3" fill="#f59e0b"/>
                 </svg>
               </div>
-              <span className="text-lg sm:text-xl font-bold text-gray-900 hidden sm:block">Modalidad 40</span>
-              <span className="text-lg font-bold text-gray-900 sm:hidden">M40</span>
+              <div className="hidden sm:block">
+                <span className="text-lg sm:text-xl font-bold text-gray-900">.MX</span>
+                <span className="text-sm text-gray-600 ml-2">Asesorias y Calculos Ley 73</span>
+              </div>
+              <div className="sm:hidden">
+                <span className="text-lg font-bold text-gray-900">.MX</span>
+              </div>
             </Link>
 
             {/* Navegación desktop */}
