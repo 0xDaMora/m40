@@ -434,8 +434,20 @@ export default function SimplePensionCard({
                   </>
                 )}
               </div>
-            </motion.div>
-          )}
+              {/* Efecto de brillo animado */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                animate={{
+                  x: ['-100%', '200%']
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 2,
+                  ease: "linear"
+                }}
+              />
+            </motion.button>
+          </motion.div>
         )}
 
         {/* Mensaje si NO puede mejorar */}
