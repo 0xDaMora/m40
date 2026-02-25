@@ -451,34 +451,8 @@ export default function SimplePensionCard({
         )}
       </div>
 
-    {/* Información Principal */}
-    <div className="space-y-4 mb-6">
-      {/* Pensión Mensual */}
-      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
-        <div className="flex items-center justify-center gap-3 mb-2">
-          <TrendingUp className="w-6 h-6" />
-          <span className="text-blue-100 text-sm md:text-base">Pensión mensual</span>
-        </div>
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={pensionMensual}
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold mb-2"
-          >
-            {formatCurrency(pensionMensual)}
-          </motion.div>
-        </AnimatePresence>
-        <p className="text-blue-100 text-xs md:text-sm">al mes</p>
-      </div>
-
-      {/* Grid con Aportación Total y Aguinaldo */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <DollarSign className="w-4 h-4 text-blue-100" />
-            <div className="text-xs md:text-sm text-blue-100">Aportación total actual</div>
+      {/* Información Principal */}
+      <div className="space-y-4 mb-6">
         {/* Pensión Mensual */}
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">
