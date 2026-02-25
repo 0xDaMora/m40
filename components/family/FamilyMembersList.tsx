@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { User, Edit, Trash2, Plus, Calendar, TrendingUp, DollarSign, Heart } from "lucide-react"
+import { User, Edit, Trash2, Plus, Calendar, TrendingUp, DollarSign, Heart, ChevronDown, ChevronUp } from "lucide-react"
 import toast from "react-hot-toast"
 import { FamilyMember } from "@/types/family"
 import { FamilyMemberForm } from "./FamilyMemberForm"
@@ -12,6 +12,7 @@ export function FamilyMembersList() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingMember, setEditingMember] = useState<FamilyMember | null>(null)
+  const [showAll, setShowAll] = useState(false)
 
   // Cargar familiares
   const loadFamilyMembers = async () => {
@@ -155,7 +156,7 @@ export function FamilyMembersList() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-2 md:gap-4">
-          {familyMembers.map((member) => (
+          {(showAll ? familyMembers : familyMembers.slice(0, 3)).map((member) => (
             <motion.div
               key={member.id}
               initial={{ opacity: 0, y: 20 }}
@@ -212,6 +213,28 @@ export function FamilyMembersList() {
               </div>
             </motion.div>
           ))}
+          
+          {/* Botón Ver Más / Ver Menos */}
+          {familyMembers.length > 3 && (
+            <motion.button
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={() => setShowAll(!showAll)}
+              className="w-full py-2 md:py-3 mt-2 text-sm md:text-base text-blue-600 hover:text-blue-700 font-medium flex items-center justify-center gap-2 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+            >
+              {showAll ? (
+                <>
+                  <ChevronUp className="w-4 h-4" />
+                  Mostrar menos
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-4 h-4" />
+                  Ver todos ({familyMembers.length})
+                </>
+              )}
+            </motion.button>
+          )}
         </div>
       )}
 

@@ -233,11 +233,9 @@ export function FamilySimulatorIntegration() {
   // Importar formatters del hook
   const { currency: formatCurrency } = useFormatters()
 
-  // Ver estrategia detallada
+  // Ver estrategia detallada - TODO GRATIS, sin validaciones
   const viewStrategyDetails = async (strategy: any) => {
     if (!selectedFamilyMember) return
-
-
 
     // Si no está logueado, mostrar modal de login
     if (!session) {
@@ -245,13 +243,7 @@ export function FamilySimulatorIntegration() {
       return
     }
 
-    // Verificar si el usuario tiene plan premium
-    if (!userPlan || userPlan === 'free' || userPlan === 'basic') {
-      openPremiumModal()
-      return
-    }
-
-        // Plan premium - continuar con la lógica original
+    // Guardar y redirigir directamente (sin validaciones de premium)
     // Usar el nuevo código de estrategia que incluye fecha de inicio
     const startMonth = filters.startMonth || new Date().getMonth() + 1
     const startYear = filters.startYear || new Date().getFullYear()
@@ -693,9 +685,6 @@ export function FamilySimulatorIntegration() {
                 onStrategyFiltersChange={setStrategyFilters}
                 session={session}
                 userPlan={userPlan}
-                hasUsedFreeStrategy={(session?.user as any)?.hasUsedFreeStrategy || false}
-                onStrategyPurchase={openStrategyPurchaseModal}
-                onPremiumModalOpen={openPremiumModal}
                 onViewDetails={viewStrategyDetails}
                 onDownloadPDF={downloadStrategyPDF}
               />

@@ -89,14 +89,14 @@ export function Navbar() {
             <div className="flex items-center space-x-2 sm:space-x-4">
               {session ? (
                 <div className="flex items-center space-x-2 sm:space-x-3">
-                  {/* Botón Premium (solo si no es premium) */}
+                  {/* Botón Obtener un Asesor (solo si no es premium) */}
                   {(!session.user?.subscription || session.user.subscription !== 'premium') && (
                     <button 
                       onClick={() => setShowPremiumModal(true)}
                       className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2 text-sm sm:text-base"
                     >
                       <Crown className="w-4 h-4" />
-                      <span className="hidden sm:inline">Premium</span>
+                      <span className="hidden sm:inline">Obtener un Asesor</span>
                     </button>
                   )}
                   
@@ -162,13 +162,13 @@ export function Navbar() {
                 </div>
               ) : (
                 <div className="flex items-center space-x-2 sm:space-x-3">
-                  {/* Botón Premium para usuarios no logueados */}
+                  {/* Botón Obtener un Asesor para usuarios no logueados */}
                   <button 
                     onClick={() => setShowPremiumModal(true)}
                     className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center gap-2 text-sm sm:text-base"
                   >
                     <Crown className="w-4 h-4" />
-                    <span className="hidden sm:inline">Premium</span>
+                    <span className="hidden sm:inline">Obtener un Asesor</span>
                   </button>
                   
                   <button 
@@ -256,7 +256,7 @@ export function Navbar() {
                   <div className="border-t border-gray-200 pt-4">
                     {session ? (
                       <div className="space-y-3">
-                        {/* Botón Premium en menú móvil */}
+                        {/* Botón Obtener un Asesor en menú móvil */}
                         {(!session.user?.subscription || session.user.subscription !== 'premium') && (
                           <button 
                             onClick={() => {
@@ -269,8 +269,8 @@ export function Navbar() {
                               <Crown className="w-5 h-5 text-purple-600" />
                             </div>
                             <div className="text-left">
-                              <span className="font-medium">Plan Premium</span>
-                              <p className="text-sm text-purple-500">Desbloquea todas las estrategias</p>
+                              <span className="font-medium">Obtener un Asesor</span>
+                              <p className="text-sm text-purple-500">Apoya el proyecto + Asesoría</p>
                             </div>
                           </button>
                         )}
@@ -305,8 +305,8 @@ export function Navbar() {
                             <Crown className="w-5 h-5 text-purple-600" />
                           </div>
                           <div className="text-left">
-                            <span className="font-medium">Plan Premium</span>
-                            <p className="text-sm text-purple-500">Accede a todas las estrategias</p>
+                            <span className="font-medium">Obtener un Asesor</span>
+                            <p className="text-sm text-purple-500">Apoya el proyecto + Asesoría</p>
                           </div>
                         </button>
                       </div>

@@ -70,29 +70,17 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
     : ['Tu Estrategia Recomendada']
 
   const handlePurchaseFromHeroOnboard = (estrategia: any) => {
-    console.log('🔍 Estrategia seleccionada para compra:', estrategia)
-    console.log('🔍 Datos clave de la estrategia:', {
-      pensionMensual: estrategia.pensionMensual,
-      inversionTotal: estrategia.inversionTotal,
-      mesesM40: estrategia.mesesM40,
-      umaElegida: estrategia.umaElegida,
-      ROI: estrategia.ROI,
-      progresivo: estrategia.progresivo
-    })
-    
+    console.log('🔍 Estrategia seleccionada:', estrategia)
+
     if (!session) {
       // Usuario no logueado - mostrar modal de registro rápido
       setSelectedStrategyForPurchase(estrategia)
       setShowQuickRegistration(true)
-    } else if ((session.user as any)?.subscription === 'premium') {
-      // Usuario Premium - mostrar modal de confirmación para guardar familiar
+    } else {
+      // Usuario logueado - guardar directamente sin validaciones
       setShowConfirmationModal(true)
       setConfirmationStrategy(estrategia)
       setIsPremiumConfirmation(false)
-    } else {
-      // Usuario logueado pero no Premium - mostrar modal de detalles del plan
-      setEstrategiaSeleccionada(estrategia)
-      setModalAbierto('basico')
     }
   }
 
@@ -153,17 +141,7 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
         return
       }
 
-      // Para usuarios NO Premium: verificar si pueden guardar gratis
-      if ((session?.user as any)?.subscription !== 'premium') {
-        const hasUsedFree = (session?.user as any)?.hasUsedFreeStrategy
-        if (hasUsedFree) {
-          // Ya usó su estrategia gratis, invitar a Premium
-          toast.error('Ya has usado tu estrategia gratis. Actualiza a Premium para guardar más estrategias.')
-          setShowPremiumModal(true)
-          return
-        }
-        // Aún no ha usado su estrategia gratis, continuar con el flujo normal (guardar gratis)
-      }
+      // Guardar estrategia directamente sin validaciones
 
       // Derivar estado civil de forma robusta
       const normalize = (s: any) => (s ? s.toString().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '') : '')
@@ -293,15 +271,9 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
       })
 
       if (response.ok) {
-        console.log('✅ Estrategia guardada exitosamente (Sistema Unificado)')
+        console.log('✅ Estrategia guardada exitosamente')
         const responseData = await response.json()
-        // Verificar si fue guardada gratis
-        const wasFree = !(session?.user as any)?.hasUsedFreeStrategy && (session?.user as any)?.subscription !== 'premium'
-        toast.success(wasFree ? '¡Estrategia guardada gratis exitosamente! 🎉' : '¡Estrategia guardada exitosamente!')
-        // Refrescar la sesión para actualizar hasUsedFreeStrategy
-        if (update) {
-          await update()
-        }
+        toast.success('¡Estrategia guardada exitosamente! 🎉')
         const url = `/estrategia/${strategyCode}`
         router.push(url)
       } else if (response.status === 403) {
@@ -403,7 +375,7 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
         planType: 'premium' as const,
         strategyData: null, // Premium no tiene estrategia específica
         userData: datosUsuario,
-        amount: 200 // Monto fijo para plan Premium (200MXN de por vida)
+        amount: 300 // Monto fijo para plan Premium (300MXN de por vida)
       }
 
       // Procesar compra con MercadoPago
@@ -561,56 +533,13 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
 
             {/* Botones de acción - Mejorados para móvil y gente mayor */}
             <div className="flex flex-col sm:flex-row gap-4 md:gap-5">
-              {!session ? (
-                // Usuario no logueado - Invitar a registrarse para obtener estrategia gratis
-                <button
-                  onClick={() => handlePurchaseFromHeroOnboard(estrategia)}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-5 md:py-4 rounded-xl text-lg md:text-xl font-bold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-3 min-h-[64px]"
-                >
-                  <Target size={24} />
-                  <span>Registrarse y Obtener Gratis</span>
-                </button>
-              ) : (session?.user as any)?.subscription === 'premium' ? (
-                // Usuario Premium - Guardar estrategia directamente
-                <button
-                  onClick={() => handlePurchaseFromHeroOnboard(estrategia)}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-5 md:py-4 rounded-xl text-lg md:text-xl font-bold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-3 min-h-[64px]"
-                >
-                  <Target size={24} />
-                  <span>Guardar Estrategia</span>
-                </button>
-              ) : (
-                // Usuario logueado pero no premium - Verificar si ya usó su estrategia gratis
-                <button
-                  onClick={() => {
-                    // Verificar si ya usó su estrategia gratis
-                    const hasUsedFree = (session?.user as any)?.hasUsedFreeStrategy
-                    if (hasUsedFree) {
-                      // Ya usó su estrategia gratis, invitar a Premium
-                      setShowPremiumModal(true)
-                    } else {
-                      // Aún no ha usado su estrategia gratis, permitir guardar gratis
-                      setShowConfirmationModal(true)
-                      setConfirmationStrategy(estrategia)
-                      setIsPremiumConfirmation(false)
-                    }
-                  }}
-                  disabled={mercadoPagoLoading}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-8 py-5 md:py-4 rounded-xl text-lg md:text-xl font-bold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed min-h-[64px]"
-                >
-                  {mercadoPagoLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                      <span>Procesando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Target size={24} />
-                      <span>Obtener Estrategia Gratis</span>
-                    </>
-                  )}
-                </button>
-              )}
+              <button
+                onClick={() => handlePurchaseFromHeroOnboard(estrategia)}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-8 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 mx-auto min-h-[64px] w-full sm:w-auto sm:min-w-[300px]"
+              >
+                <Target size={18} />
+                Obtener Estrategia
+              </button>
             </div>
           </motion.div>
         ))}
@@ -631,14 +560,14 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
               <Star className="w-6 h-6 md:w-7 md:h-7 text-purple-600" />
             </div>
             <p className="text-base md:text-lg text-gray-700 mb-4 md:mb-6 px-4">
-              Con el <strong>Plan Premium</strong> accedes a <strong>más de 2,000 estrategias</strong> personalizadas, 
-              PDFs ilimitados, y análisis completo de tu situación por solo <strong className="text-purple-600">$200 MXN de por vida</strong>.
+              Con el <strong>Plan Premium</strong> apoyas a M40 a seguir siendo gratuito y obtienes <strong>1 asesoría personalizada</strong>, 
+              soporte prioritario, y acceso a nuevas herramientas por solo <strong className="text-purple-600">$300 MXN de por vida</strong>.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
               <div className="bg-white p-4 md:p-5 rounded-lg border-2 border-purple-200">
                 <div className="text-3xl md:text-4xl mb-2">📊</div>
                 <div className="font-semibold text-purple-800 text-base md:text-lg">2,000+ Estrategias</div>
-                <div className="text-sm md:text-base text-gray-600">Todas las combinaciones posibles</div>
+                <div className="text-sm text-gray-600">Todas las combinaciones posibles</div>
               </div>
               <div className="bg-white p-4 md:p-5 rounded-lg border-2 border-purple-200">
                 <div className="text-3xl md:text-4xl mb-2">📄</div>
@@ -652,7 +581,7 @@ export default function ComparativoEstrategias({ data, onReinicio, datosUsuario 
               </div>
             </div>
             <div className="bg-white rounded-xl p-4 md:p-6 mb-6 border-2 border-purple-200">
-              <div className="text-4xl md:text-5xl font-bold text-purple-600 mb-2">$200 MXN</div>
+              <div className="text-4xl md:text-5xl font-bold text-purple-600 mb-2">$300 MXN</div>
               <div className="text-base md:text-lg text-gray-700 mb-4">Pago único de por vida</div>
             </div>
                         <button

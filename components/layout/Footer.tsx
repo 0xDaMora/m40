@@ -66,7 +66,7 @@ export function Footer() {
               </li>
               <li>
                 <Link href="#plan-premium" className="text-gray-400 hover:text-white">
-                  Plan Premium - $200 MXN
+                  Apoyar M40 + Asesoría - $300 MXN
                 </Link>
               </li>
             </ul>

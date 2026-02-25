@@ -13,9 +13,6 @@ interface StrategyListProps {
   onStrategyFiltersChange: (filters: StrategyFilters) => void
   session: Session | null
   userPlan: string
-  hasUsedFreeStrategy?: boolean // Nuevo: indica si el usuario ya usó su estrategia gratis
-  onStrategyPurchase: (strategy: StrategyResult) => void
-  onPremiumModalOpen: () => void
   onViewDetails: (strategy: StrategyResult) => void
   onDownloadPDF: (strategy: StrategyResult) => void
 }
@@ -26,11 +23,8 @@ export function StrategyList({
   onStrategyFiltersChange,
   session,
   userPlan,
-  hasUsedFreeStrategy = false,
-  onStrategyPurchase,
-  onPremiumModalOpen,
   onViewDetails,
-  onDownloadPDF
+  onDownloadPDF,
 }: StrategyListProps) {
   const { currency: formatCurrency } = useFormatters()
   
@@ -438,9 +432,6 @@ export function StrategyList({
                 isFirstCard={index === 0}
                 session={session}
                 userPlan={userPlan}
-                hasUsedFreeStrategy={hasUsedFreeStrategy}
-                onStrategyPurchase={onStrategyPurchase}
-                onPremiumModalOpen={onPremiumModalOpen}
                 onViewDetails={onViewDetails}
                 onDownloadPDF={onDownloadPDF}
               />

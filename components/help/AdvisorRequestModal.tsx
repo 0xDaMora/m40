@@ -2,19 +2,20 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Mail, Send, CheckCircle, AlertCircle, UserCheck } from "lucide-react"
+import { X, Mail, Send, CheckCircle, AlertCircle, UserCheck, Crown, Zap } from "lucide-react"
 import { useSession } from "next-auth/react"
 import { toast } from "react-hot-toast"
 
 interface AdvisorRequestModalProps {
   isOpen: boolean
   onClose: () => void
+  onOpenPremiumModal?: () => void
 }
 
 const MAX_DESCRIPTION_LENGTH = 5000 // Límite de seguridad
 const MIN_DESCRIPTION_LENGTH = 50 // Mínimo para una descripción útil
 
-export default function AdvisorRequestModal({ isOpen, onClose }: AdvisorRequestModalProps) {
+export default function AdvisorRequestModal({ isOpen, onClose, onOpenPremiumModal }: AdvisorRequestModalProps) {
   const { data: session } = useSession()
   const [email, setEmail] = useState("")
   const [description, setDescription] = useState("")
@@ -158,6 +159,36 @@ export default function AdvisorRequestModal({ isOpen, onClose }: AdvisorRequestM
                       Completa el siguiente formulario para recibir una cotización personalizada de un asesor especializado en Modalidad 40. Recibirás la respuesta por correo electrónico con tu cotización y los datos del asesor que te atenderá.
                     </p>
                   </div>
+
+                  {/* Recomendación Premium */}
+                  {onOpenPremiumModal && (
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl p-4 sm:p-5 mb-4 sm:mb-6">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Zap className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-base sm:text-lg font-bold text-purple-900 mb-2">
+                            ¿Necesitas una respuesta más rápida?
+                          </h3>
+                          <p className="text-sm text-purple-800 mb-3">
+                            Al convertirte en <strong>Premium</strong>, apoyas a M40 a mantenerse gratuito y obtienes <strong>acceso prioritario</strong> a nuestros asesores a través de un <strong>canal exclusivo en tu dashboard</strong>. Además, recibes <strong>1 asesoría gratuita personalizada</strong>.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onOpenPremiumModal()
+                              onClose()
+                            }}
+                            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-lg transition-all font-medium shadow-lg hover:shadow-xl text-sm"
+                          >
+                            <Crown className="w-4 h-4" />
+                            <span>Apoyar M40 + Obtener Asesoría - $300 MXN</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Mensaje importante */}
                   <div className="bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4 mb-4 sm:mb-6 rounded-r-lg">

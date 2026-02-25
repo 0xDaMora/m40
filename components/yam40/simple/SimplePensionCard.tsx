@@ -414,97 +414,149 @@ export default function SimplePensionCard({
               disabled={processingPDF}
               whileHover={{ scale: 1.02, y: -2 }}
               whileTap={{ scale: 0.98 }}
-              className={`w-full font-bold px-6 py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden ${
-                isPremium 
-                  ? 'bg-gradient-to-r from-green-500 via-green-600 to-green-700 text-white'
-                  : 'bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 text-gray-900'
-              }`}
+              className="w-full font-bold px-6 py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 text-white"
             >
               <div className="relative z-10 flex flex-col items-center gap-2">
                 {processingPDF ? (
                   <>
-                    <div className={`w-6 h-6 border-[3px] ${isPremium ? 'border-white' : 'border-gray-900'} border-t-transparent rounded-full animate-spin`}></div>
+                    <div className="w-6 h-6 border-[3px] border-white border-t-transparent rounded-full animate-spin"></div>
                     <span className="text-lg">Generando tu estrategia detallada...</span>
                   </>
                 ) : (
                   <>
                     <div className="flex items-center gap-3">
-                      {isPremium ? (
-                        <>
-                          <Crown className="w-6 h-6" />
-                          <span className="text-xl">Ver tu Estrategia Detallada</span>
-                          <Crown className="w-6 h-6" />
-                        </>
-                      ) : (
-                        <>
-                          <Star className="w-6 h-6 fill-current" />
-                          <span className="text-xl">Obtén tu Estrategia Detallada Completa</span>
-                          <Star className="w-6 h-6 fill-current" />
-                        </>
-                      )}
+                      <FileText className="w-6 h-6" />
+                      <span className="text-xl">Ver Estrategia Detallada</span>
                     </div>
-                    {!isPremium && (
-                      <>
-                        <p className="text-sm font-medium text-gray-800">
-                          Por solo $200 MXN - Premium de por vida + acceso a más de 2000 estrategias
-                        </p>
-                        <p className="text-xs font-medium text-gray-700">
-                          Con análisis completo, cronograma, proyección 20 años y guía de trámites
-                        </p>
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-              {/* Efecto de brillo animado */}
-              <motion.div
-                className={`absolute inset-0 bg-gradient-to-r from-transparent ${isPremium ? 'via-white/20' : 'via-white/20'} to-transparent`}
-                animate={{
-                  x: ['-100%', '200%']
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  repeatDelay: 1
-                }}
-              />
-            </motion.button>
-            
-            {/* Lista de beneficios */}
-            {!isPremium && (
-              <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2 text-xs md:text-sm">
-                <div className="flex items-center gap-1.5 text-blue-100">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>Premium de por vida</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-blue-100">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>2000+ estrategias</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-blue-100">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>Resumen completo</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-blue-100">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>Pagos detallados</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-blue-100">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>Cronograma visual</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-blue-100">
-                  <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                  <span>Proyección 20 años</span>
+                    <p className="text-sm font-medium text-blue-100">
+                      Con análisis completo, cronograma, proyección 20 años y guía de trámites
+                    </p>
                 </div>
               </div>
-            )}
+            </motion.div>
+          )}
+
+          {/* Mensaje si NO puede mejorar */}
+          {!puedeMejorar && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-orange-500/20 border border-orange-400/30 rounded-xl p-4"
+            >
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-orange-300 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-orange-200 mb-1">
+                    Información importante
+                  </p>
+                  <p className="text-xs text-orange-100">
+                    Tu estrategia ya no es elegible para mejoras (más de 12 meses sin pagar). Estás comprando un resumen completo de tu estrategia actual con todos los detalles y análisis.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Mensaje sobre preservar derechos */}
+          {puedePreservarDerechos === false && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-blue-500/20 border border-blue-400/30 rounded-xl p-4"
+            >
+              <div className="flex items-start gap-3">
+                <CheckCircle className="w-5 h-5 text-blue-300 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-blue-200 mb-1">
+                    Puedes mantener tus derechos de jubilación
+                  </p>
+                  <p className="text-xs text-blue-100">
+                    Puedes mantener tus derechos y jubilarte a la edad deseada si te reincorporas a M40 o continúas. Nuestra estrategia detallada te ayuda a planificar esto.
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </div>
+      )}
+
+      {/* Botón CTA para obtener estrategia detallada */}
+      {pensionActual && pensionActual.pensionMensual !== null && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <motion.button
+            onClick={handleDownloadPDF}
+            disabled={processingPDF}
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            className="w-full font-bold px-6 py-4 rounded-xl shadow-xl hover:shadow-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden bg-gradient-to-r from-blue-500 via-blue-600 to-blue-700 text-white"
+          >
+            <div className="relative z-10 flex flex-col items-center gap-2">
+              {processingPDF ? (
+                <>
+                  <div className="w-6 h-6 border-[3px] border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-lg">Generando tu estrategia detallada...</span>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-6 h-6" />
+                    <span className="text-xl">Ver Estrategia Detallada</span>
+                  </div>
+                  <p className="text-sm font-medium text-blue-100">
+                    Con análisis completo, cronograma, proyección 20 años y guía de trámites
+                  </p>
+                </>
+              )}
+            </div>
+            {/* Efecto de brillo animado */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+              animate={{
+                x: ['-100%', '200%']
+              }}
+              transition={{
+                repeat: Infinity,
+                duration: 2,
+                ease: "linear"
+              }}
+            />
+          </motion.button>
+        </motion.div>
+      )}
+    </div>
+
+    {/* Información Principal */}
+    <div className="space-y-4 mb-6">
+      {/* Pensión Mensual */}
+      <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
+        <div className="flex items-center justify-center gap-3 mb-2">
+          <TrendingUp className="w-6 h-6" />
+          <span className="text-blue-100 text-sm md:text-base">Pensión mensual</span>
+        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={pensionMensual}
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="text-4xl md:text-5xl lg:text-6xl font-bold mb-2"
+          >
+            {formatCurrency(pensionMensual)}
           </motion.div>
-        )}
+        </AnimatePresence>
+        <p className="text-blue-100 text-xs md:text-sm">al mes</p>
       </div>
 
-      {/* Información Principal */}
-      <div className="space-y-4 mb-6">
+      {/* Grid con Aportación Total y Aguinaldo */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 text-center">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <DollarSign className="w-4 h-4 text-blue-100" />
+            <div className="text-xs md:text-sm text-blue-100">Aportación total actual</div>
         {/* Pensión Mensual */}
         <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-center">
           <div className="flex items-center justify-center gap-3 mb-2">

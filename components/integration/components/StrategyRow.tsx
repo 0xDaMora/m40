@@ -12,9 +12,6 @@ interface StrategyRowProps {
   isFirstCard?: boolean
   session: Session | null
   userPlan: string
-  hasUsedFreeStrategy?: boolean // Nuevo: indica si el usuario ya usó su estrategia gratis
-  onStrategyPurchase: (strategy: StrategyResult) => void
-  onPremiumModalOpen: () => void
   onViewDetails: (strategy: StrategyResult) => void
   onDownloadPDF: (strategy: StrategyResult) => void
 }
@@ -25,9 +22,6 @@ export function StrategyRow({
   isFirstCard = false,
   session,
   userPlan,
-  hasUsedFreeStrategy = false,
-  onStrategyPurchase,
-  onPremiumModalOpen,
   onViewDetails,
   onDownloadPDF
 }: StrategyRowProps) {
@@ -37,46 +31,12 @@ export function StrategyRow({
   // Calcular aportación mensual promedio
   const aportacionPromedio = strategy.inversionTotal ? strategy.inversionTotal / strategy.mesesM40 : 0
   
-  // Determinar el texto y color del botón según el estado del usuario
-  const getButtonConfig = () => {
-    // Si es premium, mostrar "Ver" en azul
-    if (userPlan === 'premium') {
-      return {
-        text: 'Ver',
-        className: 'bg-blue-500 hover:bg-blue-600 text-white',
-        onClick: onViewDetails
-      }
-    }
-    
-    // Si no tiene sesión, mostrar "Obtener" en azul
-    if (!session) {
-      return {
-        text: 'Obtener',
-        className: 'bg-blue-500 hover:bg-blue-600 text-white',
-        onClick: onStrategyPurchase
-      }
-    }
-    
-    // Si tiene sesión pero no es premium
-    // Si NO ha usado su estrategia gratis, mostrar "Canjear Gratis" en verde
-    if (!hasUsedFreeStrategy) {
-      return {
-        text: 'Canjear Gratis',
-        className: 'bg-green-600 hover:bg-green-700 text-white',
-        onClick: onStrategyPurchase,
-        isLong: false // No es tan largo como antes
-      }
-    }
-    
-    // Si ya usó su estrategia gratis, mostrar "Comprar" en naranja
-    return {
-      text: 'Comprar',
-      className: 'bg-orange-500 hover:bg-orange-600 text-white',
-      onClick: onStrategyPurchase
-    }
+  // Botón único: "Obtener Estrategia" que siempre guarda directamente
+  const buttonConfig = {
+    text: 'Obtener Estrategia',
+    className: 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white',
+    onClick: onViewDetails
   }
-  
-  const buttonConfig = getButtonConfig()
 
   return (
     <motion.div
@@ -273,46 +233,13 @@ export function StrategyRow({
 
             {/* Botones de acción expandidos */}
             <div className="flex flex-col sm:flex-row gap-4">
-              {userPlan === 'premium' ? (
-                <button
-                  onClick={() => onViewDetails(strategy)}
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 px-6 sm:py-5 sm:px-8 rounded-lg text-lg sm:text-xl font-bold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 min-h-[56px]"
-                >
-                  <Eye className="w-5 h-5 sm:w-6 sm:h-6" />
-                  <span>Ver Detalles Completos</span>
-                </button>
-              ) : !session ? (
-                <button
-                  onClick={() => buttonConfig.onClick(strategy)}
-                  className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-4 px-6 sm:py-5 sm:px-8 rounded-lg text-lg sm:text-xl font-bold hover:from-blue-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 min-h-[56px]"
-                >
-                  <span>{buttonConfig.text}</span>
-                </button>
-              ) : !hasUsedFreeStrategy ? (
-                <button
-                  onClick={() => buttonConfig.onClick(strategy)}
-                  className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-4 px-6 sm:py-5 sm:px-8 rounded-lg text-lg sm:text-xl font-bold hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 min-h-[56px]"
-                >
-                  <span>{buttonConfig.text}</span>
-                </button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => buttonConfig.onClick(strategy)}
-                    className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white py-4 px-6 sm:py-5 sm:px-8 rounded-lg text-lg sm:text-xl font-bold hover:from-orange-600 hover:to-orange-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 min-h-[56px]"
-                  >
-                    <Lock className="w-5 h-5 sm:w-6 sm:h-6" />
-                    <span>{buttonConfig.text}</span>
-                  </button>
-                  <button
-                    onClick={onPremiumModalOpen}
-                    className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white py-4 px-6 sm:py-5 sm:px-8 rounded-lg text-lg sm:text-xl font-semibold hover:from-purple-600 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2 min-h-[56px]"
-                  >
-                    <span className="text-xl sm:text-2xl">🚀</span>
-                    <span>Desbloquear con Premium</span>
-                  </button>
-                </>
-              )}
+              <button
+                onClick={() => buttonConfig.onClick(strategy)}
+                className={`flex-1 ${buttonConfig.className} py-4 px-6 sm:py-5 sm:px-8 rounded-lg text-lg sm:text-xl font-bold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center gap-2 min-h-[56px]`}
+              >
+                <Eye className="w-5 h-5 sm:w-6 sm:h-6" />
+                <span>{buttonConfig.text}</span>
+              </button>
             </div>
           </div>
         </motion.div>

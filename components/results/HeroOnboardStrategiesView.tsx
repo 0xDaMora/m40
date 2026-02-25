@@ -238,34 +238,17 @@ export default function HeroOnboardStrategiesView({
   
   // Funciones de compra/registro (copiadas de ComparativoEstrategias.tsx)
   const handlePurchaseFromHeroOnboard = async (strategy: StrategyResult) => {
-    console.log('🔍 Estrategia seleccionada para compra:', strategy)
+    console.log('🔍 Estrategia seleccionada:', strategy)
     
     if (!session) {
       // Usuario no logueado - mostrar modal de registro rápido
       setSelectedStrategyForPurchase(strategy)
       setShowQuickRegistration(true)
-    } else if ((session.user as any)?.subscription === 'premium') {
-      // Usuario Premium - mostrar modal de confirmación para guardar familiar
+    } else {
+      // Usuario logueado - guardar directamente sin validaciones
       setShowConfirmationModal(true)
       setConfirmationStrategy(strategy)
       setIsPremiumConfirmation(false)
-    } else {
-      // Usuario logueado pero no Premium - verificar si puede guardar gratis
-      const hasUsedFree = (session.user as any)?.hasUsedFreeStrategy
-      if (hasUsedFree) {
-        // Ya usó su estrategia gratis, pedir nombre del familiar antes de mostrar modal de compra individual (50 MXN)
-        setSelectedStrategyForPurchase(strategy)
-        setConfirmationStrategy(strategy)
-        setIsIndividualPurchase(true) // Marcar que es compra individual
-        setIsPremiumConfirmation(false)
-        setShowConfirmationModal(true) // Mostrar modal para pedir nombre del familiar
-      } else {
-        // Aún no ha usado su estrategia gratis, permitir guardar gratis
-        setShowConfirmationModal(true)
-        setConfirmationStrategy(strategy)
-        setIsPremiumConfirmation(false)
-        setIsIndividualPurchase(false)
-      }
     }
   }
   
@@ -359,23 +342,7 @@ export default function HeroOnboardStrategiesView({
         return
       }
 
-      // Si es compra individual (usuario ya usó su estrategia gratis), crear familiar y abrir modal de compra
-      if (isIndividualPurchase && confirmationStrategy) {
-        await createFamilyMemberForPurchase(confirmationStrategy, familyMemberName)
-        return
-      }
-
-      // Para usuarios NO Premium: verificar si pueden guardar gratis
-      if ((session?.user as any)?.subscription !== 'premium') {
-        const hasUsedFree = (session?.user as any)?.hasUsedFreeStrategy
-        if (hasUsedFree) {
-          // Ya usó su estrategia gratis, invitar a Premium
-          toast.error('Ya has usado tu estrategia gratis. Actualiza a Premium para guardar más estrategias.')
-          setShowPremiumModal(true)
-          return
-        }
-        // Aún no ha usado su estrategia gratis, continuar con el flujo normal (guardar gratis)
-      }
+      // Guardar estrategia directamente sin validaciones
 
       // Derivar estado civil de forma robusta
       const normalize = (s: any) => (s ? s.toString().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '') : '')
@@ -519,13 +486,8 @@ export default function HeroOnboardStrategiesView({
     })
 
     if (response.ok) {
-      console.log('✅ Estrategia guardada exitosamente (Sistema Unificado)')
-      const wasFree = !(session?.user as any)?.hasUsedFreeStrategy && (session?.user as any)?.subscription !== 'premium'
-      toast.success(wasFree ? '¡Estrategia guardada gratis exitosamente! 🎉' : '¡Estrategia guardada exitosamente!')
-      // Refrescar la sesión para actualizar hasUsedFreeStrategy
-      if (update) {
-        await update()
-      }
+      console.log('✅ Estrategia guardada exitosamente')
+      toast.success('¡Estrategia guardada exitosamente! 🎉')
       const url = `/estrategia/${strategyCode}`
       router.push(url)
     } else if (response.status === 403) {
@@ -578,6 +540,13 @@ export default function HeroOnboardStrategiesView({
   
   // Handlers para StrategyRow
   const handleStrategyPurchase = (strategy: StrategyResult) => {
+    // Si no hay sesión, mostrar modal de registro
+    if (!session) {
+      setSelectedStrategyForPurchase(strategy)
+      setShowQuickRegistration(true)
+      return
+    }
+    // Si hay sesión, guardar directamente
     handlePurchaseFromHeroOnboard(strategy)
   }
   
@@ -586,13 +555,14 @@ export default function HeroOnboardStrategiesView({
   }
   
   const handleViewDetails = async (strategy: StrategyResult) => {
-    // Para usuarios no premium, mostrar modal de premium
-    if (!session || (session.user as any)?.subscription !== 'premium') {
-      setShowPremiumModal(true)
+    // Si no hay sesión, mostrar modal de registro/login
+    if (!session) {
+      setSelectedStrategyForPurchase(strategy)
+      setShowQuickRegistration(true)
       return
     }
     
-    // Para usuarios premium, permitir ver detalles (similar a FamilySimulatorIntegration)
+    // Si hay sesión, guardar directamente
     handlePurchaseFromHeroOnboard(strategy)
   }
   
@@ -685,9 +655,6 @@ export default function HeroOnboardStrategiesView({
             onStrategyFiltersChange={setStrategyFilters}
             session={session}
             userPlan={userPlan}
-            hasUsedFreeStrategy={(session?.user as any)?.hasUsedFreeStrategy || false}
-            onStrategyPurchase={handleStrategyPurchase}
-            onPremiumModalOpen={handlePremiumModalOpen}
             onViewDetails={handleViewDetails}
             onDownloadPDF={handleDownloadPDF}
           />
@@ -730,16 +697,11 @@ export default function HeroOnboardStrategiesView({
           {createPortal(
             <ConfirmationModal
               isOpen={showConfirmationModal}
-              onClose={() => {
-                setShowConfirmationModal(false)
-                setIsIndividualPurchase(false)
-              }}
+              onClose={() => setShowConfirmationModal(false)}
               onConfirm={handleConfirmation}
               strategy={confirmationStrategy}
               userData={datosUsuario}
-              isPremium={isPremiumConfirmation || (session?.user as any)?.subscription === 'premium'}
-              isPremiumStrategy={(session?.user as any)?.subscription === 'premium' && !isPremiumConfirmation}
-              isIndividualPurchase={isIndividualPurchase}
+              isPremium={false}
             />,
             document.body
           )}

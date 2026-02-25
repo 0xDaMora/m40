@@ -272,8 +272,8 @@ export default function PremiumUpsellSection({ estrategiaActual, datosUsuario }:
                 ¿Quieres ver más opciones similares?
               </h3>
               <p className="text-sm md:text-base lg:text-lg text-gray-700 max-w-2xl mx-auto px-2">
-                Con el <strong>Plan Premium</strong> accedes a todas las estrategias personalizadas, 
-                análisis completo y PDFs ilimitados por solo <strong className="text-purple-600">$200 MXN de por vida</strong>.
+                Con el <strong>Plan Premium</strong> apoyas a M40 y obtienes asesoría personalizada, 
+                soporte prioritario y acceso a nuevas herramientas por solo <strong className="text-purple-600">$300 MXN de por vida</strong>.
               </p>
             </div>
 
@@ -411,7 +411,7 @@ export default function PremiumUpsellSection({ estrategiaActual, datosUsuario }:
                 className="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 md:px-8 py-3 md:py-4 lg:py-5 rounded-lg md:rounded-xl text-base md:text-lg lg:text-xl font-bold hover:from-purple-700 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-1 flex items-center justify-center gap-2 md:gap-3 mx-auto min-h-[56px] md:min-h-[64px] w-full sm:w-auto sm:min-w-[280px] md:min-w-[300px]"
               >
                 <Crown className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" />
-                <span className="text-sm md:text-base lg:text-lg">Desbloquear Premium - $200 MXN</span>
+                <span className="text-sm md:text-base lg:text-lg">Apoyar M40 + Obtener Asesoría - $300 MXN</span>
                 <ArrowRight className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" />
               </button>
               <p className="text-xs md:text-sm lg:text-base text-gray-600 mt-2 md:mt-4 px-2">

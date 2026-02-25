@@ -8,7 +8,7 @@ import { DashboardStats } from "@/components/dashboard/DashboardStats"
 import { FamilyMembersList } from "@/components/family/FamilyMembersList"
 import { SavedStrategiesList } from "@/components/dashboard/SavedStrategiesList"
 import { OrdersDashboard } from "@/components/dashboard/OrdersDashboard"
-
+import { PremiumAdvisorySection } from "@/components/dashboard/PremiumAdvisorySection"
 
 import { motion } from "framer-motion"
 
@@ -136,11 +136,24 @@ export default function DashboardPage() {
             </motion.div>
           </div>
 
+          {/* Sección de Asesorías Premium */}
+          {(session?.user as any)?.subscription === 'premium' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white p-6 rounded-xl border border-gray-200"
+              data-section="advisories"
+            >
+              <PremiumAdvisorySection />
+            </motion.div>
+          )}
+
           {/* Sección de Órdenes */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4 }}
             className="bg-white p-6 rounded-xl border border-gray-200"
             data-section="orders"
           >
@@ -151,7 +164,7 @@ export default function DashboardPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.5 }}
             className="bg-white p-6 rounded-xl border border-gray-200"
           >
             <h3 className="text-lg font-semibold text-gray-900 mb-4">

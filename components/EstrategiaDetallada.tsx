@@ -182,10 +182,6 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
       if (response.ok) {
         setGuardada(true)
         console.log('Estrategia guardada exitosamente')
-        // Refrescar la sesión para actualizar hasUsedFreeStrategy
-        if (update) {
-          await update()
-        }
       } else if (response.status === 409) {
         // La estrategia ya existe
         setGuardada(true)
@@ -1358,11 +1354,13 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
         </AnimatePresence>
       </div>
 
-      {/* Componente de Upsell Premium - No aparece en PDF (clase no-pdf) */}
-      <PremiumUpsellSection 
-        estrategiaActual={estrategia}
-        datosUsuario={datosUsuario}
-      />
+      {/* Componente de Upsell Premium - Oculto temporalmente */}
+      {false && (
+        <PremiumUpsellSection 
+          estrategiaActual={estrategia}
+          datosUsuario={datosUsuario}
+        />
+      )}
 
       {/* Estilos para ocultar scrollbar pero mantener funcionalidad */}
       <style jsx global>{`

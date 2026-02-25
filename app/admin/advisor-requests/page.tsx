@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState, useRef } from "react"
 import { motion } from "framer-motion"
-import { Mail, Calendar, FileText, CheckCircle, Clock, XCircle, RefreshCw, Filter, AlertTriangle, UserCheck } from "lucide-react"
+import { Mail, Calendar, FileText, CheckCircle, Clock, XCircle, RefreshCw, Filter, AlertTriangle, UserCheck, Crown } from "lucide-react"
 import { toast } from "react-hot-toast"
 
 interface AdvisorRequest {
@@ -358,6 +358,15 @@ export default function AdminAdvisorRequestsPage() {
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" />
                 Reportes de Errores
+              </div>
+            </button>
+            <button
+              onClick={() => router.push("/admin/premium-advisories")}
+              className="px-4 py-2 font-medium transition-colors border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-purple-300"
+            >
+              <div className="flex items-center gap-2">
+                <Crown className="w-4 h-4" />
+                Asesorías Premium
               </div>
             </button>
           </div>

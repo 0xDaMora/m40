@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSession } from "next-auth/react"
-import { Crown, Star, CheckCircle, TrendingUp, FileText, Users, Zap, Shield, ArrowRight, Calculator, X } from "lucide-react"
+import { Crown, Star, CheckCircle, TrendingUp, FileText, Users, Zap, Shield, ArrowRight, Calculator, X, MessageCircle, Headphones, Rocket, Heart } from "lucide-react"
 import { toast } from "react-hot-toast"
 import PremiumRegistrationModal from "./PremiumRegistrationModal"
 import ConfirmationModal from "./ConfirmationModal"
@@ -52,7 +52,7 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
           familyMemberName: familyMemberName || 'Usuario Premium',
           subscription: 'premium'
         },
-        amount: 200
+        amount: 300
       }
 
       const success = await processPurchase(orderData)
@@ -68,29 +68,34 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
 
   const benefits = [
     {
+      icon: Heart,
+      title: "Apoya el Proyecto M40",
+      description: "Ayuda a mantener esta herramienta gratuita y accesible para todos los mexicanos"
+    },
+    {
+      icon: MessageCircle,
+      title: "1 Asesoría Gratuita",
+      description: "Consulta personalizada sobre tu caso específico con un asesor experto"
+    },
+    {
+      icon: Headphones,
+      title: "Soporte Prioritario",
+      description: "Canal exclusivo en tu dashboard para contactar asesores cuando lo necesites"
+    },
+    {
+      icon: Rocket,
+      title: "Acceso Prioritario",
+      description: "Sé el primero en usar nuevas herramientas y funcionalidades que desarrollemos"
+    },
+    {
       icon: Calculator,
-      title: "2,000+ Estrategias",
-      description: "Todas las combinaciones posibles analizadas para tu perfil específico"
-    },
-    {
-      icon: FileText,
-      title: "PDFs Ilimitados",
-      description: "Descarga todas las estrategias que quieras en formato PDF"
-    },
-    {
-      icon: TrendingUp,
-      title: "Análisis Completo",
-      description: "Proyección detallada de 20 años con todos los factores"
+      title: "Herramientas Completas",
+      description: "Acceso a todas las estrategias, análisis y calculadoras avanzadas"
     },
     {
       icon: Crown,
-      title: "Acceso de por Vida",
-      description: "Una sola compra, acceso ilimitado para siempre"
-    },
-    {
-      icon: Users,
-      title: "Familia Completa",
-      description: "Gestiona hasta 10 familiares con estrategias personalizadas"
+      title: "Beneficios de por Vida",
+      description: "Un solo pago, beneficios permanentes y acceso a todo lo nuevo"
     }
   ]
 
@@ -122,8 +127,8 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
                     <Crown className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">Plan Premium</h2>
-                    <p className="text-purple-100">Acceso ilimitado de por vida</p>
+                    <h2 className="text-2xl font-bold">Apoya M40 + Obtén Asesoría</h2>
+                    <p className="text-purple-100">Mantén el proyecto gratuito para todos</p>
                   </div>
                 </div>
                 <button
@@ -164,21 +169,30 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
                 {/* Precio y CTA */}
                 <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 mb-6">
                   <div className="text-center">
-                    <div className="text-5xl font-bold text-purple-600 mb-2">$200</div>
+                    <div className="mb-6">
+                      <p className="text-lg text-gray-700 mb-4 leading-relaxed">
+                        Al convertirte en <strong className="text-purple-600">Premium</strong>, apoyas directamente a M40 para mantenerse como un <strong>centro de asesoría gratuita</strong> para todos los usuarios. Tu contribución nos permite seguir ayudando a miles de mexicanos a planificar su retiro.
+                      </p>
+                    </div>
+                    
+                    <div className="text-5xl font-bold text-purple-600 mb-2">$300 MXN</div>
                     <div className="text-lg text-gray-700 mb-4">Pago único de por vida</div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                      <div className="bg-white p-4 rounded-lg">
-                        <div className="text-2xl font-bold text-purple-600">2,000+</div>
-                        <div className="text-sm text-gray-600">Estrategias</div>
+                      <div className="bg-white p-4 rounded-lg border-2 border-purple-100">
+                        <div className="text-2xl font-bold text-purple-600">🎯</div>
+                        <div className="text-sm font-semibold text-gray-900 mt-2">1 Asesoría</div>
+                        <div className="text-xs text-gray-600">Consulta personalizada</div>
                       </div>
-                      <div className="bg-white p-4 rounded-lg">
-                        <div className="text-2xl font-bold text-purple-600">∞</div>
-                        <div className="text-sm text-gray-600">PDFs</div>
+                      <div className="bg-white p-4 rounded-lg border-2 border-purple-100">
+                        <div className="text-2xl font-bold text-purple-600">💬</div>
+                        <div className="text-sm font-semibold text-gray-900 mt-2">Canal Directo</div>
+                        <div className="text-xs text-gray-600">Con asesores expertos</div>
                       </div>
-                      <div className="bg-white p-4 rounded-lg">
-                        <div className="text-2xl font-bold text-purple-600">20</div>
-                        <div className="text-sm text-gray-600">Años análisis</div>
+                      <div className="bg-white p-4 rounded-lg border-2 border-purple-100">
+                        <div className="text-2xl font-bold text-purple-600">🚀</div>
+                        <div className="text-sm font-semibold text-gray-900 mt-2">Acceso Prioritario</div>
+                        <div className="text-xs text-gray-600">A nuevas herramientas</div>
                       </div>
                     </div>
 
@@ -192,7 +206,7 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
                        ) : (
                          <Crown className="w-5 h-5" />
                        )}
-                       {mercadoPagoLoading ? 'Procesando...' : (session ? 'Comprar Premium' : 'Iniciar Sesión')}
+                       {mercadoPagoLoading ? 'Procesando...' : (session ? 'Apoyar M40 + Obtener Asesoría' : 'Iniciar Sesión')}
                        {!mercadoPagoLoading && <ArrowRight className="w-5 h-5" />}
                      </button>
 
