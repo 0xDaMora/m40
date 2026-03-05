@@ -23,8 +23,8 @@ export function calcularISRPension(params: CalculoISRParams): ResultadoISR {
   const { pensionMensual, pensionAnual, aguinaldo, año } = params
 
   // Umbral exento para pensiones del IMSS (2024)
-  // Las pensiones del IMSS están exentas hasta cierto límite
-  const umbralExento = 15000 // $15,000 mensuales (aproximado)
+  // Las pensiones del IMSS están exentas hasta $53,493 mensuales
+  const umbralExento = 53493 // $53,493 mensuales
   
   // Si la pensión está por debajo del umbral, no hay ISR
   if (pensionMensual <= umbralExento) {
@@ -43,27 +43,40 @@ export function calcularISRPension(params: CalculoISRParams): ResultadoISR {
   // Base gravable (pensión - umbral exento)
   const baseGravable = pensionMensual - umbralExento
   
-  // Cálculo simplificado del ISR (tabla progresiva)
+  // Cálculo del ISR según tabla progresiva del SAT
+  // Tabla de excedente y porcentaje
   let isrMensual = 0
   
-  if (baseGravable <= 10000) {
+  if (baseGravable <= 844.59) {
     // 1.92% sobre el excedente
     isrMensual = baseGravable * 0.0192
-  } else if (baseGravable <= 20000) {
-    // $192 + 6.4% sobre el excedente de $10,000
-    isrMensual = 192 + (baseGravable - 10000) * 0.064
-  } else if (baseGravable <= 35000) {
-    // $832 + 10.88% sobre el excedente de $20,000
-    isrMensual = 832 + (baseGravable - 20000) * 0.1088
-  } else if (baseGravable <= 50000) {
-    // $2,464 + 16% sobre el excedente de $35,000
-    isrMensual = 2464 + (baseGravable - 35000) * 0.16
-  } else if (baseGravable <= 100000) {
-    // $4,864 + 17.92% sobre el excedente de $50,000
-    isrMensual = 4864 + (baseGravable - 50000) * 0.1792
+  } else if (baseGravable <= 7168.51) {
+    // $16.22 + 6.40% sobre el excedente de $844.59
+    isrMensual = 16.22 + (baseGravable - 844.59) * 0.064
+  } else if (baseGravable <= 12598.02) {
+    // $459.16 + 10.88% sobre el excedente de $7,168.51
+    isrMensual = 459.16 + (baseGravable - 7168.51) * 0.1088
+  } else if (baseGravable <= 14644.64) {
+    // $1,043.42 + 16.00% sobre el excedente de $12,598.02
+    isrMensual = 1043.42 + (baseGravable - 12598.02) * 0.16
+  } else if (baseGravable <= 17533.64) {
+    // $1,372.29 + 17.92% sobre el excedente de $14,644.64
+    isrMensual = 1372.29 + (baseGravable - 14644.64) * 0.1792
+  } else if (baseGravable <= 35362.83) {
+    // $1,889.97 + 21.36% sobre el excedente de $17,533.64
+    isrMensual = 1889.97 + (baseGravable - 17533.64) * 0.2136
+  } else if (baseGravable <= 55736.68) {
+    // $5,696.91 + 23.52% sobre el excedente de $35,362.83
+    isrMensual = 5696.91 + (baseGravable - 35362.83) * 0.2352
+  } else if (baseGravable <= 106410.50) {
+    // $10,482.88 + 30.00% sobre el excedente de $55,736.68
+    isrMensual = 10482.88 + (baseGravable - 55736.68) * 0.30
+  } else if (baseGravable <= 141880.66) {
+    // $25,650.38 + 32.00% sobre el excedente de $106,410.50
+    isrMensual = 25650.38 + (baseGravable - 106410.50) * 0.32
   } else {
-    // $13,824 + 21.36% sobre el excedente de $100,000
-    isrMensual = 13824 + (baseGravable - 100000) * 0.2136
+    // $37,020.06 + 35.00% sobre el excedente de $141,880.66
+    isrMensual = 37020.06 + (baseGravable - 141880.66) * 0.35
   }
 
   // ISR anual
