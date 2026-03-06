@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, User, Calendar, TrendingUp, DollarSign, Heart } from "lucide-react"
+import { X, User, Calendar, TrendingUp, DollarSign, Heart, Briefcase } from "lucide-react"
 import toast from "react-hot-toast"
 import { FamilyMember, CreateFamilyMemberData } from "@/types/family"
 
@@ -19,7 +19,8 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
     birthDate: new Date(),
     weeksContributed: 500, // Valor mínimo válido por defecto
     lastGrossSalary: 0, // Mantenemos 0 pero cambiaremos el manejo
-    civilStatus: 'soltero'
+    civilStatus: 'soltero',
+    isCurrentlyContributing: true
   })
   
   // Estados separados para mostrar campos vacíos en la UI
@@ -37,7 +38,8 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
         birthDate: new Date(familyMember.birthDate),
         weeksContributed: familyMember.weeksContributed,
         lastGrossSalary: familyMember.lastGrossSalary,
-        civilStatus: familyMember.civilStatus
+        civilStatus: familyMember.civilStatus,
+        isCurrentlyContributing: familyMember.isCurrentlyContributing ?? true
       })
       // Mostrar valores reales cuando editamos
       setDisplayValues({
@@ -51,7 +53,8 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
         birthDate: new Date(),
         weeksContributed: 500, // Valor mínimo válido
         lastGrossSalary: 0,
-        civilStatus: 'soltero'
+        civilStatus: 'soltero',
+        isCurrentlyContributing: true
       })
       // Campos vacíos para nuevo familiar
       setDisplayValues({
@@ -129,28 +132,26 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
     }))
   }
 
-  // Función específica para campos numéricos
+  // Función específica para campos numéricos - solo enteros
   const handleNumericInputChange = (field: 'weeksContributed' | 'lastGrossSalary', value: string) => {
+    // Solo permitir dígitos
+    const limpio = value.replace(/[^\d]/g, '')
+    
     // Actualizar valor de display (lo que ve el usuario)
     setDisplayValues(prev => ({
       ...prev,
-      [field]: value
+      [field]: limpio
     }))
     
     // Actualizar valor real (para envío)
-    if (value === '') {
-      // Campo vacío - usar valor por defecto según el campo
+    if (limpio === '') {
       const defaultValue = field === 'weeksContributed' ? 500 : 0
       setFormData(prev => ({
         ...prev,
         [field]: defaultValue
       }))
     } else {
-      // Convertir a número
-      const numericValue = field === 'weeksContributed' 
-        ? parseInt(value) || 500
-        : parseFloat(value) || 0
-      
+      const numericValue = parseInt(limpio) || 0
       setFormData(prev => ({
         ...prev,
         [field]: numericValue
@@ -224,12 +225,12 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
                   Semanas cotizadas
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={displayValues.weeksContributed}
                   onChange={(e) => handleNumericInputChange('weeksContributed', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Ej: 800 (mínimo 500)"
-                  min="500"
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -249,13 +250,12 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
                   Último salario bruto (SDI)
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={displayValues.lastGrossSalary}
                   onChange={(e) => handleNumericInputChange('lastGrossSalary', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ej: 15000.00"
-                  min="0"
-                  step="0.01"
+                  placeholder="Ej: 15000"
                   required
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -291,6 +291,41 @@ export function FamilyMemberForm({ isOpen, onClose, onSuccess, familyMember }: F
                  
                </select>
              </div>
+
+            {/* ¿Cotizando activamente? */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Briefcase className="w-4 h-4 inline mr-2" />
+                ¿Está cotizando actualmente en el IMSS?
+              </label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleInputChange('isCurrentlyContributing', true)}
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+                    formData.isCurrentlyContributing === true
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  Sí, cotizando
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleInputChange('isCurrentlyContributing', false)}
+                  className={`flex-1 px-4 py-2 rounded-lg font-medium transition-all ${
+                    formData.isCurrentlyContributing === false
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  No
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Si está cotizando, las semanas adicionales se sumarán al cálculo
+              </p>
+            </div>
 
             {/* Botones */}
             <div className="flex gap-3 pt-4">

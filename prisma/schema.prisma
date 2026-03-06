@@ -68,14 +68,15 @@ model GuestPurchase {
 
 // Miembros familiares
 model FamilyMember {
-  id               String   @id @default(cuid())
-  userId           String
-  name             String
-  birthDate        DateTime
-  weeksContributed Int
-  lastGrossSalary  Float
-  civilStatus      String
-  createdAt        DateTime @default(now())
+  id                       String   @id @default(cuid())
+  userId                   String
+  name                     String
+  birthDate                DateTime
+  weeksContributed         Int
+  lastGrossSalary          Float
+  civilStatus              String
+  isCurrentlyContributing  Boolean  @default(true)
+  createdAt                DateTime @default(now())
 
   user                 User                 @relation(fields: [userId], references: [id])
   savedStrategies      SavedStrategy[]

@@ -256,6 +256,7 @@ export function calcularEscenarioYam40Recrear(params: CalculatorYam40RecrearPara
     ROI: ROI && !isNaN(ROI) ? +ROI.toFixed(2) : null,
     recuperacionMeses: recuperacionMeses && !isNaN(recuperacionMeses) ? Math.round(recuperacionMeses) : null,
     semanasTotales,
+    semanasM40,
     sdiPromedio: Math.round(sdiPromedio),
     porcentajePension: +porcentaje.toFixed(2),
     // Campos informativos del desglose (respaldo si no están en BD)

@@ -6,6 +6,7 @@ export interface FamilyMember {
   weeksContributed: number
   lastGrossSalary: number
   civilStatus: 'soltero' | 'casado' | 'divorciado' | 'viudo'
+  isCurrentlyContributing?: boolean
   createdAt: Date
 }
 
@@ -15,6 +16,7 @@ export interface CreateFamilyMemberData {
   weeksContributed: number
   lastGrossSalary: number
   civilStatus: 'soltero' | 'casado' | 'divorciado' | 'viudo'
+  isCurrentlyContributing?: boolean
 }
 
 export interface UpdateFamilyMemberData extends Partial<CreateFamilyMemberData> {

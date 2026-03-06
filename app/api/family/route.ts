@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, birthDate, weeksContributed, lastGrossSalary, civilStatus } = body
+    const { name, birthDate, weeksContributed, lastGrossSalary, civilStatus, isCurrentlyContributing } = body
 
     // Validaciones
     if (!name || !birthDate || !weeksContributed || !lastGrossSalary || !civilStatus) {
@@ -93,7 +93,8 @@ export async function POST(request: NextRequest) {
         birthDate: new Date(birthDate),
         weeksContributed,
         lastGrossSalary,
-        civilStatus
+        civilStatus,
+        isCurrentlyContributing: isCurrentlyContributing === true
       }
     })
 

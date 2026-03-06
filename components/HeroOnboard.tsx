@@ -2,593 +2,542 @@
 
 import { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import StepSDI from "./steps/StepSDI"
-import StepMesesM40 from "./steps/StepMesesM40"
-import StepFechaN from "./steps/StepFechaN"
-import StepSemanas from "./steps/StepSemanas"
-import StepJubi from "./steps/StepJubi"
-import StepEstadoCivil from "./steps/StepEstadoCivil"
-import { ChevronLeft, ChevronRight, Calculator, TrendingUp, Users, Shield, CheckCircle, ArrowRight, Calendar, DollarSign, Target, Clock } from "lucide-react"
+import { Calendar, Info, AlertCircle, HelpCircle, X, User } from "lucide-react"
 import { toast } from "react-hot-toast"
 import HeroOnboardStrategiesView from "./results/HeroOnboardStrategiesView"
-import ComparativaImpacto from "./ComparativaImpacto"
-import SidebarTips from "./SidebarTips"
 import TooltipInteligente from "./TooltipInteligente"
 import { useSimulator } from "./SimulatorContext"
 import { useRouter } from "next/navigation"
+import TutorialSemanasModal from "./tutorials/TutorialSemanasModal"
+import TutorialSDIModal from "./tutorials/TutorialSDIModal"
 
-const preguntas = [
-  { id: "Nacimiento", component: StepFechaN },
-  { id: "Edad de Jubilacion", component: StepJubi },
-  { id: "Semanas", component: StepSemanas },
-  { id: "sdi", component: StepSDI },
-  { id: "Estado Civil", component: StepEstadoCivil },
-]
+// Porcentajes por edad de jubilación (Ley 73)
+const porcentajesJubilacion: Record<number, number> = {
+  60: 75, 61: 80, 62: 85, 63: 90, 64: 95, 65: 100,
+}
+
 
 export default function HeroOnboard() {
   const [started, setStarted] = useState(false)
-  const [step, setStep] = useState(0)
-  const [respuestas, setRespuestas] = useState<any>({})
   const [resultado, setResultado] = useState<any>(null)
   const [loading, setLoading] = useState(false)
-  const [mostrarComparativa, setMostrarComparativa] = useState(false)
+  const [showSDITutorial, setShowSDITutorial] = useState(false)
+  const [showSemanasTutorial, setShowSemanasTutorial] = useState(false)
+  const resultadoRef = useRef<HTMLDivElement>(null)
+  const formularioRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  // Estados para el scroll tracking
-  const [scrollProgress, setScrollProgress] = useState(0)
-  const [hasScrolled, setHasScrolled] = useState(false)
+  // Campos del formulario
+  const [nombre, setNombre] = useState("")
+  const [fechaNacimiento, setFechaNacimiento] = useState("1969-01-01")
+  const [errorFecha, setErrorFecha] = useState("")
+  const [edadJubilacion, setEdadJubilacion] = useState<number | null>(null)
+  const [semanas, setSemanas] = useState("")
+  const [sdiPromedio, setSdiPromedio] = useState("")
+  const [sdiFormateado, setSdiFormateado] = useState("")
+  const [errorSDI, setErrorSDI] = useState("")
+  const [estadoCivil, setEstadoCivil] = useState<string | null>(null)
+  const [cotizandoActivamente, setCotizandoActivamente] = useState<boolean | null>(null)
 
   // Contexto del simulador
   const { setIsSimulatorActive } = useSimulator()
 
-  // Trackear el scroll - solo la primera vez
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY
-      
-      if (!hasScrolled && currentScrollY > 100) {
-        setHasScrolled(true)
-      }
-      
-      // Solo actualizar si no hemos alcanzado el estado final
-      if (currentScrollY <= 800) {
-        const progress = Math.min(currentScrollY / 800, 1)
-        setScrollProgress(progress)
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [hasScrolled])
-
-  // Actualizar estado del simulador cuando started cambie
   useEffect(() => {
     setIsSimulatorActive(started)
   }, [started, setIsSimulatorActive])
 
-  // Calcular opacidad y escala basado en progreso
-  const animationOpacity = 0.05 + (1 - scrollProgress) * 0.15 // De 0.2 a 0.05
-  const animationScale = 0.5 + (1 - scrollProgress) * 0.5 // De 1 a 0.5
-
-  const handleNext = async (valor?: string) => {
-    let newRespuestas = { ...respuestas }
-    
-    if (valor !== undefined) {
-      // 🔹 Caso especial para StepSDI que ahora pasa JSON
-      if (preguntas[step].id === "sdi" && valor.startsWith('{')) {
-        try {
-          const datosSDI = JSON.parse(valor)
-          newRespuestas = { 
-            ...newRespuestas, 
-            "sdi": datosSDI.sdi,
-            "salarioBruto": datosSDI.salarioBruto // 🔹 Guardar también el salario bruto original
-          }
-        } catch (error) {
-          // Fallback al comportamiento anterior si hay error en el parsing
-          newRespuestas = { ...newRespuestas, [preguntas[step].id]: valor }
-        }
-      } else {
-        // Caso normal de otros componentes
-        newRespuestas = { ...newRespuestas, [preguntas[step].id]: valor }
-      }
+  // Scroll to results when they appear
+  useEffect(() => {
+    if (resultado && resultadoRef.current) {
+      resultadoRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-    
-    setRespuestas(newRespuestas)
-    const nextStep = step + 1
-    setStep(nextStep)
-    
-    // Si es la última pregunta, calcular automáticamente con los datos actualizados
-    if (nextStep === preguntas.length) {
-      // Usar los datos actualizados directamente
-      setTimeout(() => {
-        handleCalcularWithData(newRespuestas)
-      }, 100)
+  }, [resultado])
+
+  useEffect(() => {
+    if (started && formularioRef.current) {
+      requestAnimationFrame(() => {
+        formularioRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    }
+  }, [started])
+
+  // Validaciones
+  const fechaMinima = "1959-01-01"
+  const fechaMaxima = "1979-12-31"
+
+  const calcularEdad = (fecha: string) => {
+    if (!fecha) return null
+    const hoy = new Date()
+    const nac = new Date(fecha)
+    let edad = hoy.getFullYear() - nac.getFullYear()
+    const m = hoy.getMonth() - nac.getMonth()
+    if (m < 0 || (m === 0 && hoy.getDate() < nac.getDate())) edad--
+    return edad
+  }
+
+  const validarFecha = (fecha: string) => {
+    if (!fecha) { setErrorFecha("Selecciona tu fecha de nacimiento"); return false }
+    const f = new Date(fecha)
+    if (f < new Date(fechaMinima) || f > new Date(fechaMaxima)) {
+      setErrorFecha("Debe ser entre 1959 y 1979 para aplicar a Ley 73")
+      return false
+    }
+    setErrorFecha("")
+    return true
+  }
+
+  // Semanas helper - integers only
+  const handleSemanasChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const limpio = e.target.value.replace(/[^\d]/g, '')
+    setSemanas(limpio)
+  }
+
+  // SDI helpers - integers only
+  const validarSDI = (v: string) => {
+    const n = parseInt(v)
+    if (isNaN(n)) { setErrorSDI("Ingresa un número válido"); return false }
+    if (n < 30) { setErrorSDI("El SDI debe ser mayor a $30 diarios"); return false }
+    if (n > 6000) { setErrorSDI("El SDI no puede exceder $6,000 diarios"); return false }
+    setErrorSDI("")
+    return true
+  }
+  const handleSDIChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const limpio = e.target.value.replace(/[^\d]/g, '')
+    setSdiPromedio(limpio)
+    setSdiFormateado(limpio ? parseInt(limpio).toLocaleString('es-MX') : "")
+    if (limpio) {
+      validarSDI(limpio)
+    } else {
+      setErrorSDI("")
     }
   }
 
-  const handleBack = () => {
-    if (step > 0) {
-      const prevId = preguntas[step - 1]?.id
-      const newRespuestas = { ...respuestas }
-      if (prevId) delete newRespuestas[prevId]
-
-      setRespuestas(newRespuestas)
-      setStep(step - 1)
-    }
-  }
+  // Verificar si el formulario es válido
+  const edadActual = calcularEdad(fechaNacimiento)
+  const sdiValido = sdiPromedio && !errorSDI && parseInt(sdiPromedio) >= 30
+  const formularioValido = 
+    fechaNacimiento && !errorFecha &&
+    edadJubilacion !== null &&
+    semanas && parseInt(semanas) >= 250 &&
+    sdiValido &&
+    estadoCivil !== null &&
+    cotizandoActivamente !== null
 
   const handleCalcular = async () => {
-    await handleCalcularWithData(respuestas)
-  }
+    if (!formularioValido) {
+      toast.error("Por favor completa todos los campos correctamente")
+      return
+    }
 
-  const handleCalcularWithData = async (datos: any) => {
+    // Validar fecha una vez más
+    if (!validarFecha(fechaNacimiento)) return
+
     setLoading(true)
     try {
-      console.log("📤 Datos originales:", datos)
+      const sdiValue = parseInt(sdiPromedio)
 
-      // Transformar datos de HeroOnboard al formato esperado por HeroOnboardStrategiesView
-      // Ya no necesitamos calcular estrategias aquí, solo preparar los datos
       const transformedResult = {
         datosUsuario: {
-          edad: parseInt(datos["Edad de Jubilacion"]),
-          // StepEstadoCivil guarda "conyuge" | "ninguno"
-          dependiente: datos["Estado Civil"] === "conyuge" ? "conyuge" : "ninguno",
-          estadoCivil: datos["Estado Civil"] === "conyuge" ? "casado" : "soltero",
-          sdiHistorico: parseFloat(datos.sdi),
-          semanasPrevias: parseInt(datos.Semanas),
-          fechaNacimiento: datos.Nacimiento,
-          inicioM40: new Date().toISOString().split('T')[0],
-          // Incluir todos los datos del HeroOnboard para el modal de registro
-          ...datos
+          edad: edadJubilacion,
+          dependiente: estadoCivil === "conyuge" ? "conyuge" : "ninguno",
+          estadoCivil: estadoCivil === "conyuge" ? "casado" : "soltero",
+          sdiHistorico: sdiValue,
+          semanasPrevias: parseInt(semanas),
+          fechaNacimiento: fechaNacimiento,
+          inicioM40: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`,
+          isCurrentlyContributing: cotizandoActivamente === true,
+          salarioBruto: sdiValue * 30.4,
+          nombre: nombre.trim() || undefined,
+          "Edad de Jubilacion": String(edadJubilacion),
+          "Semanas": semanas,
+          "Nacimiento": fechaNacimiento,
+          "sdi": sdiValue.toString(),
+          "Estado Civil": estadoCivil,
         }
       }
-      
+
       setResultado(transformedResult)
-      
-      // Mostrar primero la comparativa de impacto (opcional)
-      // setMostrarComparativa(true)
-      // Por ahora, mostrar directamente las estrategias
-      setMostrarComparativa(false)
     } catch (error) {
-      console.error("❌ Error en cálculo:", error)
-      alert(`Hubo un error: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+      console.error("Error en cálculo:", error)
+      toast.error("Hubo un error al calcular. Intenta de nuevo.")
     } finally {
       setLoading(false)
     }
   }
 
-  const CurrentStep = preguntas[step]?.component
-  const total = preguntas.length
-  const progreso = Math.round(((step + 1) / total) * 100)
-
-  // Determinar si estamos en la fase de preferencias personales
-  const enPreferenciasPersonales = false // Ya no hay fase de preferencias personales
-
   return (
-    <>
-      {/* Anillo animado que sigue el scroll - fixed position */}
-      <motion.div
-        className="fixed inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden"
-        animate={{ opacity: animationOpacity }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-      >
-        <motion.div
-          animate={{ 
-            rotate: 360,
-            scale: [1, 1.05, 1]
-          }}
-          transition={{ 
-            rotate: { duration: 30, repeat: Infinity, ease: "linear" },
-            scale: { duration: 6, repeat: Infinity, ease: "easeInOut" }
-          }}
-          className="w-80 h-80 md:w-96 md:h-96 lg:w-[500px] lg:h-[500px] rounded-full border-4 md:border-6 lg:border-8"
-          style={{
-            scale: animationScale,
-            borderImage: 'linear-gradient(45deg, #3b82f6, #10b981, #8b5cf6, #f59e0b) 1',
-            background: 'transparent'
-          }}
-        />
-      </motion.div>
-
-      <section className="flex flex-col items-center justify-center min-h-screen px-4 pt-20 relative z-10">
-        <div className="w-full max-w-7xl mx-auto">
-          {/* Layout responsivo: mobile = stack, desktop = side by side */}
-          <div className="lg:flex lg:gap-8 lg:items-center lg:justify-center">
-          {/* Contenido principal */}
-          <div className="flex-1 max-w-4xl mx-auto text-center lg:text-left">
-            {!started && (
-              <motion.div
-                key="hero"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
-                className="text-center relative"
-              >
-                {/* Contenido principal con z-index */}
-                <div className="relative z-10">
-                  {/* Badge de confianza */}
-                  <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium mb-6">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    Cálculos verificados con tablas oficiales IMSS 2025
-                  </div>
-
-                  <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                    ¿Cuánto podrías aumentar tu pensión?
-                  </h1>
-                  <p className="text-xl text-gray-700 mb-3">
-                    Calculadora oficial de <TooltipInteligente termino="Modalidad 40"><strong>Modalidad 40</strong></TooltipInteligente>
-                  </p>
-                  <p className="text-lg text-gray-600 mb-8 max-w-xl mx-auto">
-                    Descubre tu estrategia personalizada en <strong>3 minutos</strong>. 
-                    Compara tu pensión actual vs. optimizada con M40.
-                  </p>
-                </div>
-
-                {/* Beneficios rápidos */}
-                <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-sm">
-                  <div className="bg-white p-4 rounded-lg shadow-sm border">
-                    <div className="text-2xl mb-2">🎯</div>
-                    <div className="font-semibold text-gray-800">100% Legal y Oficial</div>
-                    <div className="text-gray-600">Basado en Ley 73 del IMSS</div>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg shadow-sm border">
-                    <div className="text-2xl mb-2">🛡️</div>
-                    <div className="font-semibold text-gray-800">Cálculos verificados</div>
-                    <div className="text-gray-600">Con tablas oficiales 2025</div>
-                  </div>
-                  <div className="bg-white p-4 rounded-lg shadow-sm border">
-                    <div className="text-2xl mb-2">📈</div>
-                    <div className="font-semibold text-gray-800">Hasta 300% más</div>
-                    <div className="text-gray-600">De pensión mensual</div>
-                  </div>
-                </div>
-
-                <div className="relative">
-                  <div className="relative z-10 py-8">
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
-                      {/* Botón azul - Calcular mi pensión ahora */}
-                      <motion.button
-                        className="bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold shadow-lg hover:bg-blue-800 transition-all duration-300 w-full sm:w-auto min-w-[280px] transform hover:scale-105 hover:shadow-xl"
-                        onClick={() => setStarted(true)}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.98 }}
-                        animate={{ 
-                          boxShadow: [
-                            "0 10px 25px -5px rgba(59, 130, 246, 0.3)",
-                            "0 15px 35px -5px rgba(59, 130, 246, 0.4)", 
-                            "0 10px 25px -5px rgba(59, 130, 246, 0.3)"
-                          ]
-                        }}
-                        transition={{ 
-                          boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-                        }}
-                      >
-                        <motion.span
-                          animate={{ x: [0, 5, 0] }}
-                          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                        >
-                          Calcular mi pensión ahora →
-                        </motion.span>
-                      </motion.button>
-
-                      {/* Botón verde - Ya estoy en modalidad 40 */}
-                      <motion.button
-                        className="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold shadow-lg hover:bg-green-700 transition-all duration-300 w-full sm:w-auto min-w-[280px] transform hover:scale-105 hover:shadow-xl"
-                        onClick={() => router.push('/yam40')}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.98 }}
-                        animate={{ 
-                          boxShadow: [
-                            "0 10px 25px -5px rgba(34, 197, 94, 0.3)",
-                            "0 15px 35px -5px rgba(34, 197, 94, 0.4)", 
-                            "0 10px 25px -5px rgba(34, 197, 94, 0.3)"
-                          ]
-                        }}
-                        transition={{ 
-                          boxShadow: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-                        }}
-                      >
-                        Ya estoy en modalidad 40
-                      </motion.button>
-                    </div>
-
-                    {/* Texto explicativo comparativo */}
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-gray-600 max-w-4xl mx-auto">
-                      <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
-                        <div>
-                          <span className="font-semibold text-gray-700">Calcular mi pensión ahora:</span>
-                          <span className="text-gray-600"> Para usuarios que aún no están en Modalidad 40. Te ayudamos a encontrar la mejor estrategia.</span>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <div className="w-2 h-2 bg-green-600 rounded-full mt-1.5"></div>
-                        <div>
-                          <span className="font-semibold text-gray-700">Ya estoy en modalidad 40:</span>
-                          <span className="text-gray-600"> Si ya llevas tiempo pagando, calcula tu pensión actual y estrategias futuras.</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <motion.p 
-                  className="relative z-10 text-sm text-gray-500 mt-3"
-                  animate={{ opacity: [0.7, 1, 0.7] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  Gratuito • Sin registro • Resultados inmediatos
-                </motion.p>
-
-                
-              </motion.div>
-            )}
-
-            <AnimatePresence mode="wait">
-              {started && !resultado && (
-                <motion.div
-                  key="form"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  {/* Barra de progreso con indicador de fase */}
-                  <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
-                                         <motion.div
-                       className={`h-3 rounded-full ${
-                         step === preguntas.length - 1
-                           ? "bg-green-600" 
-                           : enPreferenciasPersonales 
-                           ? "bg-purple-600" 
-                           : "bg-blue-600"
-                       }`}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${progreso}%` }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </div>
-                  
-                  <div className="flex justify-between items-center mb-4">
-                                         <p className="text-sm font-medium text-gray-700">
-                       Paso {step + 1} de {total} • Calculadora oficial IMSS
-                     </p>
-                    {enPreferenciasPersonales && step < preguntas.length && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">
-                        Optimización personalizada
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Resumen de respuestas - Mejorado para mostrar información más clara */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
-                    {Object.entries(respuestas).map(([k, v]) => {
-                      // 🔹 Mejorar la presentación de los datos
-                      let label = k
-                      let value = v
-                      let icon = null
-                      let bgColor = "bg-gray-100"
-                      let tooltip = null
-                      
-                      // 🔹 Personalizar cada campo para mejor UX
-                      switch (k) {
-                        case "sdi":
-                          // 🔹 Mostrar salario bruto original en lugar de SDI para mayor claridad
-                          if (respuestas.salarioBruto) {
-                            label = "Salario Bruto Mensual"
-                            value = `$${parseFloat(respuestas.salarioBruto).toLocaleString('es-MX')} MXN`
-                            icon = "💰"
-                            bgColor = "bg-green-50 border border-green-200"
-                            tooltip = "Este es el salario que ingresaste. El SDI se calcula internamente para los cálculos del IMSS."
-                          } else {
-                            // Fallback si no hay salarioBruto (compatibilidad)
-                            const sdiValue = typeof v === 'string' ? parseFloat(v) : 0
-                            const salarioBruto = sdiValue * 30.4
-                            label = "Salario Bruto Mensual"
-                            value = `$${salarioBruto.toLocaleString('es-MX')} MXN`
-                            icon = "💰"
-                            bgColor = "bg-green-50 border border-green-200"
-                            tooltip = "Salario calculado a partir del SDI. El SDI se usa internamente para los cálculos del IMSS."
-                          }
-                          break
-                        case "salarioBruto":
-                          // 🔹 Ocultar este campo ya que se muestra en el campo "sdi" transformado
-                          return null
-                        case "Edad de Jubilacion":
-                          label = "Edad de Jubilación"
-                          value = `${v} años`
-                          icon = "🎂"
-                          bgColor = "bg-blue-50 border border-blue-200"
-                          break
-                        case "Semanas":
-                          label = "Semanas Cotizadas"
-                          value = `${v} semanas`
-                          icon = "📅"
-                          bgColor = "bg-purple-50 border border-purple-200"
-                          break
-                        case "Nacimiento":
-                          label = "Fecha de Nacimiento"
-                          try {
-                            const fecha = new Date(String(v))
-                            if (!isNaN(fecha.getTime())) {
-                              value = fecha.toLocaleDateString('es-MX', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })
-                            } else {
-                              value = String(v)
-                            }
-                          } catch {
-                            value = String(v)
-                          }
-                          icon = "📆"
-                          bgColor = "bg-indigo-50 border border-indigo-200"
-                          break
-                        case "Estado Civil":
-                          label = "Estado Civil"
-                          value = v === "conyuge" ? "Casado/a" : "Soltero/a"
-                          icon = "💑"
-                          bgColor = "bg-pink-50 border border-pink-200"
-                          break
-                        default:
-                          icon = "ℹ️"
-                      }
-                      
-                      // 🔹 No renderizar campos ocultos
-                      if (k === "salarioBruto") return null
-                      
-                      return (
-                        <div key={k} className={`${bgColor} p-3 rounded-lg shadow-sm text-sm sm:text-base relative group`}>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-lg">{icon}</span>
-                            <b className="capitalize text-gray-800">{label}:</b>
-                            {tooltip && (
-                              <div className="relative">
-                                <span className="text-blue-500 cursor-help">ℹ️</span>
-                                {/* Tooltip */}
-                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                                  {tooltip}
-                                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                          <div className="text-gray-700 font-medium">
-                            {typeof value === 'string' && value.length > 50 ? `${value.substring(0, 50)}...` : String(value)}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  {/* Pregunta actual */}
-                  <AnimatePresence mode="wait">
-                    {step < preguntas.length && CurrentStep && (
-                      <CurrentStep
-                        key={`step-${step}`}
-                        onNext={handleNext}
-                        defaultValue={respuestas[preguntas[step].id]}
-                      />
-                    )}
-                  </AnimatePresence>
-
-                                     {/* Loading state cuando se está calculando automáticamente */}
-                   {step === preguntas.length && loading && (
-                     <motion.div
-                       key="calculando"
-                       initial={{ opacity: 0, y: 20 }}
-                       animate={{ opacity: 1, y: 0 }}
-                       exit={{ opacity: 0, y: -20 }}
-                       transition={{ duration: 0.3 }}
-                       className="bg-white p-6 rounded-lg shadow-md text-center"
-                     >
-                       <h2 className="text-2xl font-bold text-blue-700 mb-4">
-                         Calculando tu estrategia personalizada
-                       </h2>
-                       <p className="text-gray-700 mb-6 text-base">
-                         Analizando <strong>más de 2,000 escenarios</strong> con tablas oficiales del IMSS 
-                         para encontrar las <strong>5 mejores opciones</strong> según tu situación.
-                       </p>
-                       <div className="bg-blue-50 p-4 rounded-lg mb-6">
-                         <p className="text-blue-800 text-sm">
-                           <strong>📋 Incluiremos:</strong> Cronograma de pagos, trámites paso a paso, 
-                           formatos oficiales y proyección completa hasta tu jubilación.
-                         </p>
-                       </div>
-                       
-                       <div className="flex items-center justify-center gap-3">
-                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                         <span className="text-blue-600">Calculando estrategias...</span>
-                       </div>
-                     </motion.div>
-                   )}
-
-                  {/* Botón atrás */}
-                  <div className="flex justify-between mt-6">
-                    {step > 0 && !loading && (
-                      <button
-                        className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400 w-full sm:w-auto"
-                        onClick={handleBack}
-                      >
-                        Atrás
-                      </button>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-                         {/* Mostrar comparativa de impacto primero - DESHABILITADO temporalmente */}
-             {/* La comparativa de impacto se puede habilitar más tarde si es necesario */}
-             {false && resultado && mostrarComparativa && !loading && (
-               <ComparativaImpacto
-                 pensionSinM40={(() => {
-                   // Calcular pensión real sin M40 basada en SDI del usuario
-                   const sdiDiario = parseFloat(respuestas["sdi"]) || 100
-                   const sdiMensual = sdiDiario * 30.4
-                   const semanasActuales = parseInt(respuestas["Semanas"]) || 500
-                   
-                   // Calcular según Ley 73 (sin M40)
-                   const porcentajeBase = 35
-                   const incrementos = Math.floor((semanasActuales - 500) / 52) * 2
-                   const porcentajeTotal = Math.max(porcentajeBase + incrementos, 35)
-                   
-                   // Pensión base
-                   const pensionBase = (porcentajeTotal / 100) * sdiMensual
-                   
-                   // Aplicar factor de edad (asumiendo jubilación a 65)
-                   const factorEdad = 1.0 // 65 años = 100%
-                   
-                   // Pensión final sin M40
-                   const pensionFinal = pensionBase * factorEdad
-                   
-                   return Math.max(pensionFinal, 5000) // Mínimo 5000 como fallback
-                 })()}
-                 pensionConM40={8000}
-                 inversionTotal={50000}
-                 mesesRecuperacion={24}
-                 onContinuar={() => setMostrarComparativa(false)}
-               />
-             )}
-
-                         {/* Mostrar estrategias después de la comparativa */}
-             {resultado && !mostrarComparativa && resultado.datosUsuario && (
-               <HeroOnboardStrategiesView
-                 datosUsuario={resultado.datosUsuario}
-                 initialFilters={{
-                   familyMemberId: null,
-                   monthlyContributionRange: { min: 1000, max: 25000 }, // Rango completo para obtener todas las estrategias
-                   months: 58, // No se usa cuando monthsMode es 'scan'
-                   retirementAge: resultado.datosUsuario.edad || 65,
-                   startMonth: new Date().getMonth() + 1,
-                   startYear: new Date().getFullYear(),
-                   monthsMode: 'scan' // CRÍTICO: generar todas las estrategias posibles
-                 }}
-                 onReinicio={() => {
-                   setResultado(null)
-                   setRespuestas({})
-                   setStep(0)
-                   setStarted(false)
-                   setMostrarComparativa(false)
-                 }}
-               />
-             )}
-          </div>
-
-          {/* Sidebar con tips - visible en mobile y desktop */}
-          {started && !resultado && (
-            <div className="lg:w-80 mt-6 lg:mt-0">
-              <SidebarTips 
-                currentStep={preguntas[step]?.id || ""}
-                isVisible={step < preguntas.length}
-              />
+    <section className="flex flex-col items-center justify-center min-h-screen px-3 sm:px-4 pt-20 relative z-10">
+      <div className="w-full max-w-6xl mx-auto">
+        {/* HERO INTRO - Antes de presionar "Calcular" */}
+        {!started && !resultado && (
+          <div className="text-center">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium mb-6">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              Cálculos verificados con tablas oficiales IMSS 2025
             </div>
-          )}
+
+            <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+              ¿Cuánto podrías aumentar tu pensión?
+            </h1>
+            <p className="text-xl text-gray-700 mb-3">
+              Calculadora oficial de <TooltipInteligente termino="Modalidad 40"><strong>Modalidad 40</strong></TooltipInteligente>
+            </p>
+            <p className="text-lg text-gray-600 mb-8 max-w-xl mx-auto">
+              Descubre tu estrategia personalizada en <strong>3 minutos</strong>. 
+              Compara tu pensión actual vs. optimizada con M40.
+            </p>
+
+            {/* Beneficios */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-sm">
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="text-2xl mb-2">🎯</div>
+                <div className="font-semibold text-gray-800">100% Legal y Oficial</div>
+                <div className="text-gray-600">Basado en Ley 73 del IMSS</div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="text-2xl mb-2">🛡️</div>
+                <div className="font-semibold text-gray-800">Cálculos verificados</div>
+                <div className="text-gray-600">Con tablas oficiales 2025</div>
+              </div>
+              <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="text-2xl mb-2">📈</div>
+                <div className="font-semibold text-gray-800">Hasta 300% más</div>
+                <div className="text-gray-600">De pensión mensual</div>
+              </div>
+            </div>
+
+            {/* Botones */}
+            <div className="py-8">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
+                <motion.button
+                  className="bg-blue-700 text-white px-8 py-4 rounded-lg text-lg font-semibold shadow-lg hover:bg-blue-800 transition-all duration-300 w-full sm:w-auto min-w-[280px]"
+                  onClick={() => setStarted(true)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Calcular mi pensión ahora →
+                </motion.button>
+
+                <motion.button
+                  className="bg-green-600 text-white px-8 py-4 rounded-lg text-lg font-semibold shadow-lg hover:bg-green-700 transition-all duration-300 w-full sm:w-auto min-w-[280px]"
+                  onClick={() => router.push('/yam40')}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  Ya estoy en modalidad 40
+                </motion.button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-gray-600 max-w-4xl mx-auto">
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-1.5"></div>
+                  <div>
+                    <span className="font-semibold text-gray-700">Calcular mi pensión ahora:</span>
+                    <span className="text-gray-600"> Para usuarios que aún no están en Modalidad 40.</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-2 h-2 bg-green-600 rounded-full mt-1.5"></div>
+                  <div>
+                    <span className="font-semibold text-gray-700">Ya estoy en modalidad 40:</span>
+                    <span className="text-gray-600"> Si ya llevas tiempo pagando, calcula tu pensión actual.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-gray-500 mt-3">
+              Gratuito • Sin registro • Resultados inmediatos
+            </p>
           </div>
-        </div>
-      </section>
-    </>
+        )}
+
+        {/* FORMULARIO - Formato amplio tipo generador de gráficas */}
+        {started && (
+          <div ref={formularioRef}>
+            {/* Header del formulario */}
+            <div className="text-center mb-5 sm:mb-6 scroll-mt-24">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+                Calculadora de Pensión Modalidad 40
+              </h2>
+              <p className="text-gray-600">
+                Completa tus datos para calcular tu mejor estrategia de pensión
+              </p>
+            </div>
+
+            {/* Grid layout amplio - 2 columnas en desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-5">
+              {/* Nombre (opcional) */}
+              <div className="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-gray-200 lg:col-span-2">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  <User className="w-4 h-4 inline mr-1.5 text-blue-600" />
+                  Tu nombre <span className="text-gray-400 font-normal">(opcional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Ej: Juan Pérez"
+                  className="w-full border border-gray-300 p-2.5 text-base rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Fecha de Nacimiento */}
+              <div className="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  <Calendar className="w-4 h-4 inline mr-1.5 text-blue-600" />
+                  Fecha de nacimiento
+                </label>
+                <input
+                  type="date"
+                  value={fechaNacimiento}
+                  min={fechaMinima}
+                  max={fechaMaxima}
+                  onChange={(e) => { setFechaNacimiento(e.target.value); setErrorFecha("") }}
+                  className={`w-full border p-2.5 text-base rounded-lg focus:ring-2 focus:ring-blue-500 ${errorFecha ? 'border-red-500 bg-red-50' : 'border-gray-300'}`}
+                />
+                {errorFecha && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> {errorFecha}
+                  </p>
+                )}
+                {edadActual && !errorFecha && (
+                  <p className="text-green-600 text-xs mt-1">
+                    {edadActual} años — Ley 73
+                  </p>
+                )}
+              </div>
+
+              {/* Edad de Jubilación */}
+              <div className="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  ¿A qué edad deseas jubilarte?
+                </label>
+                <div className="grid grid-cols-6 gap-2">
+                  {Object.keys(porcentajesJubilacion).map((age) => (
+                    <button
+                      key={age}
+                      onClick={() => setEdadJubilacion(parseInt(age))}
+                      className={`p-2 rounded-lg text-sm font-bold transition-all ${
+                        edadJubilacion === parseInt(age)
+                          ? "bg-blue-700 text-white shadow-md"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                    >
+                      {age}
+                    </button>
+                  ))}
+                </div>
+                {edadJubilacion && (
+                  <p className="text-xs text-blue-700 mt-2">
+                    A los {edadJubilacion} años → <strong>{porcentajesJubilacion[edadJubilacion]}%</strong> de pensión
+                  </p>
+                )}
+              </div>
+
+              {/* Semanas Cotizadas */}
+              <div className="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-800">
+                    Semanas cotizadas
+                  </label>
+                  <button
+                    onClick={() => setShowSemanasTutorial(true)}
+                    className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium transition-colors"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    Tutorial
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={semanas}
+                  onChange={handleSemanasChange}
+                  placeholder="Ej: 1200 (mínimo 250)"
+                  className="w-full border border-gray-300 p-2.5 text-base rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+                {semanas && parseInt(semanas) < 250 && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> Mínimo 250 semanas
+                  </p>
+                )}
+              </div>
+
+              {/* Promedio SDI */}
+              <div className="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-gray-800">
+                    Promedio SDI (diario)
+                  </label>
+                  <button
+                    onClick={() => setShowSDITutorial(true)}
+                    className="flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-medium transition-colors"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                    Tutorial
+                  </button>
+                </div>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                  <input
+                    type="text"
+                    placeholder="Ej: 500"
+                    value={sdiFormateado}
+                    onChange={handleSDIChange}
+                    className={`w-full border p-2.5 pl-7 text-base rounded-lg focus:ring-2 focus:ring-blue-500 ${errorSDI ? 'border-red-300' : 'border-gray-300'}`}
+                  />
+                  {sdiValido && (
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 bg-green-100 rounded-full flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 bg-green-600 rounded-full"></div>
+                    </div>
+                  )}
+                </div>
+                {errorSDI && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> {errorSDI}
+                  </p>
+                )}
+                {sdiValido && (
+                  <p className="text-green-600 text-xs mt-1">
+                    SDI: ${parseInt(sdiPromedio).toLocaleString('es-MX')} /día → ~${Math.round(parseInt(sdiPromedio) * 30.4).toLocaleString('es-MX')} /mes
+                  </p>
+                )}
+              </div>
+
+              {/* Estado Civil */}
+              <div className="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  ¿Casado(a) o en concubinato?
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setEstadoCivil("conyuge")}
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                      estadoCivil === "conyuge" ? "bg-blue-700 text-white shadow-md" : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    Sí
+                  </button>
+                  <button
+                    onClick={() => setEstadoCivil("ninguno")}
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                      estadoCivil === "ninguno" ? "bg-blue-700 text-white shadow-md" : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    No
+                  </button>
+                </div>
+                {estadoCivil === "conyuge" && (
+                  <p className="mt-2 text-xs text-green-700 bg-green-50 p-2 rounded-lg">
+                    +15% pensión por asignación familiar
+                  </p>
+                )}
+              </div>
+
+              {/* ¿Cotizando activamente? */}
+              <div className="bg-white p-3.5 sm:p-5 rounded-xl shadow-sm border border-gray-200">
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  ¿Cotizando actualmente en el IMSS?
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setCotizandoActivamente(true)}
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                      cotizandoActivamente === true ? "bg-blue-700 text-white shadow-md" : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    Sí, cotizando
+                  </button>
+                  <button
+                    onClick={() => setCotizandoActivamente(false)}
+                    className={`flex-1 px-4 py-2.5 rounded-lg font-medium text-sm transition-all ${
+                      cotizandoActivamente === false ? "bg-blue-700 text-white shadow-md" : "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                    }`}
+                  >
+                    No
+                  </button>
+                </div>
+                {cotizandoActivamente === true && (
+                  <p className="mt-2 text-xs text-green-700 bg-green-50 p-2 rounded-lg">
+                    Las semanas adicionales se sumarán al cálculo
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Botón de calcular - full width debajo del grid */}
+            <div className="mt-5 sm:mt-6 mb-4">
+              <button
+                onClick={handleCalcular}
+                disabled={!formularioValido || loading}
+                className={`w-full py-4 rounded-xl text-lg font-bold transition-all duration-200 shadow-lg ${
+                  formularioValido && !loading
+                    ? 'bg-blue-700 text-white hover:bg-blue-800 hover:shadow-xl'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-3">
+                    <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>
+                    Calculando estrategias...
+                  </span>
+                ) : (
+                  'Calcular mi pensión'
+                )}
+              </button>
+
+              {!formularioValido && (
+                <p className="text-center text-sm text-gray-500 mt-2">
+                  Completa todos los campos para continuar
+                </p>
+              )}
+
+              {/* Botón volver - solo si no hay resultados */}
+              {!resultado && (
+                <button
+                  onClick={() => { setStarted(false); setResultado(null) }}
+                  className="w-full mt-2 py-2.5 rounded-xl text-gray-600 hover:bg-gray-100 transition-all text-sm font-medium"
+                >
+                  ← Volver al inicio
+                </button>
+              )}
+            </div>
+
+            {/* RESULTADOS - Misma página, debajo del formulario */}
+            {resultado && resultado.datosUsuario && (
+              <div ref={resultadoRef} className="mt-6 sm:mt-8 border-t-2 border-blue-200 pt-6 sm:pt-8">
+                <HeroOnboardStrategiesView
+                  datosUsuario={resultado.datosUsuario}
+                  initialFilters={{
+                    familyMemberId: null,
+                    monthlyContributionRange: { min: 1000, max: 25000 },
+                    months: 58,
+                    retirementAge: resultado.datosUsuario.edad || 65,
+                    startMonth: (() => {
+                      const fechaInicio = new Date(resultado.datosUsuario.inicioM40)
+                      return fechaInicio.getMonth() + 1
+                    })(),
+                    startYear: (() => {
+                      const fechaInicio = new Date(resultado.datosUsuario.inicioM40)
+                      return fechaInicio.getFullYear()
+                    })(),
+                    monthsMode: 'scan'
+                  }}
+                  onReinicio={() => {
+                    setResultado(null)
+                  }}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Modales tutorial */}
+        <TutorialSDIModal isOpen={showSDITutorial} onClose={() => setShowSDITutorial(false)} />
+        <TutorialSemanasModal isOpen={showSemanasTutorial} onClose={() => setShowSemanasTutorial(false)} />
+      </div>
+    </section>
   )
 }

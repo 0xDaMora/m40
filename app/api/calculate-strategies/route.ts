@@ -72,7 +72,8 @@ function calculateStrategies(familyData: FamilyMemberData, filters: IntegrationF
       // Siempre incluir fecha de inicio para cálculos consistentes
       fechaInicio: startDate.toISOString().split('T')[0],
       // Nuevo: permitir que el cliente controle el modo de meses
-      monthsMode: (filters as any).monthsMode === 'scan' ? 'scan' : 'fixed' as 'scan' | 'fixed'
+      monthsMode: (filters as any).monthsMode === 'scan' ? 'scan' : 'fixed' as 'scan' | 'fixed',
+      isCurrentlyContributing: (familyData as any).isCurrentlyContributing === true
     }
     
     console.log('🔍 DEBUG - Parámetros para allStrats:', allStratsParams)

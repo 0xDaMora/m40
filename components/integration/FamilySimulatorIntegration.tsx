@@ -25,6 +25,8 @@ import { FamilyMemberForm } from "@/components/family/FamilyMemberForm"
 import { RangeSlider } from "@/components/ui/RangeSlider"
 import { getMaxAportacion } from "@/lib/all/umaConverter"
 import TooltipInteligente from "@/components/TooltipInteligente"
+import EstrategiaDetallada from "@/components/EstrategiaDetallada"
+import QuickRegistrationModal from "@/components/QuickRegistrationModal"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useFormatters } from "@/hooks/useFormatters"
 import { useStrategy } from "@/hooks/useStrategy"
@@ -182,6 +184,8 @@ export function FamilySimulatorIntegration() {
   // Debounce para el cálculo de estrategias
   const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null)
   const [showLoginModal, setShowLoginModal] = useState(false)
+  const [localViewStrategy, setLocalViewStrategy] = useState<StrategyResult | null>(null)
+  const [showQuickRegistration, setShowQuickRegistration] = useState(false)
 
   // Calcular estrategias cuando cambien los filtros principales (con debounce)
   useEffect(() => {
@@ -237,9 +241,9 @@ export function FamilySimulatorIntegration() {
   const viewStrategyDetails = async (strategy: any) => {
     if (!selectedFamilyMember) return
 
-    // Si no está logueado, mostrar modal de login
+    // Si no está logueado, mostrar estrategia detallada localmente
     if (!session) {
-      setShowLoginModal(true)
+      setLocalViewStrategy(strategy)
       return
     }
 
@@ -488,6 +492,86 @@ export function FamilySimulatorIntegration() {
       console.error('Error al comprar estrategia:', error)
       toast.error('Error inesperado al comprar la estrategia')
     }
+  }
+
+  // Si hay una estrategia seleccionada para vista local (sin registro)
+  if (localViewStrategy && selectedFamilyMember) {
+    const birthDate = selectedFamilyMember.birthDate instanceof Date 
+      ? selectedFamilyMember.birthDate 
+      : new Date(selectedFamilyMember.birthDate)
+    const startMonth = filters.startMonth || new Date().getMonth() + 1
+    const startYear = filters.startYear || new Date().getFullYear()
+    const fechaInicio = new Date(startYear, startMonth, 1).toISOString().split('T')[0]
+
+    return (
+      <div className="w-full max-w-full space-y-0">
+        {/* Banner de registro recomendado */}
+        {!session && (
+          <div className="bg-blue-50 border-b border-blue-200 px-4 sm:px-6 lg:px-8 py-4 mb-4">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex-1">
+                <p className="text-blue-900 font-semibold text-sm sm:text-base">
+                  Te recomendamos registrarte para guardar tu estrategia
+                </p>
+                <p className="text-blue-700 text-xs sm:text-sm mt-1">
+                  Al registrarte podrás guardar tus estrategias y acceder desde cualquier dispositivo. No es obligatorio.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowQuickRegistration(true)}
+                className="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap"
+              >
+                Registrarme gratis
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="w-full px-2 sm:px-4 lg:px-6">
+          <EstrategiaDetallada
+            estrategia={{
+              estrategia: localViewStrategy.estrategia,
+              umaElegida: localViewStrategy.umaElegida,
+              mesesM40: localViewStrategy.mesesM40,
+              pensionMensual: localViewStrategy.pensionMensual || 0,
+              inversionTotal: localViewStrategy.inversionTotal || undefined,
+              ROI: localViewStrategy.ROI || undefined,
+              factorEdad: localViewStrategy.factorEdad,
+              conFactorEdad: localViewStrategy.conFactorEdad,
+              conLeyFox: localViewStrategy.conLeyFox,
+              conDependiente: localViewStrategy.conDependiente,
+              recuperacionMeses: localViewStrategy.recuperacionMeses,
+              pensionConAguinaldo: localViewStrategy.pensionConAguinaldo,
+              registros: localViewStrategy.registros,
+              semanasTotales: localViewStrategy.semanasTotales,
+              semanasM40: localViewStrategy.semanasM40,
+            }}
+            datosUsuario={{
+              inicioM40: fechaInicio,
+              fechaNacimiento: birthDate.toISOString().split('T')[0],
+              edadJubilacion: filters.retirementAge || 65,
+              semanasCotizadas: selectedFamilyMember.weeksContributed || 0,
+              semanasPrevias: selectedFamilyMember.weeksContributed || 0,
+              nombreFamiliar: selectedFamilyMember.name || undefined,
+              isCurrentlyContributing: selectedFamilyMember.isCurrentlyContributing === true,
+            }}
+            onVolver={() => setLocalViewStrategy(null)}
+          />
+        </div>
+
+        {/* Modal de registro rápido */}
+        <QuickRegistrationModal
+          isOpen={showQuickRegistration}
+          onClose={() => setShowQuickRegistration(false)}
+          onSuccess={() => {
+            setShowQuickRegistration(false)
+            toast.success('¡Registro exitoso!')
+          }}
+          strategyData={localViewStrategy}
+          userData={{}}
+        />
+      </div>
+    )
   }
 
   return (

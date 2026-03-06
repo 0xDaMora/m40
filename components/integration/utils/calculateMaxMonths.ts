@@ -2,6 +2,9 @@
  * Calcula el máximo de meses que una persona puede estar en Modalidad 40
  * basado en su edad de jubilación objetivo y la fecha de inicio seleccionada.
  * 
+ * Nota: El IMSS solo considera los últimos 58 meses de cotización para el cálculo
+ * de la pensión. Meses adicionales no proporcionan ventaja en el cálculo.
+ * 
  * @param birthDate - Fecha de nacimiento del usuario
  * @param retirementAge - Edad objetivo de jubilación
  * @param startMonth - Mes de inicio (1-12)
@@ -34,14 +37,14 @@ export function calculateMaxMonthsM40(
     (retirementDate.getFullYear() - startDate.getFullYear()) * 12 +
     (retirementDate.getMonth() - startDate.getMonth())
   
-  // El máximo legal de M40 es 58 meses
-  const MAX_LEGAL_MONTHS = 58
+  // El IMSS considera los últimos 58 meses para el cálculo de la pensión
+  const MAX_CALCULATION_MONTHS = 58
   
-  // El máximo disponible es el menor entre la diferencia calculada y el máximo legal
-  const maxMonths = Math.min(Math.max(0, monthsDifference), MAX_LEGAL_MONTHS)
+  // El máximo disponible es el menor entre la diferencia calculada y los meses que considera IMSS
+  const maxMonths = Math.min(Math.max(0, monthsDifference), MAX_CALCULATION_MONTHS)
   
-  // Determinar si está limitado por tiempo o por límite legal
-  const isLimitedByTime = monthsDifference < MAX_LEGAL_MONTHS
+  // Determinar si está limitado por tiempo o por el máximo de meses que considera IMSS
+  const isLimitedByTime = monthsDifference < MAX_CALCULATION_MONTHS
   const isLimited = isLimitedByTime || maxMonths === 0
   
   // Generar mensaje informativo
@@ -55,8 +58,8 @@ export function calculateMaxMonthsM40(
     message = `${maxMonths} meses máximo`
     details = `Puedes estar en M40 hasta ${maxMonths} meses antes de cumplir ${retirementAge} años.`
   } else {
-    message = `${MAX_LEGAL_MONTHS} meses (límite legal)`
-    details = `Tienes tiempo suficiente para completar los ${MAX_LEGAL_MONTHS} meses máximos permitidos en M40.`
+    message = `${MAX_CALCULATION_MONTHS} meses (máximo considerado por IMSS)`
+    details = `El IMSS toma en cuenta los últimos 58 meses de cotización para el cálculo. Meses adicionales no afectan el cálculo.`
   }
   
   return {

@@ -231,7 +231,8 @@ export async function POST(req: Request) {
         estadoCivil: estrategiaGuardada.familiar?.civilStatus || datosUsuario.estadoCivil || "soltero",
         fechaNacimiento: estrategiaGuardada.familiar?.birthDate?.toISOString().split('T')[0] || datosUsuario.fechaNacimiento || null,
         edadJubilacion: datosUsuario.edadJubilacion || datosUsuario.edad || datosEstrategia.edad || 58,
-        aportacionPromedio: datosUsuario.aportacionPromedio || null
+        aportacionPromedio: datosUsuario.aportacionPromedio || null,
+        isCurrentlyContributing: datosUsuario.isCurrentlyContributing === true
       },
       infoCompartida: {
         creadoPor: estrategiaGuardada.user.email,

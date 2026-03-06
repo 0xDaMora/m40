@@ -31,9 +31,9 @@ export function StrategyRow({
   // Calcular aportación mensual promedio
   const aportacionPromedio = strategy.inversionTotal ? strategy.inversionTotal / strategy.mesesM40 : 0
   
-  // Botón único: "Obtener Estrategia" que siempre guarda directamente
+  // Botón: "Ver Estrategia" sin sesión, "Obtener Estrategia" con sesión
   const buttonConfig = {
-    text: 'Obtener Estrategia',
+    text: session ? 'Obtener Estrategia' : 'Ver Estrategia',
     className: 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white',
     onClick: onViewDetails
   }

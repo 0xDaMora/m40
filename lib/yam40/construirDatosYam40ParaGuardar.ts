@@ -141,6 +141,8 @@ export function construirDatosYam40ParaGuardar(params: ConstruirDatosYam40Params
     conFactorEdad: pensionActual.conFactorEdad || null,
     conLeyFox: pensionActual.conLeyFox || null,
     conDependiente: pensionActual.conDependiente || null,
+    semanasTotales: pensionActual.semanasTotales || (datosUsuario.totalWeeksContributed + Math.floor(mesesConSDI.length * 4.33)),
+    semanasM40: pensionActual.semanasM40 || Math.floor(mesesConSDI.length * 4.33),
     // Parámetros para recrear
     edad: datosUsuario.retirementAge,
     dependiente: datosUsuario.civilStatus === 'casado' ? 'conyuge' : 'ninguno',

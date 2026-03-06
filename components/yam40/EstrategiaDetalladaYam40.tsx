@@ -60,6 +60,8 @@ interface EstrategiaDetalladaYam40Props {
     dependiente?: 'conyuge' | 'ninguno'
     listaSDI?: any[]
     esMejora?: boolean
+    semanasTotales?: number
+    semanasM40?: number
   }
   datosUsuario: {
     inicioM40?: string
@@ -1249,12 +1251,30 @@ export default function EstrategiaDetalladaYam40({ estrategia, datosUsuario, onV
                 <div className="text-sm md:text-base font-semibold text-gray-900">{datosUsuario.edadJubilacion} años</div>
               </div>
             )}
-            {(datosUsuario.semanasCotizadas || datosUsuario.semanasPrevias) && (
-              <div className="bg-white p-3 md:p-4 rounded-lg border border-blue-100 shadow-sm">
-                <div className="text-xs md:text-sm text-blue-600 font-medium mb-1">📊 Semanas</div>
-                <div className="text-sm md:text-base font-semibold text-gray-900">{datosUsuario.semanasCotizadas || datosUsuario.semanasPrevias}</div>
-              </div>
-            )}
+            {(datosUsuario.semanasCotizadas || datosUsuario.semanasPrevias) && (() => {
+              const semanasPrevias = datosUsuario.semanasPrevias || datosUsuario.semanasCotizadas || 0
+              const semanasM40 = estrategia.semanasM40 || Math.floor(estrategia.mesesM40 * 4.33)
+              const semanasTotales = estrategia.semanasTotales || (semanasPrevias + semanasM40)
+              return (
+                <div className="bg-white p-3 md:p-4 rounded-lg border border-blue-100 shadow-sm col-span-2 md:col-span-4">
+                  <div className="text-xs md:text-sm text-blue-600 font-medium mb-2">📊 Desglose de Semanas Cotizadas</div>
+                  <div className="grid grid-cols-3 gap-2 md:gap-3">
+                    <div className="bg-blue-50 p-2 md:p-3 rounded-lg text-center">
+                      <div className="text-lg md:text-xl font-bold text-blue-700">{semanasPrevias.toLocaleString('es-MX')}</div>
+                      <div className="text-[10px] md:text-xs text-blue-600">Semanas antes de M40</div>
+                    </div>
+                    <div className="bg-green-50 p-2 md:p-3 rounded-lg text-center">
+                      <div className="text-lg md:text-xl font-bold text-green-700">+{semanasM40.toLocaleString('es-MX')}</div>
+                      <div className="text-[10px] md:text-xs text-green-600">Semanas en M40</div>
+                    </div>
+                    <div className="bg-purple-50 p-2 md:p-3 rounded-lg text-center border-2 border-purple-200">
+                      <div className="text-lg md:text-xl font-bold text-purple-700">{semanasTotales.toLocaleString('es-MX')}</div>
+                      <div className="text-[10px] md:text-xs text-purple-600 font-semibold">Total al jubilarse</div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}

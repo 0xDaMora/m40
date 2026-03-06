@@ -20,6 +20,7 @@ import ConfirmationModal from "../ConfirmationModal"
 import PremiumModal from "../PremiumModal"
 import StrategyPurchaseModal from "../StrategyPurchaseModal"
 import TooltipInteligente from "../TooltipInteligente"
+import EstrategiaDetallada from "../EstrategiaDetallada"
 
 // Hooks
 import { useStrategyFiltering } from "@/components/integration/hooks/useStrategyFiltering"
@@ -87,6 +88,9 @@ export default function HeroOnboardStrategiesView({
   const [purchaseFamilyMember, setPurchaseFamilyMember] = useState<FamilyMember | null>(null)
   const [isIndividualPurchase, setIsIndividualPurchase] = useState(false) // Flag para compra individual
   
+  // Estado para vista local de estrategia (sin registro)
+  const [localViewStrategy, setLocalViewStrategy] = useState<StrategyResult | null>(null)
+  
   // Obtener plan del usuario
   const userPlan = session?.user?.subscription || 'free'
   
@@ -116,7 +120,8 @@ export default function HeroOnboardStrategiesView({
       birthDate,
       weeksContributed,
       lastGrossSalary,
-      civilStatus: civilStatus as 'casado' | 'soltero'
+      civilStatus: civilStatus as 'casado' | 'soltero',
+      isCurrentlyContributing: datosUsuario.isCurrentlyContributing === true
     }
   }, [datosUsuario])
   
@@ -270,7 +275,8 @@ export default function HeroOnboardStrategiesView({
           birthDate: datosUsuario.fechaNacimiento || new Date().toISOString().split('T')[0],
           weeksContributed: datosUsuario.semanasPrevias || datosUsuario.semanasCotizadas || 0,
           lastGrossSalary: datosUsuario.sdiHistorico ? datosUsuario.sdiHistorico * 30.4 : 0,
-          civilStatus: civilStatusValue
+          civilStatus: civilStatusValue,
+          isCurrentlyContributing: datosUsuario.isCurrentlyContributing === true
         }),
       })
       
@@ -362,7 +368,8 @@ export default function HeroOnboardStrategiesView({
           birthDate: datosUsuario.fechaNacimiento || new Date().toISOString().split('T')[0],
           weeksContributed: datosUsuario.semanasPrevias,
           lastGrossSalary: datosUsuario.sdiHistorico ? datosUsuario.sdiHistorico * 30.4 : 0,
-          civilStatus: civilStatusValue
+          civilStatus: civilStatusValue,
+          isCurrentlyContributing: datosUsuario.isCurrentlyContributing === true
         }),
       })
 
@@ -381,7 +388,8 @@ export default function HeroOnboardStrategiesView({
             birthDate: datosUsuario.fechaNacimiento || new Date().toISOString().split('T')[0],
             weeksContributed: datosUsuario.semanasPrevias,
             lastGrossSalary: datosUsuario.sdiHistorico ? datosUsuario.sdiHistorico * 30.4 : 0,
-            civilStatus: civilStatusValue
+            civilStatus: civilStatusValue,
+            isCurrentlyContributing: datosUsuario.isCurrentlyContributing === true
           }),
         })
         
@@ -408,8 +416,13 @@ export default function HeroOnboardStrategiesView({
   const processStrategySave = async (familyMemberId: string, familyMemberName: string, civilStatusValue: string) => {
     if (!confirmationStrategy) return
     
+    const currentRetirementAge = filters.retirementAge || datosUsuario.edad || 65
+    const currentStartDate = filters.startMonth && filters.startYear
+      ? `${filters.startYear}-${String(filters.startMonth).padStart(2, '0')}-01`
+      : (datosUsuario.inicioM40 || new Date().toISOString().split('T')[0])
+    
     // Crear código de estrategia unificado con ID real del familiar
-    const strategyCode = `integration_${familyMemberId}_${confirmationStrategy.estrategia}_${confirmationStrategy.umaElegida}_${confirmationStrategy.mesesM40}_${datosUsuario.edad || 65}`
+    const strategyCode = `integration_${familyMemberId}_${confirmationStrategy.estrategia}_${confirmationStrategy.umaElegida}_${confirmationStrategy.mesesM40}_${currentRetirementAge}_${currentStartDate.slice(5, 7)}${currentStartDate.slice(0, 4)}`
 
     console.log('🔍 Sistema Unificado - Datos originales:', confirmationStrategy)
     console.log('🔍 ID Familiar creado:', familyMemberId)
@@ -419,11 +432,11 @@ export default function HeroOnboardStrategiesView({
       mesesM40: confirmationStrategy.mesesM40,
       estrategia: confirmationStrategy.estrategia,
       umaElegida: confirmationStrategy.umaElegida,
-      edad: datosUsuario.edad || 65,
+      edad: currentRetirementAge,
       dependiente: datosUsuario.dependiente || 'ninguno',
       sdiHistorico: datosUsuario.sdiHistorico || 0,
       semanasPrevias: datosUsuario.semanasPrevias || 0,
-      inicioM40: datosUsuario.inicioM40 || new Date().toISOString().split('T')[0],
+      inicioM40: currentStartDate,
       inversionTotal: confirmationStrategy.inversionTotal,
       pensionMensual: confirmationStrategy.pensionMensual,
       pensionConAguinaldo: confirmationStrategy.pensionConAguinaldo,
@@ -450,8 +463,8 @@ export default function HeroOnboardStrategiesView({
 
     // Construir datos completos del usuario
     const datosUsuarioCompletos = {
-      inicioM40: datosUsuario.inicioM40 || new Date().toISOString().split('T')[0],
-      edad: datosUsuario.edad || 65,
+      inicioM40: currentStartDate,
+      edad: currentRetirementAge,
       dependiente: datosUsuario.dependiente || 'ninguno',
       sdiHistorico: datosUsuario.sdiHistorico || 0,
       semanasPrevias: datosUsuario.semanasPrevias || 0,
@@ -462,10 +475,11 @@ export default function HeroOnboardStrategiesView({
       salarioMensual: Math.round((datosUsuario.sdiHistorico || 0) * 30.4),
       estadoCivil: civilStatusValue,
       fechaNacimiento: datosUsuario.fechaNacimiento,
-      edadJubilacion: Number(datosUsuario.edad || 65),
+      edadJubilacion: Number(currentRetirementAge),
       aportacionPromedio: confirmationStrategy.inversionTotal && confirmationStrategy.mesesM40 
         ? Math.round(confirmationStrategy.inversionTotal / confirmationStrategy.mesesM40) 
-        : 0
+        : 0,
+      isCurrentlyContributing: datosUsuario.isCurrentlyContributing === true
     }
 
     console.log('🔍 Datos preparados para API (Sistema Unificado):', { datosEstrategia, datosUsuarioCompletos })
@@ -506,10 +520,10 @@ export default function HeroOnboardStrategiesView({
       console.error('❌ Error al guardar estrategia:', response.status, response.statusText)
       
       const params = new URLSearchParams({
-        edadJubilacion: (datosUsuario.edad || 65).toString(),
+        edadJubilacion: currentRetirementAge.toString(),
         fechaNacimiento: datosUsuario.fechaNacimiento || new Date().toISOString().split('T')[0],
         nombreFamiliar: familyMemberName,
-        edadActual: edadActualCalculada?.toString() || (datosUsuario.edad || 65).toString(),
+        edadActual: edadActualCalculada?.toString() || currentRetirementAge.toString(),
         semanasCotizadas: (datosUsuario.semanasPrevias || 0).toString(),
         sdiActual: (datosUsuario.sdiHistorico || 0).toString(),
         salarioMensual: Math.round((datosUsuario.sdiHistorico || 0) * 30.4).toString(),
@@ -520,11 +534,12 @@ export default function HeroOnboardStrategiesView({
         meses: confirmationStrategy.mesesM40.toString(),
         estrategia: confirmationStrategy.estrategia,
         uma: confirmationStrategy.umaElegida.toString(),
-        edad: (datosUsuario.edad || 65).toString(),
+        edad: currentRetirementAge.toString(),
         dependiente: datosUsuario.dependiente || 'ninguno',
         sdi: (datosUsuario.sdiHistorico || 0).toString(),
         semanas: (datosUsuario.semanasPrevias || 0).toString(),
-        fecha: datosUsuario.inicioM40 || new Date().toISOString().split('T')[0]
+        fecha: currentStartDate,
+        fechaInicio: currentStartDate
       })
       
       const url = `/estrategia/${strategyCode}?${params.toString()}`
@@ -535,7 +550,7 @@ export default function HeroOnboardStrategiesView({
   
   const handleMercadoPagoPremiumPurchase = async () => {
     // Implementación de compra Premium con MercadoPago (si es necesario)
-    toast.info('Funcionalidad de compra Premium pendiente de implementar')
+    toast('Funcionalidad de compra Premium pendiente de implementar')
   }
   
   // Handlers para StrategyRow
@@ -555,10 +570,9 @@ export default function HeroOnboardStrategiesView({
   }
   
   const handleViewDetails = async (strategy: StrategyResult) => {
-    // Si no hay sesión, mostrar modal de registro/login
     if (!session) {
-      setSelectedStrategyForPurchase(strategy)
-      setShowQuickRegistration(true)
+      // Usuario no logueado: mostrar estrategia detallada localmente (sin guardar en BD)
+      setLocalViewStrategy(strategy)
       return
     }
     
@@ -567,8 +581,8 @@ export default function HeroOnboardStrategiesView({
   }
   
   const handleDownloadPDF = (strategy: StrategyResult) => {
-    // Implementación de descarga PDF (si es necesario)
-    toast.info('Funcionalidad de descarga PDF pendiente de implementar')
+    // Para usuarios sin sesión, mostrar la vista detallada donde pueden descargar PDF
+    setLocalViewStrategy(strategy)
   }
   
   // Si no hay datos de usuario, mostrar mensaje
@@ -593,6 +607,88 @@ export default function HeroOnboardStrategiesView({
     )
   }
   
+  // Si hay una estrategia seleccionada para vista local (sin registro), mostrar EstrategiaDetallada full-width
+  if (localViewStrategy) {
+    return (
+      <div className="w-full max-w-none -mx-3 sm:-mx-6 lg:-mx-8 px-0">
+        {/* Banner de registro recomendado */}
+        {!session && (
+          <div className="bg-blue-50 border-b border-blue-200 px-4 sm:px-6 lg:px-8 py-4">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex-1">
+                <p className="text-blue-900 font-semibold text-sm sm:text-base">
+                  Te recomendamos registrarte para guardar tu estrategia
+                </p>
+                <p className="text-blue-700 text-xs sm:text-sm mt-1">
+                  Al registrarte podrás guardar tus estrategias, acceder desde cualquier dispositivo y recibir asesoría personalizada. No es obligatorio.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedStrategyForPurchase(localViewStrategy)
+                  setShowQuickRegistration(true)
+                }}
+                className="bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap"
+              >
+                Registrarme gratis
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="w-full max-w-none px-0 sm:px-4 lg:px-6 py-3 sm:py-4">
+          <EstrategiaDetallada
+            estrategia={{
+              estrategia: localViewStrategy.estrategia,
+              umaElegida: localViewStrategy.umaElegida,
+              mesesM40: localViewStrategy.mesesM40,
+              pensionMensual: localViewStrategy.pensionMensual || 0,
+              inversionTotal: localViewStrategy.inversionTotal || undefined,
+              ROI: localViewStrategy.ROI || undefined,
+              factorEdad: localViewStrategy.factorEdad,
+              conFactorEdad: localViewStrategy.conFactorEdad,
+              conLeyFox: localViewStrategy.conLeyFox,
+              conDependiente: localViewStrategy.conDependiente,
+              recuperacionMeses: localViewStrategy.recuperacionMeses,
+              pensionConAguinaldo: localViewStrategy.pensionConAguinaldo,
+              registros: localViewStrategy.registros,
+              semanasTotales: localViewStrategy.semanasTotales,
+              semanasM40: localViewStrategy.semanasM40,
+            }}
+            datosUsuario={{
+              inicioM40: filters.startMonth && filters.startYear
+                ? `${filters.startYear}-${String(filters.startMonth).padStart(2, '0')}-01`
+                : (datosUsuario.inicioM40 || new Date().toISOString().split('T')[0]),
+              fechaNacimiento: datosUsuario.fechaNacimiento,
+              edadJubilacion: filters.retirementAge || datosUsuario.edad || 65,
+              semanasCotizadas: datosUsuario.semanasPrevias || 0,
+              semanasPrevias: datosUsuario.semanasPrevias || 0,
+              nombreFamiliar: datosUsuario.nombre || undefined,
+              isCurrentlyContributing: datosUsuario.isCurrentlyContributing === true,
+            }}
+            onVolver={() => setLocalViewStrategy(null)}
+          />
+        </div>
+
+        {/* Modales para registro (disponible desde el banner) */}
+        {isMounted && (
+          <>
+            {createPortal(
+              <QuickRegistrationModal
+                isOpen={showQuickRegistration}
+                onClose={() => setShowQuickRegistration(false)}
+                onSuccess={handleQuickRegistrationSuccess}
+                strategyData={selectedStrategyForPurchase}
+                userData={datosUsuario}
+              />,
+              document.body
+            )}
+          </>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6 md:space-y-8">
       {/* Header */}

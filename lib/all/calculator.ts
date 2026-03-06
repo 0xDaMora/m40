@@ -1,4 +1,5 @@
 import { calcularSDI, calcularCuotaMensual, porcentajeLey73, aplicarFactores, calcularSemanasM40 } from "./utils"
+import { getUMA, getTasaM40, factorEdad as factorEdadMap } from "./constants"
 
 interface Params {
   mesesM40: number
@@ -27,7 +28,14 @@ export function calcularEscenario(params: Params) {
     throw new Error("Edad de jubilación debe estar entre 60 y 65 años")
   }
 
-  const registros: { sdiMensual: number; cuotaMensual: number }[] = []
+  const registros: Array<{
+    fecha: string
+    uma: number
+    tasaM40: number
+    sdiMensual: number
+    cuotaMensual: number
+    acumulado: number
+  }> = []
   let totalInversion = 0
 
   let year = inicioM40.getFullYear()
@@ -35,14 +43,23 @@ export function calcularEscenario(params: Params) {
 
   // Calcular cada mes de M40
   for (let i = 0; i < mesesM40; i++) {
-    const sdiMensual =
-      estrategia === "fijo"
-        ? calcularSDI(umaElegida, inicioM40.getFullYear()) // UMA fijo del año inicial
-        : calcularSDI(umaElegida, year) // UMA actualizado cada año
-
+    const umaYear = estrategia === "fijo" ? inicioM40.getFullYear() : year
+    const sdiMensual = calcularSDI(umaElegida, umaYear)
+    const tasaM40 = getTasaM40(year)
     const cuotaMensual = calcularCuotaMensual(sdiMensual, year)
     totalInversion += cuotaMensual
-    registros.push({ sdiMensual, cuotaMensual })
+
+    const fechaMes = new Date(year, month - 1, 1)
+    const fechaStr = fechaMes.toLocaleDateString('es-MX', { year: 'numeric', month: 'short' })
+
+    registros.push({
+      fecha: fechaStr,
+      uma: umaElegida * getUMA(umaYear),
+      tasaM40: tasaM40 * 100,
+      sdiMensual,
+      cuotaMensual,
+      acumulado: totalInversion
+    })
 
     // Avanzar al siguiente mes
     month++
@@ -55,11 +72,9 @@ export function calcularEscenario(params: Params) {
   // Calcular SDI promedio de los últimos 58 meses
   let sdiPromedio: number
   if (mesesM40 >= 58) {
-    // Solo considerar los últimos 58 meses (no todos)
     const ultimos58 = registros.slice(-58)
     sdiPromedio = ultimos58.reduce((a, b) => a + b.sdiMensual, 0) / 58
   } else {
-    // Completar con SDI histórico
     const faltantes = 58 - mesesM40
     const sumaM40 = registros.reduce((a, b) => a + b.sdiMensual, 0)
     sdiPromedio = (sumaM40 + faltantes * (sdiHistorico * 30.4)) / 58
@@ -109,6 +124,13 @@ export function calcularEscenario(params: Params) {
     }
   }
 
+  // Calcular factor breakdowns
+  const pensionBase = (porcentaje / 100) * sdiPromedio
+  const fEdad = factorEdadMap[edad] || 1
+  const conFactorEdad = pensionBase * fEdad
+  const conLeyFox = conFactorEdad * 1.11
+  const conDependiente = conLeyFox * (1 + (dependiente === "conyuge" ? 0.15 : 0))
+
   // Calcular métricas finales
   const pensionConAguinaldo = pensionMensual * 13 / 12
   const recuperacionMeses = totalInversion > 0 ? totalInversion / pensionMensual : null
@@ -124,8 +146,14 @@ export function calcularEscenario(params: Params) {
     ROI: ROI && !isNaN(ROI) ? +ROI.toFixed(2) : null,
     recuperacionMeses: recuperacionMeses && !isNaN(recuperacionMeses) ? Math.round(recuperacionMeses) : null,
     semanasTotales,
+    semanasM40,
     sdiPromedio: Math.round(sdiPromedio),
-    porcentajePension: +porcentaje.toFixed(2)
+    porcentajePension: +porcentaje.toFixed(2),
+    factorEdad: +fEdad.toFixed(2),
+    conFactorEdad: Math.round(conFactorEdad),
+    conLeyFox: Math.round(conLeyFox),
+    conDependiente: Math.round(conDependiente),
+    registros
   }
 }
 

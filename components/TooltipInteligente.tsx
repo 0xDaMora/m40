@@ -512,16 +512,16 @@ const explicaciones = {
          "Umbral exento": {
            titulo: "Umbral exento ISR",
            subtitulo: "Límite libre de impuestos",
-           explicacion: "Las pensiones del IMSS están exentas de ISR hasta cierto límite mensual. Solo se paga impuestos sobre el excedente.",
-           ejemplo: "Con umbral de $15,000, si tu pensión es $20,000, solo pagas ISR sobre $5,000.",
+           explicacion: "Las pensiones del IMSS están exentas de ISR hasta cierto límite mensual. Solo se paga impuestos sobre el excedente. El umbral actual es de $53,493 mensuales.",
+           ejemplo: "Si tu pensión es $60,000, solo pagas ISR sobre $6,507 ($60,000 - $53,493).",
            ventajas: [
              "✅ Beneficio fiscal",
              "✅ Pensión neta mayor",
              "✅ Ahorro en impuestos"
            ],
            consideraciones: [
-             "⚠️ Límite puede cambiar",
-             "⚠️ Consultar con contador"
+             "⚠️ Límite puede cambiar con reformas fiscales",
+             "⚠️ Consultar tabla ISR actual"
            ],
            icono: Shield,
            color: "green"
@@ -529,8 +529,8 @@ const explicaciones = {
          "Base gravable": {
            titulo: "Base gravable",
            subtitulo: "Monto sujeto a ISR",
-           explicacion: "Es la parte de tu pensión que excede el umbral exento y sobre la cual debes pagar impuestos.",
-           ejemplo: "Pensión $20,000 - Umbral $15,000 = Base gravable $5,000.",
+           explicacion: "Es la parte de tu pensión que excede el umbral exento y sobre la cual debes pagar impuestos. Se calcula restando el umbral exento a tu pensión bruta.",
+           ejemplo: "Pensión $60,000 - Umbral $53,493 = Base gravable $6,507.",
            ventajas: [
              "✅ Cálculo transparente",
              "✅ Solo sobre excedente",
@@ -538,7 +538,7 @@ const explicaciones = {
            ],
            consideraciones: [
              "⚠️ Varía según pensión",
-             "⚠️ Consultar tabla ISR"
+             "⚠️ Depende del umbral exento actual"
            ],
            icono: Calculator,
            color: "orange"

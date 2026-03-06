@@ -38,6 +38,10 @@ interface EstrategiaDetalladaProps {
     conFactorEdad?: number
     conLeyFox?: number
     conDependiente?: number
+    recuperacionMeses?: number | null
+    pensionConAguinaldo?: number | null
+    semanasTotales?: number
+    semanasM40?: number
     registros?: Array<{
       fecha: string
       uma: number
@@ -55,6 +59,7 @@ interface EstrategiaDetalladaProps {
     edadActual?: number
     semanasCotizadas?: number
     semanasPrevias?: number
+    isCurrentlyContributing?: boolean
   }
   onVolver: () => void
   debugCode?: string
@@ -89,7 +94,15 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
   const pensionViudez = calcularPensionViudez(estrategia.pensionMensual)
 
   // Fechas importantes
-  const fechaInicioM40 = new Date(datosUsuario.inicioM40 || "2024-02-01")
+  const fechaInicioM40 = (() => {
+    const fechaInicio = datosUsuario.inicioM40 || "2024-02-01"
+    const match = /^\d{4}-\d{2}-\d{2}$/.exec(fechaInicio)
+    if (match) {
+      const [year, month, day] = fechaInicio.split('-').map(Number)
+      return new Date(year, month - 1, day)
+    }
+    return new Date(fechaInicio)
+  })()
   const fechaFinM40 = new Date(fechaInicioM40)
   fechaFinM40.setMonth(fechaFinM40.getMonth() + estrategia.mesesM40)
   
@@ -1069,24 +1082,24 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="w-full max-w-7xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden"
+      className="w-full max-w-7xl mx-auto bg-white rounded-none sm:rounded-xl shadow-2xl overflow-hidden"
     >
       {/* Header de la estrategia - MEJORADO PARA MÓVIL */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 md:p-6">
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-3 sm:p-4 md:p-6">
         <div className="flex flex-col space-y-4">
           {/* Título y botón volver */}
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <h1 className="text-xl md:text-3xl font-bold mb-2">
+              <h1 className="text-lg sm:text-xl md:text-3xl font-bold mb-1.5 sm:mb-2 pr-2">
                 🎯 {estrategia.estrategia === "fijo" ? "UMA Fijo" : "UMA Progresivo"}
               </h1>
-              <p className="text-sm md:text-base text-blue-100">
+              <p className="text-xs sm:text-sm md:text-base text-blue-100">
                 {estrategia.umaElegida} UMA • {estrategia.mesesM40} meses
               </p>
             </div>
             <button
               onClick={onVolver}
-              className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors text-sm flex items-center gap-1"
+              className="bg-white/20 hover:bg-white/30 px-2.5 sm:px-3 py-1.5 rounded-lg transition-colors text-xs sm:text-sm flex items-center gap-1 shrink-0"
             >
               <ChevronLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Volver</span>
@@ -1146,33 +1159,33 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
         </div>
 
         {/* Métricas principales - MEJORADO PARA MÓVIL */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-          <div className="bg-white/10 p-3 md:p-4 rounded-lg">
-            <div className="text-lg md:text-2xl font-bold">{formatCurrency(estrategia.pensionMensual)}</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mt-3 sm:mt-4">
+          <div className="bg-white/10 p-2.5 sm:p-3 md:p-4 rounded-lg">
+            <div className="text-base sm:text-lg md:text-2xl font-bold">{formatCurrency(estrategia.pensionMensual)}</div>
             <div className="text-xs md:text-sm text-blue-100">
               <TooltipInteligente termino="Pensión mensual" colorTexto="text-white hover:text-blue-100">
                 Pensión mensual
               </TooltipInteligente>
             </div>
           </div>
-          <div className="bg-white/10 p-3 md:p-4 rounded-lg">
-            <div className="text-lg md:text-2xl font-bold">{formatCurrency(isr.pensionNeta)}</div>
+          <div className="bg-white/10 p-2.5 sm:p-3 md:p-4 rounded-lg">
+            <div className="text-base sm:text-lg md:text-2xl font-bold">{formatCurrency(isr.pensionNeta)}</div>
             <div className="text-xs md:text-sm text-blue-100">
               <TooltipInteligente termino="Pensión neta" colorTexto="text-white hover:text-blue-100">
                 Neta (después ISR)
               </TooltipInteligente>
             </div>
           </div>
-          <div className="bg-white/10 p-3 md:p-4 rounded-lg">
-            <div className="text-lg md:text-2xl font-bold">{formatCurrency(estrategia.inversionTotal || 0)}</div>
+          <div className="bg-white/10 p-2.5 sm:p-3 md:p-4 rounded-lg">
+            <div className="text-base sm:text-lg md:text-2xl font-bold">{formatCurrency(estrategia.inversionTotal || 0)}</div>
             <div className="text-xs md:text-sm text-blue-100">
               <TooltipInteligente termino="Inversión total" colorTexto="text-white hover:text-blue-100">
                 Inversión total
               </TooltipInteligente>
             </div>
           </div>
-          <div className="bg-white/10 p-3 md:p-4 rounded-lg">
-            <div className="text-lg md:text-2xl font-bold">{estrategia.ROI}%</div>
+          <div className="bg-white/10 p-2.5 sm:p-3 md:p-4 rounded-lg">
+            <div className="text-base sm:text-lg md:text-2xl font-bold">{estrategia.ROI}%</div>
             <div className="text-xs md:text-sm text-blue-100">
               <TooltipInteligente termino="ROI" colorTexto="text-white hover:text-blue-100">
                 ROI 20 años
@@ -1184,36 +1197,67 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
 
       {/* Información personalizada del familiar */}
       {(datosUsuario.nombreFamiliar || datosUsuario.edadActual || datosUsuario.edadJubilacion) && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 p-4 md:p-6">
-          <h2 className="text-lg md:text-xl font-bold text-blue-900 mb-4 flex items-center gap-2">
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-200 p-3 sm:p-4 md:p-6">
+          <h2 className="text-base sm:text-lg md:text-xl font-bold text-blue-900 mb-3 sm:mb-4 flex items-center gap-2">
             <Users className="w-5 h-5" />
             Información Personalizada
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
             {datosUsuario.nombreFamiliar && (
-              <div className="bg-white p-3 md:p-4 rounded-lg border border-blue-100 shadow-sm">
+              <div className="bg-white p-2.5 sm:p-3 md:p-4 rounded-lg border border-blue-100 shadow-sm">
                 <div className="text-xs md:text-sm text-blue-600 font-medium mb-1">👤 Nombre</div>
                 <div className="text-sm md:text-base font-semibold text-gray-900">{datosUsuario.nombreFamiliar}</div>
               </div>
             )}
             {(datosUsuario.edadActual || datosUsuario.fechaNacimiento) && (
-              <div className="bg-white p-3 md:p-4 rounded-lg border border-blue-100 shadow-sm">
+              <div className="bg-white p-2.5 sm:p-3 md:p-4 rounded-lg border border-blue-100 shadow-sm">
                 <div className="text-xs md:text-sm text-blue-600 font-medium mb-1">📅 Edad Actual</div>
                 <div className="text-sm md:text-base font-semibold text-gray-900">{datosUsuario.edadActual || (datosUsuario.fechaNacimiento ? calculateAge(datosUsuario.fechaNacimiento) : 'N/A')} años</div>
               </div>
             )}
             {datosUsuario.edadJubilacion && (
-              <div className="bg-white p-3 md:p-4 rounded-lg border border-blue-100 shadow-sm">
+              <div className="bg-white p-2.5 sm:p-3 md:p-4 rounded-lg border border-blue-100 shadow-sm">
                 <div className="text-xs md:text-sm text-blue-600 font-medium mb-1">🎯 Jubilación</div>
                 <div className="text-sm md:text-base font-semibold text-gray-900">{datosUsuario.edadJubilacion} años</div>
               </div>
             )}
-            {(datosUsuario.semanasCotizadas || datosUsuario.semanasPrevias) && (
-              <div className="bg-white p-3 md:p-4 rounded-lg border border-blue-100 shadow-sm">
-                <div className="text-xs md:text-sm text-blue-600 font-medium mb-1">📊 Semanas</div>
-                <div className="text-sm md:text-base font-semibold text-gray-900">{datosUsuario.semanasCotizadas || datosUsuario.semanasPrevias}</div>
-              </div>
-            )}
+            {(datosUsuario.semanasCotizadas || datosUsuario.semanasPrevias) && (() => {
+              const semanasHoy = datosUsuario.semanasCotizadas || datosUsuario.semanasPrevias || 0
+              const semanasM40 = estrategia.semanasM40 || Math.floor(estrategia.mesesM40 * 4.33)
+              // Semanas futuras: si está cotizando, las semanas entre hoy y el inicio de M40
+              let semanasFuturas = 0
+              if (datosUsuario.isCurrentlyContributing && datosUsuario.inicioM40) {
+                const hoy = new Date()
+                const inicioM40 = new Date(datosUsuario.inicioM40)
+                const diffMs = inicioM40.getTime() - hoy.getTime()
+                const mesesHastaM40 = Math.max(0, diffMs / (1000 * 60 * 60 * 24 * 30.4))
+                semanasFuturas = Math.floor(mesesHastaM40 * 4.33)
+              }
+              const semanasTotales = estrategia.semanasTotales || (semanasHoy + semanasFuturas + semanasM40)
+              return (
+                <div className="bg-white p-2.5 sm:p-3 md:p-4 rounded-lg border border-blue-100 shadow-sm col-span-2 md:col-span-4">
+                  <div className="text-xs md:text-sm text-blue-600 font-medium mb-2">📊 Desglose de Semanas Cotizadas</div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
+                    <div className="bg-blue-50 p-2 md:p-3 rounded-lg text-center">
+                      <div className="text-lg md:text-xl font-bold text-blue-700">{semanasHoy.toLocaleString('es-MX')}</div>
+                      <div className="text-[10px] md:text-xs text-blue-600">Semanas actuales</div>
+                    </div>
+                    <div className="bg-cyan-50 p-2 md:p-3 rounded-lg text-center">
+                      <div className="text-lg md:text-xl font-bold text-cyan-700">+{semanasFuturas.toLocaleString('es-MX')}</div>
+                      <div className="text-[10px] md:text-xs text-cyan-600">Semanas futuras</div>
+                    </div>
+                    <div className="bg-green-50 p-2 md:p-3 rounded-lg text-center">
+                      <div className="text-lg md:text-xl font-bold text-green-700">+{semanasM40.toLocaleString('es-MX')}</div>
+                      <div className="text-[10px] md:text-xs text-green-600">Semanas en M40</div>
+                    </div>
+                    <div className="bg-purple-50 p-2 md:p-3 rounded-lg text-center border-2 border-purple-200">
+                      <div className="text-lg md:text-xl font-bold text-purple-700">{semanasTotales.toLocaleString('es-MX')}</div>
+                      <div className="text-[10px] md:text-xs text-purple-600 font-semibold">Total al jubilarse</div>
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}
@@ -1293,7 +1337,7 @@ export default function EstrategiaDetallada({ estrategia, datosUsuario, onVolver
       </div>
 
       {/* Contenido de los tabs - Con padding responsive */}
-      <div className="p-4 md:p-6">
+      <div className="p-3 sm:p-4 md:p-6">
         <AnimatePresence mode="wait">
           {tabActivo === "resumen" && (
             <TabResumen 

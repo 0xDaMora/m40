@@ -19,9 +19,27 @@ export interface StrategyResult {
   pensionMensual: number | null
   ROI: number | null
   inversionTotal: number | null
+  pensionConAguinaldo?: number | null
+  recuperacionMeses?: number | null
+  factorEdad?: number
+  conFactorEdad?: number
+  conLeyFox?: number
+  conDependiente?: number
+  registros?: Array<{
+    fecha: string
+    uma: number
+    tasaM40?: number
+    sdiMensual: number
+    cuotaMensual: number
+    acumulado: number
+  }>
+  semanasTotales?: number
+  semanasM40?: number
+  sdiPromedio?: number
+  porcentajePension?: number
   error?: string
-  pmgAplicada?: boolean // Indica si se aplicó la Pensión Mínima Garantizada
-  pmgValor?: number // Valor de la PMG para referencia
+  pmgAplicada?: boolean
+  pmgValor?: number
 }
 
 export interface IntegrationFilters {
@@ -63,4 +81,5 @@ export interface FamilyMemberData {
   weeksContributed: number
   lastGrossSalary: number
   civilStatus: string
+  isCurrentlyContributing?: boolean
 }

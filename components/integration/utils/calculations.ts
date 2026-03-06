@@ -75,7 +75,7 @@ export const getOptimalStartDate = (birthDate: Date | string) => {
   let optimalYear = today.getFullYear()
   let optimalMonth = today.getMonth() + 1
   
-  // Regla 1: Si tiene menos de 55 años, programar para cuando tenga 55
+  // Regla 1: Si tiene menos de 55 años, recomendar iniciar a los 55 años
   if (age < 55) {
     const yearsTo55 = 55 - age
     optimalYear = today.getFullYear() + yearsTo55
@@ -90,13 +90,13 @@ export const getOptimalStartDate = (birthDate: Date | string) => {
     return {
       month: optimalMonth,
       year: optimalYear,
-      message: `Fecha óptima de inicio: ${optimalMonth}/${optimalYear}`,
-      details: `Iniciando a los 55 años para maximizar beneficios (en ${yearsTo55} años)`
+      message: `Recomendación: ${optimalMonth}/${optimalYear}`,
+      details: `Iniciar a los 55 años para maximizar tiempo en M40 (en ${yearsTo55} años). Cada caso es particular.`
     }
   }
   
-  // Regla 2: Si tiene 55 años o más, iniciar el mes siguiente
-  if (age >= 55) {
+  // Regla 2: Si tiene 55-59 años, puede iniciar cuando lo necesite
+  if (age >= 55 && age < 60) {
     // Si estamos en diciembre, pasar al siguiente año
     if (today.getMonth() === 11) { // Diciembre
       optimalMonth = 1 // Enero
@@ -109,10 +109,27 @@ export const getOptimalStartDate = (birthDate: Date | string) => {
     return {
       month: optimalMonth,
       year: optimalYear,
-      message: `Fecha óptima de inicio: ${optimalMonth}/${optimalYear}`,
-      details: age === 55 
-        ? 'Iniciando a los 55 años para maximizar beneficios'
-        : 'Puede comenzar inmediatamente'
+      message: `Fecha sugerida: ${optimalMonth}/${optimalYear}`,
+      details: 'Puede iniciar cuando lo necesite. Cada caso es particular y depende de sus circunstancias.'
+    }
+  }
+  
+  // Regla 3: Si tiene 60 años o más, puede iniciar inmediatamente
+  if (age >= 60) {
+    // Si estamos en diciembre, pasar al siguiente año
+    if (today.getMonth() === 11) { // Diciembre
+      optimalMonth = 1 // Enero
+      optimalYear = today.getFullYear() + 1
+    } else {
+      optimalMonth = today.getMonth() + 2 // Mes siguiente
+      optimalYear = today.getFullYear()
+    }
+    
+    return {
+      month: optimalMonth,
+      year: optimalYear,
+      message: `Fecha posible: ${optimalMonth}/${optimalYear}`,
+      details: 'Puede iniciar inmediatamente si cumple con los requisitos de semanas cotizadas.'
     }
   }
   

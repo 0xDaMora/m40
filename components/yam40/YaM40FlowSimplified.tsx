@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { toast } from "react-hot-toast"
-import { ArrowLeft, CheckCircle, Calculator, Info, CreditCard } from "lucide-react"
+import { ArrowLeft, CheckCircle, Calculator, Info, CreditCard, HelpCircle } from "lucide-react"
 import UserProfileCard from "./UserProfileCard"
 import SimpleDateSelector from "./simple/SimpleDateSelector"
 import PaymentMethodSelector from "./simple/PaymentMethodSelector"
@@ -19,6 +19,7 @@ import { calcularEscenarioYam40Recrear } from "@/lib/yam40/calculatorYam40Recrea
 import { getMaxAportacionPorAño } from "@/lib/all/umaConverter"
 import { calcularSDI } from "@/lib/all/utils"
 import { getUMA, getTasaM40 } from "@/lib/all/constants"
+import TutorialSDIModal from "../tutorials/TutorialSDIModal"
 
 type Step = 'profile' | 'payments' | 'result'
 
@@ -46,6 +47,7 @@ export default function YaM40FlowSimplified() {
   
   const [pensionActual, setPensionActual] = useState<StrategyResult | null>(null)
   const [loadingPension, setLoadingPension] = useState(false)
+  const [showTutorialSDI, setShowTutorialSDI] = useState(false)
   
   // Fechas de inicio y fin M40
   const currentYear = new Date().getFullYear()
@@ -517,41 +519,40 @@ export default function YaM40FlowSimplified() {
 
             <div className="bg-gray-50 rounded-lg p-4">
               <label className="block mb-2 text-sm font-medium text-gray-700">
-                Tu último salario mensual bruto antes de Modalidad 40
-                <div className="group relative inline-block ml-2">
-                  <Info className="w-4 h-4 text-gray-500 cursor-help" />
-                  <div className="absolute left-0 bottom-full mb-2 w-80 p-3 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 shadow-xl">
-                    <p className="font-semibold mb-2">💰 ¿Qué es el salario mensual bruto?</p>
-                    <p className="mb-2">Es el salario que recibías mensualmente en tu último trabajo <strong>antes</strong> de iniciar Modalidad 40.</p>
-                    <p className="mb-2 font-semibold text-yellow-300">⚠️ IMPORTANTE:</p>
-                    <p className="mb-2">Ingresa el salario <strong>bruto</strong> (antes de descuentos), no el neto. Este dato se convertirá automáticamente a SDI diario para calcular tu pensión.</p>
-                    <p className="mt-2 text-green-300">💡 Ejemplo: Si ganabas $15,000 pesos mensuales brutos, ingresa 15000</p>
-                  </div>
-                </div>
+                Promedio SDI (Salario Diario Integrado)
+                <button
+                  type="button"
+                  onClick={() => setShowTutorialSDI(true)}
+                  className="inline-flex items-center gap-1 ml-2 text-blue-600 hover:text-blue-700"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  <span className="text-xs underline">Tutorial</span>
+                </button>
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">$</span>
                 <input
                   type="text"
-                  value={state.sdiHistorico.value ? state.sdiHistorico.value.toString().replace(/,/g, '') : ''}
+                  inputMode="numeric"
+                  value={state.sdiHistorico.value ? Math.round(state.sdiHistorico.value / 30.4).toString() : ''}
                   onChange={(e) => {
-                    const cleaned = e.target.value.replace(/[, ]/g, '')
-                    const value = parseFloat(cleaned)
+                    const limpio = e.target.value.replace(/[^\d]/g, '')
+                    const sdiDiario = parseInt(limpio) || 0
                     setState(prev => ({
                       ...prev,
                       sdiHistorico: {
-                        value: isNaN(value) ? 0 : value,
-                        isDirectSDI: false
+                        value: Math.round(sdiDiario * 30.4),
+                        isDirectSDI: true
                       }
                     }))
                   }}
-                  placeholder="Ej: 15000"
+                  placeholder="Ej: 500"
                   className="w-full pl-8 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 />
               </div>
               {state.sdiHistorico.value > 0 && (
                 <p className="text-xs text-blue-600 mt-2 font-medium">
-                  💡 SDI diario calculado: ${((state.sdiHistorico.value / 30.4)).toFixed(2)} (${state.sdiHistorico.value.toLocaleString()} ÷ 30.4)
+                  💡 SDI diario: ${Math.round(state.sdiHistorico.value / 30.4).toLocaleString()} → Salario mensual equivalente: ${state.sdiHistorico.value.toLocaleString()}
                 </p>
               )}
             </div>
@@ -684,6 +685,8 @@ export default function YaM40FlowSimplified() {
         )}
 
       </AnimatePresence>
+
+      <TutorialSDIModal isOpen={showTutorialSDI} onClose={() => setShowTutorialSDI(false)} />
     </div>
   )
 }

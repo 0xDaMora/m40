@@ -12,6 +12,7 @@ interface Params {
   sdiHistorico: number // SDI diario histórico
   fechaInicio?: string // formato "YYYY-MM-DD" - fecha de inicio personalizada
   monthsMode?: 'fixed' | 'scan' // 'fixed' = solo mesesTarget; 'scan' = 1..mesesDisponibles
+  isCurrentlyContributing?: boolean // Si el usuario está cotizando activamente
 }
 
 export function allStrats({
@@ -24,6 +25,7 @@ export function allStrats({
   sdiHistorico,
   fechaInicio,
   monthsMode = 'fixed',
+  isCurrentlyContributing = false,
 }: Params) {
   console.log('🔍 DEBUG allStrats - Parámetros recibidos:', {
     fechaNacimiento,
@@ -91,7 +93,12 @@ export function allStrats({
   // Usar fecha de inicio personalizada si se proporciona, sino usar la lógica por defecto
   let fechaInicioM40: Date
   if (fechaInicio) {
-    fechaInicioM40 = new Date(fechaInicio)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fechaInicio)) {
+      const [year, month, day] = fechaInicio.split('-').map(Number)
+      fechaInicioM40 = new Date(year, month - 1, day)
+    } else {
+      fechaInicioM40 = new Date(fechaInicio)
+    }
     // Si la fecha de inicio es anterior a hoy, ajustar a hoy (permitir simulación)
     if (fechaInicioM40 < hoy) {
       fechaInicioM40 = new Date(hoy)
@@ -101,10 +108,23 @@ export function allStrats({
     fechaInicioM40 = edadHoy >= 53 ? hoy : fecha53
   }
 
-  // Inicio M40 = mes siguiente a la fecha de inicio
+  // Inicio M40 = usar la fecha de inicio exacta seleccionada por el usuario
   const inicioM40 = new Date(fechaInicioM40)
-  inicioM40.setMonth(fechaInicioM40.getMonth() + 1)
   inicioM40.setDate(1) // Primer día del mes
+
+  // Si el usuario está cotizando activamente y la fecha de inicio es futura,
+  // sumar las semanas del tiempo de espera a las semanas previas
+  let semanasPreviasAjustadas = semanasPrevias
+  if (isCurrentlyContributing && inicioM40 > hoy) {
+    const mesesEspera = 
+      (inicioM40.getFullYear() - hoy.getFullYear()) * 12 +
+      (inicioM40.getMonth() - hoy.getMonth())
+    if (mesesEspera > 0) {
+      const semanasEspera = Math.floor(mesesEspera * 4.33)
+      semanasPreviasAjustadas = semanasPrevias + semanasEspera
+      console.log('🔍 DEBUG allStrats - Cotización activa: sumando', semanasEspera, 'semanas de espera (', mesesEspera, 'meses). Semanas previas:', semanasPrevias, '→', semanasPreviasAjustadas)
+    }
+  }
 
   // Fecha de jubilación (edad deseada)
   const fechaJubilacion = new Date(nacimiento)
@@ -156,7 +176,7 @@ export function allStrats({
           const resultado = calcularEscenario({
             mesesM40: meses,
             estrategia,
-            semanasPrevias,
+            semanasPrevias: semanasPreviasAjustadas,
             edad: edadJubilacion,
             dependiente,
             umaElegida: uma,

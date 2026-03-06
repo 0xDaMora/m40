@@ -50,7 +50,8 @@ export function useStrategyCalculation() {
         birthDate: new Date(selectedFamilyMember.birthDate),
         weeksContributed: selectedFamilyMember.weeksContributed,
         lastGrossSalary: selectedFamilyMember.lastGrossSalary,
-        civilStatus: selectedFamilyMember.civilStatus
+        civilStatus: selectedFamilyMember.civilStatus,
+        isCurrentlyContributing: selectedFamilyMember.isCurrentlyContributing === true
       }
 
       // Configurar filtros para generar todas las estrategias posibles

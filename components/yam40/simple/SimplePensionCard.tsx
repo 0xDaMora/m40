@@ -141,8 +141,8 @@ export default function SimplePensionCard({
       return
     }
 
-    // Si es premium, generar estrategia directamente y redirigir
-    if (isPremium) {
+    // Generar estrategia directamente y redirigir (gratis para todos los usuarios autenticados)
+    {
       try {
         setProcessingPDF(true)
         
@@ -233,11 +233,7 @@ export default function SimplePensionCard({
       } finally {
         setProcessingPDF(false)
       }
-      return
     }
-
-    // Si NO es premium, abrir modal de compra
-    setShowPurchaseModal(true)
   }
 
   // Manejar registro exitoso
@@ -274,10 +270,9 @@ export default function SimplePensionCard({
       console.warn('Error al refrescar sesión:', error)
     }
 
-    // Abrir directamente el modal de compra en lugar de llamar a handleDownloadPDF
-    // porque handleDownloadPDF verifica la sesión y podría volver a abrir el modal de registro
+    // Llamar directamente a handleDownloadPDF para generar y guardar la estrategia gratis
     setTimeout(() => {
-      setShowPurchaseModal(true)
+      handleDownloadPDF()
     }, 300)
   }
 
