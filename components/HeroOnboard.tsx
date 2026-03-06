@@ -174,7 +174,7 @@ export default function HeroOnboard() {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium mb-6">
               <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Cálculos verificados con tablas oficiales IMSS 2025
+              Cálculos verificados con tablas oficiales IMSS 2026
             </div>
 
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
@@ -198,7 +198,7 @@ export default function HeroOnboard() {
               <div className="bg-white p-4 rounded-lg shadow-sm border">
                 <div className="text-2xl mb-2">🛡️</div>
                 <div className="font-semibold text-gray-800">Cálculos verificados</div>
-                <div className="text-gray-600">Con tablas oficiales 2025</div>
+                <div className="text-gray-600">Con tablas oficiales 2026</div>
               </div>
               <div className="bg-white p-4 rounded-lg shadow-sm border">
                 <div className="text-2xl mb-2">📈</div>

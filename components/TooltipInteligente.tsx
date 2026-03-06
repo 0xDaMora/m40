@@ -37,7 +37,7 @@ const explicaciones = {
     titulo: "UMA Progresivo",
     subtitulo: "Estrategia de pago variable",
     explicacion: "Con UMA Progresivo, tu pago mensual cambia cada año según la UMA oficial. Si la UMA sube, tu pago sube; si baja, tu pago baja.",
-    ejemplo: "Si eliges 15 UMA progresivo, pagarás $8,500 en 2024, pero si la UMA sube 5% en 2025, pagarás $8,925.",
+    ejemplo: "Si eliges 15 UMA progresivo, pagarás $8,500 en 2024, pero si la UMA sube 5% en 2026, pagarás $8,925.",
     ventajas: [
       "✅ Siempre pagas el valor actual de la UMA",
       "✅ Aprovechas si la UMA sube más de lo esperado",
@@ -240,12 +240,12 @@ const explicaciones = {
   "Cálculos Verificados": {
     titulo: "Cálculos Verificados",
     subtitulo: "Basados en tablas oficiales IMSS",
-    explicacion: "Todos nuestros cálculos están basados en las tablas oficiales del IMSS 2025 y la Ley 73. Hemos verificado cada fórmula con las publicaciones oficiales.",
+    explicacion: "Todos nuestros cálculos están basados en las tablas oficiales del IMSS 2026 y la Ley 73. Hemos verificado cada fórmula con las publicaciones oficiales.",
     ejemplo: "Usamos las tablas de factor de edad, factor familiar, y porcentajes de pensión exactamente como los publica el IMSS.",
     ventajas: [
       "✅ 100% precisos según IMSS",
       "✅ Basados en Ley 73 oficial",
-      "✅ Verificados con tablas 2025"
+      "✅ Verificados con tablas 2026"
     ],
     consideraciones: [
       "⚠️ Son proyecciones",

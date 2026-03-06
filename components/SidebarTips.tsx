@@ -193,7 +193,7 @@ export default function SidebarTips({ currentStep, isVisible }: SidebarTipsProps
         <div className="bg-gray-50 p-4 rounded-lg">
           <h4 className="font-medium text-gray-900 text-sm mb-2">¿Tienes dudas?</h4>
           <p className="text-xs text-gray-600 mb-3">
-            Nuestros cálculos están basados en las tablas oficiales del IMSS actualizadas a 2025.
+            Nuestros cálculos están basados en las tablas oficiales del IMSS actualizadas a 2026.
           </p>
           
         </div>
